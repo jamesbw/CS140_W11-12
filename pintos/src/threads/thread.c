@@ -15,6 +15,8 @@
 #include "userprog/process.h"
 #endif
 
+#include "fixed-point.h"
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -357,6 +359,7 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
+  ASSERT (thread_mlfqs);
   /* Not yet implemented. */
 }
 
@@ -364,6 +367,7 @@ thread_set_nice (int nice UNUSED)
 int
 thread_get_nice (void) 
 {
+  ASSERT (thread_mlfqs);
   /* Not yet implemented. */
   return 0;
 }
@@ -372,14 +376,38 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
+  ASSERT (thread_mlfqs);
+  struct thread *cur = thread_current ();
+
+  
   /* Not yet implemented. */
-  return 0;
+  return thread;
+}
+
+/* Updates the load_avg (called every second). */
+void
+thread_update_load_avg (void) 
+{
+  ASSERT (thread_mlfqs);
+  int ready_threads_count;
+  struct thread *cur = thread_current ();
+
+  ready_threads_count = list_size (&ready_list);
+
+  if (cur != idle_thread)
+    ready_threads_count ++;
+
+  cur->load_avg = 59/60 * cur->load_avg 
+
+  
+  /* Not yet implemented. */
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
+  ASSERT (thread_mlfqs);
   /* Not yet implemented. */
   return 0;
 }
