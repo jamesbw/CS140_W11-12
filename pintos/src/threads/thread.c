@@ -374,7 +374,7 @@ thread_set_nice (int nice UNUSED)
   struct thread *cur = thread_current ();
   cur->nice = nice;
 
-  thread_update_priority (cur);
+  thread_update_priority (cur, NULL);
   int max_priority = list_entry ( list_max ( &ready_list, &thread_priority_comparator, NULL), struct thread, elem)->priority;
   if(cur->priority < max_priority )
     thread_yield ();
@@ -438,7 +438,7 @@ void
 thread_increment_recent_cpu ( struct thread *t, void *cpu_increment ) 
 {
   ASSERT (thread_mlfqs);
-  t->recent_cpu = fixed_point_add_fp_int (t->recent_cpu, (int) *cpu_increment);
+  t->recent_cpu = fixed_point_add_fp_int (t->recent_cpu, *((int *) cpu_increment));
 }
 
 /* Updates the recent_cpu (called every second). */
@@ -584,13 +584,13 @@ init_thread (struct thread *t, const char *name, int priority)
   if(t == initial_thread)
     t->nice = 0;
   else
-    t->nice = thread_curret ()->nice;
+    t->nice = thread_current ()->nice;
   t->recent_cpu = 0;
 
   if(!thread_mlfqs)
     t->priority = priority;
   else
-    thread_update_priority(t);
+    thread_update_priority(t, NULL);
 
   
   t->magic = THREAD_MAGIC;
