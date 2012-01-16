@@ -375,7 +375,7 @@ thread_set_nice (int nice UNUSED)
   cur->nice = nice;
 
   thread_update_priority (cur);
-  int max_priority = list_entry ( list_max ( &ready_list, thread_priority_comparator, NULL))->priority;
+  int max_priority = list_entry ( list_max ( &ready_list, &thread_priority_comparator, NULL), struct thread, elem)->priority;
   if(cur->priority < max_priority )
     thread_yield ();
 }
@@ -410,7 +410,7 @@ thread_update_load_avg (void)
 
   ready_threads_count = list_size (&ready_list);
 
-  if (cur != idle_thread)
+  if (thread_current() != idle_thread)
     ready_threads_count ++;
 
   int17_14t _56div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (59), 60);
@@ -435,15 +435,15 @@ thread_get_recent_cpu (void)
 
 /* Increment the recent_cpu by a given number of ticks. */
 void
-thread_increment_recent_cpu ( struct thread *t, int *cpu_increment ) 
+thread_increment_recent_cpu ( struct thread *t, void *cpu_increment ) 
 {
   ASSERT (thread_mlfqs);
-  t->recent_cpu += *cpu_increment;
+  t->recent_cpu = fixed_point_add_fp_int (t->recent_cpu, (int) *cpu_increment);
 }
 
 /* Updates the recent_cpu (called every second). */
 void
-thread_update_recent_cpu ( struct thread *t ) 
+thread_update_recent_cpu ( struct thread *t, void *aux UNUSED ) 
 {
   ASSERT (thread_mlfqs);
 
@@ -459,7 +459,7 @@ thread_update_recent_cpu ( struct thread *t )
 /* Updates the priority (called every 4 ticks).
    Yields if no longer the highest priority thread */
 void
-thread_update_priority (struct thread *t) 
+thread_update_priority (struct thread *t, void *aux UNUSED) 
 {
   ASSERT (thread_mlfqs);
 
@@ -467,7 +467,7 @@ thread_update_priority (struct thread *t)
                             - fixed_point_divide_fp_int ( t->recent_cpu, 4)
                             - fixed_point_multiply_fp_int (t->nice, 2);
 
-  cur->priority = fixed_point_fp_to_int_zero (priority_temp);
+  t->priority = fixed_point_fp_to_int_zero (priority_temp);
 
   if(t->priority > PRI_MAX)
     t->priority = PRI_MAX;
@@ -584,7 +584,7 @@ init_thread (struct thread *t, const char *name, int priority)
   if(t == initial_thread)
     t->nice = 0;
   else
-    t->nice = current_thread ()->nice;
+    t->nice = thread_curret ()->nice;
   t->recent_cpu = 0;
 
   if(!thread_mlfqs)
