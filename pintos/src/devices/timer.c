@@ -30,6 +30,30 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
+
+#define MLFQS_PRI_UPDATE_FREQ 4 /* Recalculate priority every 4 ticks*/
+void timer_mlfqs_update (void);
+
+
+void 
+timer_mlfqs_update (void)
+{
+  ASSERT (intr_context ());
+
+  if (ticks % MLFQS_PRI_UPDATE_FREQ == 0)
+    thread_mlfqs_update ( MLFQS_PRI_UPDATE_FREQ , ticks % TIMER_FREQ == 0)
+
+  {
+    increment by MLFQS_PRI_UPDATE_FREQ recent_cpu
+    if (ticks % TIMER_FREQ == 0)
+    {
+      update load_avg
+      update recent_cpu
+    }
+    update priority
+  }
+}
+
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -171,6 +195,9 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
+
+  timer_mlfqs_update ();
+
   thread_tick ();
 }
 
