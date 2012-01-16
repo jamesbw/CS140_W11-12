@@ -75,7 +75,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-static bool thread_priority_comparator(struct thread *t1, struct thread *t2, void *aux UNUSED);
+static bool thread_priority_comparator( const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -612,8 +612,10 @@ alloc_frame (struct thread *t, size_t size)
 }
 
 static bool 
-thread_priority_comparator(struct thread *t1, struct thread *t2, void *aux UNUSED)
+thread_priority_comparator( const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
+  struct thread *t1 = list_entry( a , struct thread, elem);
+  struct thread *t2 = list_entry( b , struct thread, elem);
   return t1->priority < t2->priority;
 }
 
