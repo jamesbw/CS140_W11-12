@@ -153,6 +153,6 @@ void thread_update_load_avg (void);
 void thread_increment_recent_cpu ( struct thread *t, void *cpu_increment );
 void thread_update_recent_cpu ( struct thread *t, void *aux UNUSED );
 void thread_update_priority (struct thread *t, void *aux UNUSED) ;
-void thread_mlfqs_update (int cpu_increment, int second_mark_flag);
+void thread_mlfqs_update (int cpu_increment, bool second_mark_flag);
 
 #endif /* threads/thread.h */

@@ -75,7 +75,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-static int thread_priority_comparator(struct thread *t1, struct thread *t2, void *aux UNUSED);
+static bool thread_priority_comparator(struct thread *t1, struct thread *t2, void *aux UNUSED);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -482,7 +482,7 @@ thread_update_priority (struct thread *t, void *aux UNUSED)
    is updated for each thread.
    The priority of each thread is updated.*/
 void 
-thread_mlfqs_update (int cpu_increment, int second_mark_flag)
+thread_mlfqs_update (int cpu_increment, bool second_mark_flag)
 {
   ASSERT (intr_context ());
   if (!thread_mlfqs)
