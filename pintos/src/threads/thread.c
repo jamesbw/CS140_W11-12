@@ -15,6 +15,8 @@
 #include "userprog/process.h"
 #endif
 
+#include "fixed_point.h"
+
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -73,7 +75,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-static int thread_priority_comparator(struct thread *t1, struct thread *t2);
+static int thread_priority_comparator(struct thread *t1, struct thread *t2, void *aux UNUSED);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -610,7 +612,7 @@ alloc_frame (struct thread *t, size_t size)
 }
 
 static int 
-thread_priority_comparator(struct thread *t1, struct thread *t2)
+thread_priority_comparator(struct thread *t1, struct thread *t2, void *aux UNUSED)
 {
   return t1->priority < t2->priority;
 }
