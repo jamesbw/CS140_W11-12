@@ -1,7 +1,7 @@
 #ifndef THREADS_FIXED_POINT_H
 #define THREADS_FIXED_POINT_H
 
-
+#include <stdint.h>
 
 /* Fixed point integer representation for real numbers */
 typedef int int17_14t;
