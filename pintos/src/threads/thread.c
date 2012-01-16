@@ -476,8 +476,12 @@ thread_update_priority (struct thread *t)
   
 }
 
-//
-void thread_mlfqs_update (int cpu_increment, int second_mark_flag)
+/* Increments the recent_cpu for all threads for each tick.
+   If we are on the second, loav_avg is updated and recent_cpu
+   is updated for each thread.
+   The priority of each thread is updated.*/
+void 
+thread_mlfqs_update (int cpu_increment, int second_mark_flag)
 {
   ASSERT (intr_context ());
   if (!thread_mlfqs)
