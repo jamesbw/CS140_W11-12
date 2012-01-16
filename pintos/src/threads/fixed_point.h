@@ -6,7 +6,7 @@
 /* Fixed point integer representation for real numbers */
 typedef int int17_14t;
 
-#define F 2**14
+#define F 16384 /* 2**14 */
 
 
 int
