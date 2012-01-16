@@ -611,7 +611,7 @@ alloc_frame (struct thread *t, size_t size)
   return t->stack;
 }
 
-static int 
+static bool 
 thread_priority_comparator(struct thread *t1, struct thread *t2, void *aux UNUSED)
 {
   return t1->priority < t2->priority;
