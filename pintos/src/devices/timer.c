@@ -43,15 +43,6 @@ timer_mlfqs_update (void)
   if (ticks % MLFQS_PRI_UPDATE_FREQ == 0)
     thread_mlfqs_update ( MLFQS_PRI_UPDATE_FREQ , ticks % TIMER_FREQ == 0)
 
-  {
-    increment by MLFQS_PRI_UPDATE_FREQ recent_cpu
-    if (ticks % TIMER_FREQ == 0)
-    {
-      update load_avg
-      update recent_cpu
-    }
-    update priority
-  }
 }
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
