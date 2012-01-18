@@ -414,9 +414,9 @@ thread_update_load_avg (void)
   if (thread_current() != idle_thread)
     ready_threads_count ++;
 
-  int17_14t _56div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (59), 60);
+  int17_14t _59div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (59), 60);
   int17_14t _1div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (1), 60);
-  load_avg = fixed_point_multiply_fp_fp (_56div60, load_avg) 
+  load_avg = fixed_point_multiply_fp_fp (_59div60, load_avg) 
                 + fixed_point_multiply_fp_int (_1div60, ready_threads_count);
 
 }
