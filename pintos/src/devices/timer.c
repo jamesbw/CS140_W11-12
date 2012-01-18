@@ -34,7 +34,6 @@ static void real_time_delay (int64_t num, int32_t denom);
 #define MLFQS_PRI_UPDATE_FREQ 4 /* Recalculate priority every 4 ticks*/
 void timer_mlfqs_update (void);
 
-
 void 
 timer_mlfqs_update (void)
 {
@@ -52,6 +51,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  list_init(&alarm_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -107,8 +107,11 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+  struct alarm *thread_alarm = malloc(sizeof(struct alarm));
+  sema_init(&(thread_alarm->sem), 0);
+  thread_alarm->alarm_ticks = start + ticks;
+  list_push_front(&alarm_list, &(thread_alarm->elem));
+  sema_down(&(thread_alarm->sem));
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -190,6 +193,16 @@ timer_interrupt (struct intr_frame *args UNUSED)
   timer_mlfqs_update ();
 
   thread_tick ();
+  struct list_elem *e;
+  for (e = list_begin(&alarm_list), e != list_end(&list); e)
+  {
+    if (ticks == e->alarm_tick) {
+      sema_up(&(e->sem)); 
+      e = list_remove(e);
+    } else {
+      e = list_next(e);
+    }
+  }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
