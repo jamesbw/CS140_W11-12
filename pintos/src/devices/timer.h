@@ -4,6 +4,8 @@
 #include <round.h>
 #include <stdint.h>
 #include <list.h>
+#include "threads/synch.h"
+#include "threads/malloc.h"
 
 /* Number of timer interrupts per second. */
 #define TIMER_FREQ 100

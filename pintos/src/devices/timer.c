@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
-#include "threads/synch.h"
 #include "threads/thread.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
@@ -109,7 +108,7 @@ timer_sleep (int64_t ticks)
   ASSERT (intr_get_level () == INTR_ON);
   struct alarm *thread_alarm = malloc(sizeof(struct alarm));
   sema_init(&(thread_alarm->sem), 0);
-  thread_alarm->alarm_ticks = start + ticks;
+  thread_alarm->alarm_tick = start + ticks;
   list_push_front(&alarm_list, &(thread_alarm->elem));
   sema_down(&(thread_alarm->sem));
 }
@@ -194,10 +193,11 @@ timer_interrupt (struct intr_frame *args UNUSED)
 
   thread_tick ();
   struct list_elem *e;
-  for (e = list_begin(&alarm_list), e != list_end(&list); e)
+  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); e)
   {
-    if (ticks == e->alarm_tick) {
-      sema_up(&(e->sem)); 
+    struct alarm *alarm = list_entry(e, struct alarm, elem);
+    if (ticks == alarm->alarm_tick) {
+      sema_up(&(alarm->sem)); 
       e = list_remove(e);
     } else {
       e = list_next(e);
