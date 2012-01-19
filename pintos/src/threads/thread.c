@@ -586,7 +586,7 @@ init_thread (struct thread *t, const char *name, int priority)
   if(t == initial_thread)
   {
     t->nice = 0;
-    t->recent_cpu;
+    t->recent_cpu = 0;
   }
   else{
     struct thread *cur = thread_current ();
