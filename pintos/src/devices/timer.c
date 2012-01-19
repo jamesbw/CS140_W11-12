@@ -40,8 +40,10 @@ timer_mlfqs_update (void)
 {
   ASSERT (intr_context ());
 
+  thread_increment_recent_cpu();
+
   if (ticks % MLFQS_PRI_UPDATE_FREQ == 0)
-    thread_mlfqs_update ( MLFQS_PRI_UPDATE_FREQ , ticks % TIMER_FREQ == 0);
+    thread_mlfqs_update (ticks % TIMER_FREQ == 0);
 
 }
 
@@ -186,6 +188,7 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
+
 
   timer_mlfqs_update ();
 
