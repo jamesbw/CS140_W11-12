@@ -414,9 +414,9 @@ thread_update_load_avg (void)
   if (thread_current() != idle_thread)
     ready_threads_count ++;
 
-  int17_14t _56div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (59), 60);
+  int17_14t _59div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (59), 60);
   int17_14t _1div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (1), 60);
-  load_avg = fixed_point_multiply_fp_fp (_56div60, load_avg) 
+  load_avg = fixed_point_multiply_fp_fp (_59div60, load_avg) 
                 + fixed_point_multiply_fp_int (_1div60, ready_threads_count);
 
 }
@@ -434,12 +434,14 @@ thread_get_recent_cpu (void)
 }
 
 
-/* Increment the recent_cpu by a given number of ticks. */
+/* Increment the recent_cpu by 1. */
 void
-thread_increment_recent_cpu ( struct thread *t, void *cpu_increment ) 
+thread_increment_recent_cpu (void) 
 {
-  ASSERT (thread_mlfqs);
-  t->recent_cpu = fixed_point_add_fp_int (t->recent_cpu, *((int *) cpu_increment));
+  if (!thread_mlfqs)
+    return;
+  struct thread *cur = thread_current ();
+  cur->recent_cpu = fixed_point_add_fp_int (cur->recent_cpu, 1);
 }
 
 /* Updates the recent_cpu (called every second). */
@@ -482,13 +484,12 @@ thread_update_priority (struct thread *t, void *aux UNUSED)
    is updated for each thread.
    The priority of each thread is updated.*/
 void 
-thread_mlfqs_update (int cpu_increment, bool second_mark_flag)
+thread_mlfqs_update (bool second_mark_flag)
 {
   ASSERT (intr_context ());
   if (!thread_mlfqs)
     return;
 
-  thread_foreach ( &thread_increment_recent_cpu, &cpu_increment);
   if (second_mark_flag)
   {
     thread_update_load_avg ();
