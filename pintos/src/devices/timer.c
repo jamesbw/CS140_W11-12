@@ -37,7 +37,7 @@ static bool cmp_alarm(const struct list_elem *a, const struct list_elem *b, void
 	       *aux UNUSED) {
   struct alarm *alarm_a = list_entry(a, struct alarm, elem);
   struct alarm *alarm_b = list_entry(b, struct alarm, elem);
-  return alarm_b->alarm_tick > alarm_a->alarm_tick;
+  return alarm_a->alarm_tick < alarm_b->alarm_tick;
 }
 
 void 
@@ -203,12 +203,14 @@ timer_interrupt (struct intr_frame *args UNUSED)
   timer_mlfqs_update ();
 
   thread_tick ();
-  struct list_elem *e = list_begin(&(alarm_list));
-  if (!list_empty(&alarm_list)) {
-    struct alarm *next_alarm = list_front(&alarm_list);
+  struct list_elem *e;
+  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); e) {
+    struct alarm *next_alarm = list_entry(e, struct alarm, elem);;
     if (ticks >= next_alarm->alarm_tick) {
       sema_up(&(next_alarm->sem)); 
-      e = list_remove(&(next_alarm->elem));
+      e = list_remove(e);
+    } else {
+      break;
     }
   }
 }
