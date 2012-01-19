@@ -468,7 +468,7 @@ thread_update_priority (struct thread *t, void *aux UNUSED)
 
   int17_14t priority_temp = fixed_point_int_to_fp( PRI_MAX)
                             - fixed_point_divide_fp_int ( t->recent_cpu, 4)
-                            - fixed_point_multiply_fp_int (t->nice, 2);
+                            - fixed_point_int_to_fp (t->nice * 2);
 
   t->priority = fixed_point_fp_to_int_zero (priority_temp);
 
@@ -584,10 +584,15 @@ init_thread (struct thread *t, const char *name, int priority)
 
   /* mlfqs */
   if(t == initial_thread)
+  {
     t->nice = 0;
-  else
-    t->nice = thread_current ()->nice;
-  t->recent_cpu = 0;
+    t->recent_cpu;
+  }
+  else{
+    struct thread *cur = thread_current ();
+    t->nice = cur->nice;
+    t->recent_cpu = cur->recent_cpu;
+  }
 
   if(!thread_mlfqs)
     t->priority = priority;
