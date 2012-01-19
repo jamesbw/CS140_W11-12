@@ -33,6 +33,13 @@ static void real_time_delay (int64_t num, int32_t denom);
 #define MLFQS_PRI_UPDATE_FREQ 4 /* Recalculate priority every 4 ticks*/
 void timer_mlfqs_update (void);
 
+static bool cmp_alarm(const struct list_elem *a, const struct list_elem *b, void
+	       *aux UNUSED) {
+  struct alarm *alarm_a = list_entry(a, struct alarm, elem);
+  struct alarm *alarm_b = list_entry(b, struct alarm, elem);
+  return alarm_b->alarm_tick > alarm_a->alarm_tick;
+}
+
 void 
 timer_mlfqs_update (void)
 {
@@ -109,8 +116,9 @@ timer_sleep (int64_t ticks)
   struct alarm *thread_alarm = malloc(sizeof(struct alarm));
   sema_init(&(thread_alarm->sem), 0);
   thread_alarm->alarm_tick = start + ticks;
-  list_push_front(&alarm_list, &(thread_alarm->elem));
+  list_insert_ordered(&alarm_list, &(thread_alarm->elem), cmp_alarm, NULL);
   sema_down(&(thread_alarm->sem));
+  free(thread_alarm);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
