@@ -200,15 +200,12 @@ timer_interrupt (struct intr_frame *args UNUSED)
   timer_mlfqs_update ();
 
   thread_tick ();
-  struct list_elem *e;
-  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); e)
-  {
-    struct alarm *alarm = list_entry(e, struct alarm, elem);
-    if (ticks == alarm->alarm_tick) {
-      sema_up(&(alarm->sem)); 
-      e = list_remove(e);
-    } else {
-      e = list_next(e);
+  struct list_elem *e = list_begin(&(alarm_list));
+  if (!list_empty(&alarm_list)) {
+    struct alarm *next_alarm = list_front(&alarm_list);
+    if (ticks >= next_alarm->alarm_tick) {
+      sema_up(&(next_alarm->sem)); 
+      e = list_remove(&(next_alarm->elem));
     }
   }
 }
