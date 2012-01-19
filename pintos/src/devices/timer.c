@@ -37,7 +37,7 @@ static bool cmp_alarm(const struct list_elem *a, const struct list_elem *b, void
 	       *aux UNUSED) {
   struct alarm *alarm_a = list_entry(a, struct alarm, elem);
   struct alarm *alarm_b = list_entry(b, struct alarm, elem);
-  return alarm_b->alarm_tick > alarm_a->alarm_tick;
+  return alarm_a->alarm_tick < alarm_b->alarm_tick;
 }
 
 void 
@@ -45,8 +45,10 @@ timer_mlfqs_update (void)
 {
   ASSERT (intr_context ());
 
+  thread_increment_recent_cpu();
+
   if (ticks % MLFQS_PRI_UPDATE_FREQ == 0)
-    thread_mlfqs_update ( MLFQS_PRI_UPDATE_FREQ , ticks % TIMER_FREQ == 0);
+    thread_mlfqs_update (ticks % TIMER_FREQ == 0);
 
 }
 
@@ -197,15 +199,16 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
 
+
   timer_mlfqs_update ();
 
   thread_tick ();
-  struct list_elem *e = list_begin(&(alarm_list));
   if (!list_empty(&alarm_list)) {
-    struct alarm *next_alarm = list_front(&alarm_list);
+    struct list_elem *e = list_front(&alarm_list);
+    struct alarm *next_alarm = list_entry(e, struct alarm, elem);;
     if (ticks >= next_alarm->alarm_tick) {
       sema_up(&(next_alarm->sem)); 
-      e = list_remove(&(next_alarm->elem));
+      e = list_remove(e);
     }
   }
 }
