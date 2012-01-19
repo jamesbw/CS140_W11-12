@@ -203,12 +203,14 @@ timer_interrupt (struct intr_frame *args UNUSED)
   timer_mlfqs_update ();
 
   thread_tick ();
-  if (!list_empty(&alarm_list)) {
-    struct list_elem *e = list_front(&alarm_list);
+  struct list_elem *e;
+  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); e) {
     struct alarm *next_alarm = list_entry(e, struct alarm, elem);;
     if (ticks >= next_alarm->alarm_tick) {
       sema_up(&(next_alarm->sem)); 
       e = list_remove(e);
+    } else {
+      break;
     }
   }
 }
