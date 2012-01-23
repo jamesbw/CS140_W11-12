@@ -208,7 +208,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
 
 void check_alarms(void) {
   struct list_elem *e;
-  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); e) {
+  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); ) {
     struct alarm *next_alarm = list_entry(e, struct alarm, elem);;
     if (ticks >= next_alarm->alarm_tick) {
       sema_up(&(next_alarm->sem)); 
