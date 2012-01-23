@@ -32,7 +32,7 @@ static void real_time_delay (int64_t num, int32_t denom);
 
 #define MLFQS_PRI_UPDATE_FREQ 4 /* Recalculate priority every 4 ticks*/
 void timer_mlfqs_update (void);
-void check_alarms();
+void check_alarms(void);
 
 static bool cmp_alarm(const struct list_elem *a, const struct list_elem *b, void
 	       *aux UNUSED) {
@@ -206,9 +206,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
   check_alarms();
 }
 
-void check_alarms() {
+void check_alarms(void) {
   struct list_elem *e;
-  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); e) {
+  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); ) {
     struct alarm *next_alarm = list_entry(e, struct alarm, elem);;
     if (ticks >= next_alarm->alarm_tick) {
       sema_up(&(next_alarm->sem)); 
