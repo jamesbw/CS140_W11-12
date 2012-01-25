@@ -1,0 +1,224 @@
+			+--------------------+
+			|        CS 140      |
+			| PROJECT 1: THREADS |
+			|   DESIGN DOCUMENT  |
+			+--------------------+
+				   
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+
+Benjamin Shapero <bshapero@stanford.edu>
+FirstName LastName <email@domain.example>
+FirstName LastName <email@domain.example>
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+			     ALARM CLOCK
+			     ===========
+
+---- DATA STRUCTURES ----
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+struct alarm {
+  struct list_elem elem;
+  int64_t alarm_tick;    /* Wait until this tick to wake */
+  struct semaphore sem;
+};
+
+--list_elem elem is for use with the list libary.
+--sem is the semaphore downed by the thread when it goes to sleep.  The
+  interrupt will wake the thread by upping this semaphore.
+--alarm_tick is the tick when the interrupt will up the semaphore.
+
+struct list alarm_list;
+
+--alarm_list contains the alarm structs, one for each sleeping
+thread.  This list is sorted by alarm_tick so the next alarm is at the head.
+
+
+---- ALGORITHMS ----
+>> A2: Briefly describe what happens in a call to timer_sleep(),
+>> including the effects of the timer interrupt handler.
+
+When a thread calls timer_sleep(), the thread declares a new alarm,
+initializes the semaphore and sets the alarm by assigning its wake up
+tick.  Then the alarm is added to the alarm_list, which is checked by the
+interrupt handler.  The handler at each tick will compare the first alarm
+in the list with the current tick in the check_alarms function.  If the
+alarm should be woken up, then it is, the alarm is removed from the list
+and the next alarm is checked. If the first alarm is not ready to be woken
+up, then the handler returns. 
+
+>> A3: What steps are taken to minimize the amount of time spent in
+>> the timer interrupt handler?
+
+In order for the handler to run as quickly as possible, the alarm list is
+sorted so that the head of the list wakes up before any alarm behind it.
+This means that if no alarm fires, the function returns immediately.  At
+worst, this algorithm is linear in the number of alarms that are firing at
+once.
+
+Additionally, there is no need for alarms to be allocated to the heap
+because the lifetime of the alarm is the lifetime of the call to
+timer_sleep().  The handler does not need to spend time on memory management.
+
+---- SYNCHRONIZATION ----
+
+>> A4: How are race conditions avoided when multiple threads call
+>> timer_sleep() simultaneously?
+
+Because the only time when threads touch shared state is when new alarms
+are added to the list, we disable interrupts while the call to
+list_insert_ordered is running. Concurrent calls to timer_sleep will not
+interfere while inside this critical section.   
+
+>> A5: How are race conditions avoided when a timer interrupt occurs
+>> during a call to timer_sleep()?
+
+We prevent timer interrupts by disabling interrupts while inserting alarms
+into the alarm list.  The only interaction between timer_sleep and
+timer_interrupt is in the alarm_list, so by isolating the insert, races
+are avoided.
+
+---- RATIONALE ----
+
+>> A6: Why did you choose this design?  In what ways is it superior to
+>> another design you considered?
+
+This design was chosen because it has the simplest implementation that
+functions correctly.  Because interrupts can't go to sleep, primitives
+such as locks and conditions could not work.  Semaphores, however, allowed
+for a thread to sleep and an interrupt to wake the thread up.
+
+The most important implementation detail was deciding to order the
+alarm_list so that checking alarms was as fast as possible.  The
+additional cost of the ordered list is incurred during insertion.
+calls to timer_sleep are rare compared to calls to timer_interrupt, so the
+system can afford to charge the cost to the less frequent function.
+timer_interrupt is called at every tick, so it had to be fast.  A previous
+design had the alarms allocated to the heap and then later freed once the
+thread had been woken up.  However, calls to free() take up to 2 ticks of
+CPU time, meaning that ticks were lost whenever free is called.  Luckily,
+allocating to the heap was unnecessary.  Although the code passed the
+tests when timer_sleep did not disable interrupts, there was the potential
+for race conditions, so adding the critical section was an obvious improvement.
+
+			 PRIORITY SCHEDULING
+			 ===================
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+>> B2: Explain the data structure used to track priority donation.
+>> Use ASCII art to diagram a nested donation.  (Alternately, submit a
+>> .png file.)
+
+---- ALGORITHMS ----
+
+>> B3: How do you ensure that the highest priority thread waiting for
+>> a lock, semaphore, or condition variable wakes up first?
+
+>> B4: Describe the sequence of events when a call to lock_acquire()
+>> causes a priority donation.  How is nested donation handled?
+
+>> B5: Describe the sequence of events when lock_release() is called
+>> on a lock that a higher-priority thread is waiting for.
+
+---- SYNCHRONIZATION ----
+
+>> B6: Describe a potential race in thread_set_priority() and explain
+>> how your implementation avoids it.  Can you use a lock to avoid
+>> this race?
+
+---- RATIONALE ----
+
+>> B7: Why did you choose this design?  In what ways is it superior to
+>> another design you considered?
+
+			  ADVANCED SCHEDULER
+			  ==================
+
+---- DATA STRUCTURES ----
+
+>> C1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+---- ALGORITHMS ----
+
+>> C2: Suppose threads A, B, and C have nice values 0, 1, and 2.  Each
+>> has a recent_cpu value of 0.  Fill in the table below showing the
+>> scheduling decision and the priority and recent_cpu values for each
+>> thread after each given number of timer ticks:
+
+timer  recent_cpu    priority   thread
+ticks   A   B   C   A   B   C   to run
+-----  --  --  --  --  --  --   ------
+ 0
+ 4
+ 8
+12
+16
+20
+24
+28
+32
+36
+
+>> C3: Did any ambiguities in the scheduler specification make values
+>> in the table uncertain?  If so, what rule did you use to resolve
+>> them?  Does this match the behavior of your scheduler?
+
+>> C4: How is the way you divided the cost of scheduling between code
+>> inside and outside interrupt context likely to affect performance?
+
+---- RATIONALE ----
+
+>> C5: Briefly critique your design, pointing out advantages and
+>> disadvantages in your design choices.  If you were to have extra
+>> time to work on this part of the project, how might you choose to
+>> refine or improve your design?
+
+>> C6: The assignment explains arithmetic for fixed-point math in
+>> detail, but it leaves it open to you to implement it.  Why did you
+>> decide to implement it the way you did?  If you created an
+>> abstraction layer for fixed-point math, that is, an abstract data
+>> type and/or a set of functions or macros to manipulate fixed-point
+>> numbers, why did you do so?  If not, why not?
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+>> Any other comments?
