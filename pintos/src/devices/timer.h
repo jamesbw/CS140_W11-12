@@ -16,10 +16,14 @@ void timer_calibrate (void);
 int64_t timer_ticks (void);
 int64_t timer_elapsed (int64_t);
 
-
+/* Struct for use in putting threads to sleep.  Each struct contains a
+   semaphore which is downed by the thread, putting the thread to sleep
+   until time alarm_tick.  The timer_interrupt function checks at each
+   tick whether an alarm needs to go off.  If so, it goes through
+   and ups those alarms, waking the thread for the scheduler. */
 struct alarm {
   struct list_elem elem;
-  int64_t alarm_tick;    /* Objective ticks */
+  int64_t alarm_tick;    /* Wait until this tick to wake */
   struct semaphore sem;
 };
 
