@@ -181,6 +181,21 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
+
+/* Makes the priority donation */
+void
+thread_donate_priority (struct thread *t, int new_priority)
+{
+  ASSERT(intr_context());
+  if ( new_priority > t->priority){
+    t->priority = new_priority;
+    if (t->status == THREAD_BLOCKED){
+      thread_donate_priority(t->lock_waited_on->holder, new_priority);
+    }
+  }
+}
+
+
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -195,6 +210,14 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
+
+  enum intr_level old_level;
+  old_level = intr_disable ();
+  thread_current()->lock_waited_on = lock;
+  list_push_front( lock->elem, t->locks_held);
+  if( lock->holder != NULL)
+    thread_donate_priority( lock->holder, thread_current ()->priority);
+  intr_set_level (old_level);
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
@@ -230,9 +253,24 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-
+  
   lock->holder = NULL;
   sema_up (&lock->semaphore);
+
+  if(list_empty(&thread_current()->locks_held)) {
+    thread_current()->priority = original_priority;
+  } else {
+    //foreach lock in thread_current()->locks_held
+    struct list_elem *max_waiting_thread_elem =  list_max (&lock->waiters,
+							   &thread_priority_comparator,
+    NULL);
+    struct thread * max_waiting_thread = list_entry (next_thread, struct
+						     thread, elem);
+    thread_current()->priority = max_waiting_thread->priority;
+  }
+
+thread_current()->locks_held
+
 }
 
 /* Returns true if the current thread holds LOCK, false
