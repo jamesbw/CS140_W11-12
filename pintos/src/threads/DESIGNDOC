@@ -9,7 +9,7 @@
 >> Fill in the names and email addresses of your group members.
 
 Benjamin Shapero <bshapero@stanford.edu>
-FirstName LastName <email@domain.example>
+James Whitbeck <jamesbw@stanford.edu>
 FirstName LastName <email@domain.example>
 
 ---- PRELIMINARIES ----
@@ -157,6 +157,28 @@ for race conditions, so adding the critical section was an obvious improvement.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+In fixed_point.h:
+
+typedef int int17_14t;
+Used to identify integers when they are in 17.14 fixed-point number 
+representation.
+
+In thread.h:
+
+Added int nice to struct thread: each thread has a nice field for the
+advanced scheduler.
+Added int17_14t recent_cpu to struct thread: each thread keeps track of
+its own recent_cpu in  17.14 fixed-point number representation.
+
+In thread.c:
+
+Add int17_14t load_avg: this is a global variable keeping track of the
+average load for the advanced scheduler.
+
+In timer.c:
+#define MLFQS_PRI_UPDATE_FREQ 4: the number of ticks after which we have 
+to update each thread's priority.
+
 ---- ALGORITHMS ----
 
 >> C2: Suppose threads A, B, and C have nice values 0, 1, and 2.  Each
@@ -167,23 +189,40 @@ for race conditions, so adding the critical section was an obvious improvement.
 timer  recent_cpu    priority   thread
 ticks   A   B   C   A   B   C   to run
 -----  --  --  --  --  --  --   ------
- 0
- 4
- 8
-12
-16
-20
-24
-28
-32
-36
+ 0      0   0   0   63  61  59      A
+ 4      4   0   0   62  61  59      A
+ 8      8   0   0   61  61  59      B
+12      8   4   0   61  60  59      A
+16      12  4   0   60  60  59      B
+20      12  8   0   60  59  59      A
+24      16  8   0   59  59  59      C
+28      16  8   4   59  59  58      B
+32      16  12  4   59  58  58      A
+36      20  12  4   58  58  58      C
 
 >> C3: Did any ambiguities in the scheduler specification make values
 >> in the table uncertain?  If so, what rule did you use to resolve
 >> them?  Does this match the behavior of your scheduler?
 
+Yes. When the top priority is shared by several threads, for instance at 
+tick 8 or tick 24, then the scheduler could pick any of them. I chose 
+the thread that had been off the processor the longest. This matches 
+the behavior of our scheduler, since list_max returns the first thread 
+with the highest priority, and running threads are pushed to the back 
+of the list of ready threads when they are done running.
+
 >> C4: How is the way you divided the cost of scheduling between code
 >> inside and outside interrupt context likely to affect performance?
+
+All the updating of recent_cpus, load average and priorities happens 
+within the interrupt context. Indeed this is all driven by the timer 
+interrupts and it is critical that they complete before the next timer 
+interrupt. We are however careful only to call thread_update_priority 
+on each thread every 4 ticks, and update the load average and recent_
+cpus only every 100 ticks. If there are very many threads to update 
+regularly, this may start affecting performance. Clearly, this is a 
+tradeoff of between spending less time inside interrupt context and 
+have more accurate scheduling measurements.
 
 ---- RATIONALE ----
 
@@ -192,12 +231,36 @@ ticks   A   B   C   A   B   C   to run
 >> time to work on this part of the project, how might you choose to
 >> refine or improve your design?
 
+We only used one queue for the ready threads instead of 64, one for 
+each priority level. This has made our solution simpler, although the 
+lookups for next_thread_to_run will be longer. This is a possible 
+improvement.
+Even with a single queue, perhaps we could have ensured that the queue 
+was sorted so that lookups would be short.
+The abstraction of the fixed-point arithmetic and typedef-ing a real 
+number type made the algorithms more readable.
+
+
 >> C6: The assignment explains arithmetic for fixed-point math in
 >> detail, but it leaves it open to you to implement it.  Why did you
 >> decide to implement it the way you did?  If you created an
 >> abstraction layer for fixed-point math, that is, an abstract data
 >> type and/or a set of functions or macros to manipulate fixed-point
 >> numbers, why did you do so?  If not, why not?
+
+We build a library of functions to perform all possible operations 
+between ints and ints, real numbers and real numbers, ints and real 
+numbers. We also created a new type, int17_14t, that is really just 
+an integer, but helps understand when a fixed-point representation 
+is being used.
+This abstraction was useful especially for the more complicated 
+cases like division and multiplication of real numbers. That way, 
+the functions implementing the advanced scheduler have less complexity.
+Also, once these functions were done, we could forget about how fixed-
+point arithmetic works.
+Having compiled functions instead of macros also made debugging in 
+gdb easier.
+
 
 			   SURVEY QUESTIONS
 			   ================
