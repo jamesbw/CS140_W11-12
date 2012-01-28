@@ -357,6 +357,14 @@ thread_set_priority (int new_priority)
   if(thread_mlfqs)
     return; //ignore this call if mlfqs
   thread_current ()->priority = new_priority;
+  struct list_elem *next_thread_elem =  list_max (&ready_list,
+						  &thread_priority_comparator,
+						  NULL);
+  struct thread * next_thread = list_entry (next_thread_elem, struct
+					    thread, elem);
+  int next_priority = next_thread->priority;
+  if(new_priority < next_priority)
+    thread_yield();
 }
 
 /* Returns the current thread's priority. */
@@ -636,12 +644,13 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else
-  {
-    struct list_elem *next_thread =  list_max (&ready_list, &thread_priority_comparator, NULL);
-    list_remove(next_thread);
-    return list_entry (next_thread, struct thread, elem);
-  }
-    // return list_entry (list_pop_front (&ready_list), struct thread, elem);
+    {
+      struct list_elem *next_thread =  list_max (&ready_list,
+						 &thread_priority_comparator,
+						 NULL);
+      list_remove(next_thread);
+      return list_entry (next_thread, struct thread, elem);
+    }
 }
 
 /* Completes a thread switch by activating the new thread's page
