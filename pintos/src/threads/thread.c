@@ -219,6 +219,9 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  if(thread_not_highest_priority ())
+    thread_yield();
+
   return tid;
 }
 
