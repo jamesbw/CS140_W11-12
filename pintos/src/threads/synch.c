@@ -240,7 +240,11 @@ lock_try_acquire (struct lock *lock)
 
   success = sema_try_down (&lock->semaphore);
   if (success)
-    lock->holder = thread_current ();
+  {
+    struct thread *cur = thread_current ();
+    list_push_front( &(cur->locks_held), &(lock->elem));
+    lock->holder = cur;
+  }
   return success;
 }
 
