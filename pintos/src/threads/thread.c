@@ -364,8 +364,7 @@ thread_set_priority (int new_priority)
   old_level = intr_disable ();
   struct thread *cur = thread_current ();
   cur->original_priority = new_priority;
-  if (new_priority > cur->priority)
-    cur->priority = new_priority;
+  thread_recalculate_donation ();
   intr_set_level (old_level);
 
   if(thread_not_highest_priority ())
@@ -531,7 +530,7 @@ thread_donate_priority (struct thread *t, int new_priority)
 }
 
 void
-thread_release_donation (void)
+thread_recalculate_donation (void)
 {
   struct thread *cur = thread_current ();
   if(cur->priority != cur->original_priority)
