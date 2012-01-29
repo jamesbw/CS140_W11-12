@@ -210,7 +210,7 @@ lock_acquire (struct lock *lock)
   intr_set_level (old_level);
 
   sema_down (&lock->semaphore);
-  list_push_front( &(cur->locks_held), lock->elem);
+  list_push_front( &(cur->locks_held), &(lock->elem));
   lock->holder = cur;
 }
 
@@ -246,7 +246,6 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   lock->holder = NULL;
-  struct thread *cur = thread_current ();
 
   list_remove (&(lock->elem));
   sema_up (&lock->semaphore);
