@@ -507,6 +507,54 @@ thread_mlfqs_update (bool second_mark_flag)
   }
   thread_foreach ( &thread_update_priority, NULL);
 }
+
+/* Makes the priority donation */
+void
+thread_donate_priority (struct thread *t, int new_priority)
+{
+  ASSERT(intr_context());
+  if ( new_priority > t->priority){
+    t->priority = new_priority;
+    if (t->status == THREAD_BLOCKED){
+      thread_donate_priority(t->lock_waited_on->holder, new_priority);
+    }
+  }
+}
+
+void
+thread_release_donation (void)
+{
+  struct thread *cur = thread_current ();
+  int new_priority = cur->original_priority;
+  if(cur->priority != cur->original_priority)
+  {
+
+    enum intr_level old_level;
+    old_level = intr_disable ();
+
+    int max_priority = 0;
+    struct list_elem *e;
+    for (e = list_begin (&(cur->locks_held)); e != list_end (&(cur->locks_held));
+         e = list_next (e))
+    {
+      struct lock *lock = list_entry (e, struct lock, elem);
+      struct thread * max_waiting_thread = list_entry (list_max (&(lock->semaphore.waiters),&thread_priority_comparator,NULL), struct thread, elem);
+      if(max_waiting_thread->priority > max_priority)
+      {
+        max_priority = max_waiting_thread->priority;
+      }
+    }
+
+    if(max_priority > cur->original_priority)
+      new_priority = max_priority;
+
+    intr_set_level (old_level);
+
+  }
+
+  thread_set_priority(new_priority);
+
+}
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -606,7 +654,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   if(!thread_mlfqs)
   {
-    t->original_priority;
+    t->original_priority = priority;
     t->priority = priority;
   }
   else

@@ -157,5 +157,6 @@ void thread_increment_recent_cpu (void);
 void thread_update_recent_cpu ( struct thread *t, void *aux UNUSED );
 void thread_update_priority (struct thread *t, void *aux UNUSED) ;
 void thread_mlfqs_update (bool second_mark_flag);
-
+void thread_donate_priority (struct thread *t, int new_priority);
+void thread_release_donation (void);
 #endif /* threads/thread.h */
