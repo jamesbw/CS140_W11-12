@@ -605,8 +605,10 @@ init_thread (struct thread *t, const char *name, int priority)
   }
 
   if(!thread_mlfqs)
+  {
     t->original_priority;
     t->priority = priority;
+  }
   else
     thread_update_priority(t, NULL);
 
