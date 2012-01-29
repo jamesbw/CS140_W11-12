@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #include "threads/thread.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
@@ -29,30 +30,6 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
-
-#define MLFQS_PRI_UPDATE_FREQ 4 /* Recalculate priority every 4 ticks*/
-void timer_mlfqs_update (void);
-static void check_alarms(void);
-
-static bool cmp_alarm(const struct list_elem *a, const struct list_elem *b, void
-	       *aux UNUSED) {
-  struct alarm *alarm_a = list_entry(a, struct alarm, elem);
-  struct alarm *alarm_b = list_entry(b, struct alarm, elem);
-  return alarm_a->alarm_tick < alarm_b->alarm_tick;
-}
-
-void 
-timer_mlfqs_update (void)
-{
-  ASSERT (intr_context ());
-
-  thread_increment_recent_cpu();
-
-  if (ticks % MLFQS_PRI_UPDATE_FREQ == 0)
-    thread_mlfqs_update (ticks % TIMER_FREQ == 0);
-
-}
-
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -60,7 +37,6 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
-  list_init(&alarm_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -116,13 +92,8 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  struct alarm thread_alarm;
-  sema_init(&(thread_alarm.sem), 0);
-  thread_alarm.alarm_tick = start + ticks;
-  intr_disable();
-  list_insert_ordered(&alarm_list, &(thread_alarm.elem), cmp_alarm, NULL);
-  intr_enable();
-  sema_down(&(thread_alarm.sem));
+  while (timer_elapsed (start) < ticks) 
+    thread_yield ();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -200,23 +171,7 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  timer_mlfqs_update ();
-
   thread_tick ();
-  check_alarms();
-}
-
-static void check_alarms(void) {
-  struct list_elem *e;
-  for (e = list_begin(&alarm_list); e != list_end(&alarm_list); ) {
-    struct alarm *next_alarm = list_entry(e, struct alarm, elem);;
-    if (ticks >= next_alarm->alarm_tick) {
-      sema_up(&(next_alarm->sem)); 
-      e = list_remove(e);
-    } else {
-      break;
-    }
-  }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

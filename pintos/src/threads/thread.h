@@ -4,7 +4,6 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include "fixed_point.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -18,10 +17,6 @@ enum thread_status
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
-
-
-
-
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
 
 /* Thread priorities. */
@@ -93,19 +88,10 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int original_priority;              /* Original priority before
-					   donation. */
     struct list_elem allelem;           /* List element for all threads list. */
-    int alarm;                          /* When the thread should wake */
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-
-    struct lock *lock_waited_on;
-    struct list locks_held;
-
-    /* mlfqs. */
-    int nice;
-    int17_14t recent_cpu;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -152,13 +138,4 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-void thread_update_load_avg (void);
-void thread_increment_recent_cpu (void);
-void thread_update_recent_cpu ( struct thread *t, void *aux UNUSED );
-void thread_update_priority (struct thread *t, void *aux UNUSED) ;
-void thread_mlfqs_update (bool second_mark_flag);
-void thread_donate_priority (struct thread *t, int new_priority);
-void thread_recalculate_donation (void);
-bool thread_not_highest_priority (void);
-bool thread_priority_comparator( const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 #endif /* threads/thread.h */
