@@ -521,7 +521,7 @@ thread_donate_priority (struct thread *t, int new_priority)
 {
   if ( new_priority > t->priority){
     t->priority = new_priority;
-    if (t->status == THREAD_BLOCKED && (t->lock_waited_on->holder != t)){
+    if (t->status == THREAD_BLOCKED && (t->lock_waited_on != NULL)){
       thread_donate_priority(t->lock_waited_on->holder, new_priority);
     }
   }
