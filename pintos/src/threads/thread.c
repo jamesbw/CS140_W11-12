@@ -512,7 +512,6 @@ thread_mlfqs_update (bool second_mark_flag)
 void
 thread_donate_priority (struct thread *t, int new_priority)
 {
-  ASSERT(intr_context());
   if ( new_priority > t->priority){
     t->priority = new_priority;
     if (t->status == THREAD_BLOCKED){
