@@ -550,8 +550,7 @@ thread_release_donation (void)
       }
     }
 
-    if(max_priority > cur->original_priority)
-      cur->priority = max_priority;
+    cur->priority = max_priority > cur->original_priority ? max_priority : cur->original_priority;
 
     intr_set_level (old_level);
 
