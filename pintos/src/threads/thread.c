@@ -356,14 +356,16 @@ thread_set_priority (int new_priority)
 
   if(thread_mlfqs)
     return; //ignore this call if mlfqs
+
+  enum intr_level old_level;
+  old_level = intr_disable ();
   thread_current ()->priority = new_priority;
-  struct list_elem *next_thread_elem =  list_max (&ready_list,
-						  &thread_priority_comparator,
-						  NULL);
-  struct thread * next_thread = list_entry (next_thread_elem, struct
-					    thread, elem);
-  int next_priority = next_thread->priority;
-  if(new_priority < next_priority)
+  intr_set_level (old_level);
+
+
+  struct thread * highest_priority_ready_thread = list_entry (list_max (&ready_list, &thread_priority_comparator, NULL), struct thread, elem);
+  int highest_priority = highest_priority_ready_thread->priority;
+  if(new_priority < highest_priority)
     thread_yield();
 }
 
@@ -603,9 +605,12 @@ init_thread (struct thread *t, const char *name, int priority)
   }
 
   if(!thread_mlfqs)
+    t->original_priority;
     t->priority = priority;
   else
     thread_update_priority(t, NULL);
+
+  list_init(&(t->locks_held));
 
   
   t->magic = THREAD_MAGIC;

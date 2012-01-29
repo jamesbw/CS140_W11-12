@@ -100,7 +100,7 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-    struct lock lock_waited_on;
+    struct lock *lock_waited_on;
     struct list locks_held;
 
     /* mlfqs. */

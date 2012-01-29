@@ -248,7 +248,7 @@ number type made the algorithms more readable.
 >> type and/or a set of functions or macros to manipulate fixed-point
 >> numbers, why did you do so?  If not, why not?
 
-We build a library of functions to perform all possible operations 
+We built a library of functions to perform all possible operations 
 between ints and ints, real numbers and real numbers, ints and real 
 numbers. We also created a new type, int17_14t, that is really just 
 an integer, but helps understand when a fixed-point representation 

@@ -213,13 +213,14 @@ lock_acquire (struct lock *lock)
 
   enum intr_level old_level;
   old_level = intr_disable ();
-  thread_current()->lock_waited_on = lock;
-  list_push_front( lock->elem, t->locks_held);
+  struct thread *cur = thread_current ();
+  cur->lock_waited_on = lock;
   if( lock->holder != NULL)
     thread_donate_priority( lock->holder, thread_current ()->priority);
   intr_set_level (old_level);
 
   sema_down (&lock->semaphore);
+  list_push_front( lock->elem, cur->locks_held);
   lock->holder = thread_current ();
 }
 
@@ -255,21 +256,39 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   lock->holder = NULL;
-  sema_up (&lock->semaphore);
+  struct thread *cur = thread_current ();
 
-  if(list_empty(&thread_current()->locks_held)) {
-    thread_current()->priority = original_priority;
-  } else {
-    //foreach lock in thread_current()->locks_held
-    struct list_elem *max_waiting_thread_elem =  list_max (&lock->waiters,
-							   &thread_priority_comparator,
-    NULL);
-    struct thread * max_waiting_thread = list_entry (next_thread, struct
-						     thread, elem);
-    thread_current()->priority = max_waiting_thread->priority;
+  list_remove(lock->elem);
+  sema_up (&lock->semaphore);
+  if(cur->priority != cur->original_priority)
+  {
+
+    enum intr_level old_level;
+    old_level = intr_disable ();
+
+    int max_priority = 0;
+    struct list_elem *e;
+    for (e = list_begin (&(cur->locks_held)); e != list_end (&(cur->locks_held));
+         e = list_next (e))
+    {
+      struct lock *lock = list_entry (e, struct lock, elem);
+      struct thread * max_waiting_thread = list_entry (list_max (&(lock->waiters),&thread_priority_comparator,NULL), struct thread, elem);
+      if(max_waiting_thread->priority > max_priority)
+      {
+        max_priority = max_waiting_thread->priority;
+      }
+    }
+
+    cur->priority = (max_priority > cur->original_priority) ? max_priority : cur->original_priority;
+
+    intr_set_level (old_level);
+
   }
 
-thread_current()->locks_held
+  struct thread * highest_priority_ready_thread = list_entry (list_max (&ready_list, &thread_priority_comparator, NULL), struct thread, elem);
+  int highest_priority = highest_priority_ready_thread->priority;
+  if(cur->priority < highest_priority)
+    thread_yield();
 
 }
 
