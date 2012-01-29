@@ -357,7 +357,7 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   if (!list_empty (&cond->waiters)) 
   {
     struct semaphore_elem *max_priority_waiter = list_entry (list_max (&cond->waiters, &sema_elem_priority_comparator, NULL), struct semaphore_elem, elem);
-    list_remove (max_priority_waiter->elem);
+    list_remove (&(max_priority_waiter->elem));
     sema_up (&(max_priority_waiter->semaphore));
 
   }
