@@ -531,7 +531,6 @@ void
 thread_release_donation (void)
 {
   struct thread *cur = thread_current ();
-  int new_priority = cur->original_priority;
   if(cur->priority != cur->original_priority)
   {
 
@@ -552,14 +551,11 @@ thread_release_donation (void)
     }
 
     if(max_priority > cur->original_priority)
-      new_priority = max_priority;
+      cur->priority = max_priority;
 
     intr_set_level (old_level);
 
   }
-
-  thread_set_priority(new_priority);
-
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
