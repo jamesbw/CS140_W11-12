@@ -121,6 +121,12 @@ sema_up (struct semaphore *sema)
   }
   sema->value++;
   intr_set_level (old_level);
+  
+  if(!thread_mlfqs)
+    thread_release_donation ();
+  
+  if(thread_not_highest_priority ())
+    thread_yield ();
 }
 
 static void sema_test_helper (void *sema_);
@@ -253,11 +259,7 @@ lock_release (struct lock *lock)
 
   list_remove (&(lock->elem));
   sema_up (&lock->semaphore);
-  if(!thread_mlfqs)
-    thread_release_donation ();
-  
-  if(thread_not_highest_priority ())
-    thread_yield ();
+
 
 }
 
