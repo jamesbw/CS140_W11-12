@@ -213,6 +213,7 @@ lock_acquire (struct lock *lock)
   intr_set_level (old_level);
 
   sema_down (&lock->semaphore);
+  cur->lock_waited_on = NULL;
   list_push_front( &(cur->locks_held), &(lock->elem));
   lock->holder = cur;
 }
