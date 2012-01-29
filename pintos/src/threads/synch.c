@@ -123,7 +123,7 @@ sema_up (struct semaphore *sema)
   intr_set_level (old_level);
 
   if(!thread_mlfqs)
-    thread_release_donation ();
+    thread_recalculate_donation ();
   
   if(!intr_context() && thread_not_highest_priority ())
     thread_yield ();
