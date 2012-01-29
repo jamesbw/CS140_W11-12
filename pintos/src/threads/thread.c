@@ -362,11 +362,15 @@ thread_set_priority (int new_priority)
   thread_current ()->priority = new_priority;
   intr_set_level (old_level);
 
-
-  struct thread * highest_priority_ready_thread = list_entry (list_max (&ready_list, &thread_priority_comparator, NULL), struct thread, elem);
-  int highest_priority = highest_priority_ready_thread->priority;
-  if(new_priority < highest_priority)
+  if(thread_not_highest_priority ())
     thread_yield();
+}
+
+bool
+thread_not_highest_priority (void)
+{
+  struct thread * highest_priority_ready_thread = list_entry (list_max (&ready_list, &thread_priority_comparator, NULL), struct thread, elem);
+  return highest_priority_ready_thread->priority > thread_current ()->priority;
 }
 
 /* Returns the current thread's priority. */

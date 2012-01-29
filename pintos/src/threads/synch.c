@@ -249,7 +249,11 @@ lock_release (struct lock *lock)
 
   list_remove (&(lock->elem));
   sema_up (&lock->semaphore);
-  thread_release_donation ();
+  if(!thread_mlfqs)
+    thread_release_donation ();
+  
+  if(thread_not_highest_priority ())
+    thread_yield ();
 
 }
 
