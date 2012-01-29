@@ -160,4 +160,5 @@ void thread_mlfqs_update (bool second_mark_flag);
 void thread_donate_priority (struct thread *t, int new_priority);
 void thread_release_donation (void);
 bool thread_not_highest_priority (void);
+bool thread_priority_comparator( const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 #endif /* threads/thread.h */
