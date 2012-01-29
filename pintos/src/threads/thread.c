@@ -362,7 +362,10 @@ thread_set_priority (int new_priority)
 
   enum intr_level old_level;
   old_level = intr_disable ();
-  thread_current ()->priority = new_priority;
+  struct thread *cur = thread_current ();
+  cur->original_priority = new_priority;
+  if (new_priority > cur->priority)
+    cur->priority = new_priority;
   intr_set_level (old_level);
 
   if(thread_not_highest_priority ())
