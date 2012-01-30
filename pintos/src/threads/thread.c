@@ -486,8 +486,7 @@ thread_update_recent_cpu ( struct thread *t, void *aux UNUSED )
                     t->nice);
 }
 
-/* Updates the priority (called every 4 ticks).
-   Yields if no longer the highest priority thread */
+/* Updates the priority (called every 4 ticks). */
 void
 thread_update_priority (struct thread *t, void *aux UNUSED) 
 {
