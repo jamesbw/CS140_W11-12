@@ -219,8 +219,8 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  if(thread_not_highest_priority ())
-    thread_yield();
+  if (thread_not_highest_priority ())
+    thread_yield ();
 
   return tid;
 }
@@ -357,7 +357,7 @@ void
 thread_set_priority (int new_priority) 
 {
 
-  if(thread_mlfqs)
+  if (thread_mlfqs)
     return; //ignore this call if mlfqs
 
   enum intr_level old_level;
@@ -367,14 +367,18 @@ thread_set_priority (int new_priority)
   thread_recalculate_donation ();
   intr_set_level (old_level);
 
-  if(thread_not_highest_priority ())
+  if (thread_not_highest_priority ())
     thread_yield();
 }
 
+/* Returns true if there is a higher priority thread
+   in the ready_list than the current thread*/
 bool
 thread_not_highest_priority (void)
 {
-  struct thread * highest_priority_ready_thread = list_entry (list_max (&ready_list, &thread_priority_comparator, NULL), struct thread, elem);
+  struct thread * highest_priority_ready_thread = list_entry (
+    list_max (&ready_list, &thread_priority_comparator, NULL),
+    struct thread, elem);
   return highest_priority_ready_thread->priority > thread_current ()->priority;
 }
 
@@ -395,8 +399,11 @@ thread_set_nice (int nice UNUSED)
   cur->nice = nice;
 
   thread_update_priority (cur, NULL);
-  int max_priority = list_entry ( list_max ( &ready_list, &thread_priority_comparator, NULL), struct thread, elem)->priority;
-  if(cur->priority < max_priority )
+  int max_priority = list_entry (
+    list_max (&ready_list, &thread_priority_comparator, NULL),
+    struct thread, elem)
+    ->priority;
+  if (cur->priority < max_priority )
     thread_yield ();
 }
 
@@ -416,8 +423,7 @@ thread_get_load_avg (void)
 {
   ASSERT (thread_mlfqs);
   
-
-  int17_14t times_100 = fixed_point_multiply_fp_int ( load_avg, 100);
+  int17_14t times_100 = fixed_point_multiply_fp_int (load_avg, 100);
   return fixed_point_fp_to_int_nearest (times_100);
 }
 
@@ -430,11 +436,13 @@ thread_update_load_avg (void)
 
   ready_threads_count = list_size (&ready_list);
 
-  if (thread_current() != idle_thread)
+  if (thread_current () != idle_thread)
     ready_threads_count ++;
 
-  int17_14t _59div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (59), 60);
-  int17_14t _1div60 = fixed_point_divide_fp_int (fixed_point_int_to_fp (1), 60);
+  int17_14t _59div60 = fixed_point_divide_fp_int (
+                        fixed_point_int_to_fp (59), 60);
+  int17_14t _1div60 = fixed_point_divide_fp_int (
+                        fixed_point_int_to_fp (1), 60);
   load_avg = fixed_point_multiply_fp_fp (_59div60, load_avg) 
                 + fixed_point_multiply_fp_int (_1div60, ready_threads_count);
 
@@ -448,7 +456,7 @@ thread_get_recent_cpu (void)
   
   struct thread *cur = thread_current ();
 
-  int17_14t times_100 = fixed_point_multiply_fp_int ( cur->recent_cpu, 100);
+  int17_14t times_100 = fixed_point_multiply_fp_int (cur->recent_cpu, 100);
   return fixed_point_fp_to_int_nearest (times_100);
 }
 
@@ -471,11 +479,12 @@ thread_update_recent_cpu ( struct thread *t, void *aux UNUSED )
 
   int17_14t two_load_avg = fixed_point_multiply_fp_int (load_avg, 2);
   int17_14t two_load_avg_plus_1 = fixed_point_add_fp_int (two_load_avg, 1);
-  int17_14t coefficient = fixed_point_divide_fp_fp( two_load_avg, two_load_avg_plus_1);
+  int17_14t coefficient = fixed_point_divide_fp_fp (
+                            two_load_avg, two_load_avg_plus_1);
 
-  t->recent_cpu = fixed_point_multiply_fp_fp (coefficient, t->recent_cpu);
-  t->recent_cpu = fixed_point_add_fp_int ( t->recent_cpu, t->nice);
-
+  t->recent_cpu = fixed_point_add_fp_int (
+                    fixed_point_multiply_fp_fp (coefficient, t->recent_cpu),
+                    t->nice);
 }
 
 /* Updates the priority (called every 4 ticks).
@@ -485,15 +494,15 @@ thread_update_priority (struct thread *t, void *aux UNUSED)
 {
   ASSERT (thread_mlfqs);
 
-  int17_14t priority_temp = fixed_point_int_to_fp( PRI_MAX)
-                            - fixed_point_divide_fp_int ( t->recent_cpu, 4)
+  int17_14t priority_temp = fixed_point_int_to_fp (PRI_MAX)
+                            - fixed_point_divide_fp_int (t->recent_cpu, 4)
                             - fixed_point_int_to_fp (t->nice * 2);
 
   t->priority = fixed_point_fp_to_int_zero (priority_temp);
 
-  if(t->priority > PRI_MAX)
+  if (t->priority > PRI_MAX)
     t->priority = PRI_MAX;
-  if(t->priority < PRI_MIN)
+  if (t->priority < PRI_MIN)
     t->priority = PRI_MIN;
   
 }
@@ -524,16 +533,19 @@ thread_donate_priority (struct thread *t, int new_priority)
   if ( new_priority > t->priority){
     t->priority = new_priority;
     if (t->status == THREAD_BLOCKED && (t->lock_waited_on != NULL)){
-      thread_donate_priority(t->lock_waited_on->holder, new_priority);
+      thread_donate_priority (t->lock_waited_on->holder, new_priority);
     }
   }
 }
 
+
+/* Recalculates a thread's priority based on its default priority and 
+   on the priorities of the threads waiting on the locks it holds*/
 void
 thread_recalculate_donation (void)
 {
   struct thread *cur = thread_current ();
-  if(cur->priority != cur->original_priority)
+  if (cur->priority != cur->original_priority)
   {
 
     enum intr_level old_level;
@@ -541,18 +553,20 @@ thread_recalculate_donation (void)
 
     int max_priority = 0;
     struct list_elem *e;
-    for (e = list_begin (&(cur->locks_held)); e != list_end (&(cur->locks_held));
+    for (e = list_begin (&(cur->locks_held));
+         e != list_end (&(cur->locks_held));
          e = list_next (e))
     {
       struct lock *lock = list_entry (e, struct lock, elem);
-      struct thread * max_waiting_thread = list_entry (list_max (&(lock->semaphore.waiters),&thread_priority_comparator,NULL), struct thread, elem);
-      if(max_waiting_thread->priority > max_priority)
-      {
+      struct thread * max_waiting_thread = list_entry (
+      list_max (&(lock->semaphore.waiters), &thread_priority_comparator,NULL),
+       struct thread, elem);
+      if (max_waiting_thread->priority > max_priority)
         max_priority = max_waiting_thread->priority;
-      }
     }
 
-    cur->priority = max_priority > cur->original_priority ? max_priority : cur->original_priority;
+    cur->priority = max_priority > cur->original_priority ?
+                     max_priority : cur->original_priority;
 
     intr_set_level (old_level);
 
@@ -644,28 +658,28 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
 
   /* mlfqs */
-  if(t == initial_thread)
+  if (t == initial_thread)
   {
     t->nice = 0;
     t->recent_cpu = 0;
   }
-  else{
+  else
+  {
     struct thread *cur = thread_current ();
     t->nice = cur->nice;
     t->recent_cpu = cur->recent_cpu;
   }
 
-  if(!thread_mlfqs)
+  if (!thread_mlfqs)
   {
     t->original_priority = priority;
     t->priority = priority;
   }
   else
-    thread_update_priority(t, NULL);
+    thread_update_priority (t, NULL);
 
-  list_init(&(t->locks_held));
+  list_init (&(t->locks_held));
 
-  
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }
@@ -683,11 +697,14 @@ alloc_frame (struct thread *t, size_t size)
   return t->stack;
 }
 
+/* Compares two threads based on their priorities*/
 bool 
-thread_priority_comparator( const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+thread_priority_comparator (const struct list_elem *a,
+                            const struct list_elem *b, 
+                            void *aux UNUSED)
 {
-  struct thread *t1 = list_entry( a , struct thread, elem);
-  struct thread *t2 = list_entry( b , struct thread, elem);
+  struct thread *t1 = list_entry (a, struct thread, elem);
+  struct thread *t2 = list_entry (b, struct thread, elem);
   return t1->priority < t2->priority;
 }
 
@@ -706,7 +723,7 @@ next_thread_to_run (void)
       struct list_elem *next_thread =  list_max (&ready_list,
 						 &thread_priority_comparator,
 						 NULL);
-      list_remove(next_thread);
+      list_remove (next_thread);
       return list_entry (next_thread, struct thread, elem);
     }
 }

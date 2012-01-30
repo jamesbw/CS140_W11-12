@@ -6,7 +6,7 @@
 int
 fixed_point_fp_to_int_nearest (int17_14t x)
 {
-	if(x >= 0)
+	if (x >= 0)
 		return (x + F/2) / F ;
 	else
 		return (x - F/2) / F ;
