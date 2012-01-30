@@ -376,9 +376,12 @@ thread_set_priority (int new_priority)
 bool
 thread_not_highest_priority (void)
 {
+  enum intr_level old_level;
+  old_level = intr_disable ();
   struct thread * highest_priority_ready_thread = list_entry (
     list_max (&ready_list, &thread_priority_comparator, NULL),
     struct thread, elem);
+  intr_set_level (old_level);  
   return highest_priority_ready_thread->priority > thread_current ()->priority;
 }
 
@@ -399,11 +402,7 @@ thread_set_nice (int nice UNUSED)
   cur->nice = nice;
 
   thread_update_priority (cur, NULL);
-  int max_priority = list_entry (
-    list_max (&ready_list, &thread_priority_comparator, NULL),
-    struct thread, elem)
-    ->priority;
-  if (cur->priority < max_priority )
+  if (thread_not_highest_priority ())
     thread_yield ();
 }
 
