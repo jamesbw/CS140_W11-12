@@ -1,16 +1,16 @@
-			+--------------------+
-			|        CS 140      |
-			| PROJECT 1: THREADS |
-			|   DESIGN DOCUMENT  |
-			+--------------------+
-				   
+            +--------------------+
+            |        CS 140      |
+            | PROJECT 1: THREADS |
+            |   DESIGN DOCUMENT  |
+            +--------------------+
+                   
 ---- GROUP ----
 
 >> Fill in the names and email addresses of your group members.
 
 Benjamin Shapero <bshapero@stanford.edu>
 James Whitbeck <jamesbw@stanford.edu>
-FirstName LastName <email@domain.example>
+Stewart MacGregor-Dennis <sadennis@stanford.edu>
 
 ---- PRELIMINARIES ----
 
@@ -21,8 +21,8 @@ FirstName LastName <email@domain.example>
 >> preparing your submission, other than the Pintos documentation, course
 >> text, lecture notes, and course staff.
 
-			     ALARM CLOCK
-			     ===========
+                 ALARM CLOCK
+                 ===========
 
 ---- DATA STRUCTURES ----
 >> A1: Copy here the declaration of each new or changed `struct' or
@@ -44,7 +44,6 @@ struct list alarm_list;
 
 --alarm_list contains the alarm structs, one for each sleeping
 thread.  This list is sorted by alarm_tick so the next alarm is at the head.
-
 
 ---- ALGORITHMS ----
 >> A2: Briefly describe what happens in a call to timer_sleep(),
@@ -113,8 +112,8 @@ allocating to the heap was unnecessary.  Although the code passed the
 tests when timer_sleep did not disable interrupts, there was the potential
 for race conditions, so adding the critical section was an obvious improvement.
 
-			 PRIORITY SCHEDULING
-			 ===================
+             PRIORITY SCHEDULING
+             ===================
 
 ---- DATA STRUCTURES ----
 
@@ -122,20 +121,108 @@ for race conditions, so adding the critical section was an obvious improvement.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct lock {
+    struct thread *holder;      /* Thread holding lock (for debugging). */
+    struct semaphore semaphore; /* Binary semaphore controlling access. */
+    struct list_elem elem;
+};
+
+--elem is for a list of locks that each thread holds.
+
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    char name[16];                      /* Name (for debugging
+  purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    int original_priority;              /* Original priority before
+  donation */
+    struct list_elem allelem;           /* List element for all threads
+  list.*/
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+
+    struct lock *lock_waited_on; /* If thread is blocked on a lock */
+    struct list locks_held; /* All locks currently held */
+
+    /* mlfqs. */
+    int nice;
+    int17_14t recent_cpu;
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+};
+
+--original_priority stores the thread's pre-donation priority. This allows
+  the thread to revert to it's original priority during the release of a
+  lock.
+--lock_waited_on stores the lock that the current thread is waiting on.
+--locks_held stores a list of locks that the current thread is
+  holding. This allows the thread to make a correct priority change when
+  releasing a lock.
+
 >> B2: Explain the data structure used to track priority donation.
 >> Use ASCII art to diagram a nested donation.  (Alternately, submit a
 >> .png file.)
+
+The data structures involve a struct field to store the original priority of the
+thread, and a list of locks being held by each thread. The list of locks held
+lets the lock_release function check for if the current thread should
+drop its priority to a waiting thread's level, rather than revert to its
+original priority.
+
+See nested_donation.png file for diagram of nested donation process.
 
 ---- ALGORITHMS ----
 
 >> B3: How do you ensure that the highest priority thread waiting for
 >> a lock, semaphore, or condition variable wakes up first?
 
+When calling sema_up, we loop through the list of waiter threads and 
+unblock the one with the highest priority.
+Lock_release leverages this too because it calls sema_up.
+When signaling a condition variable, we loop through the waiting 
+semaphore elems in a similar fashion and call sema_up on the one 
+which holds the highest priority thread.
+We make use of two comparator functions that are passed to 
+list_max:
+- thread_priority_comparator
+- sema_elem_priority_comparator
+
+
 >> B4: Describe the sequence of events when a call to lock_acquire()
 >> causes a priority donation.  How is nested donation handled?
 
+If we try to acquire a lock that is already held by another thread 
+(meaning the holder is not NULL), then we donate our priority to that 
+thread by calling thread_donate_priority.
+Within thread_donate_priority, we update the receiving thread's priority 
+if it is higher than the previous value.
+To handle nested donations, we check whether the thread we are 
+donating to is also blocked waiting for a lock. In that case, 
+we call thread_donate_priority recursively on that lock's holder thread.
+In order for this mechanism to work, we added the lock_waited_on pointer 
+in struct thread.
+
 >> B5: Describe the sequence of events when lock_release() is called
 >> on a lock that a higher-priority thread is waiting for.
+
+When lock_release is called, the lock->holder field is reset to NULL. The
+lock is then removed from the list of locks held by the thread and
+sema_down is called. Much of the checking for correct donation and
+reverting back to a lower priority is done in a helper method called
+thread_recalculate_donation; this method checks if there are any other
+higher priority threads waiting on the lock that the current thread should
+receive a donation from. This prevents the thread stepping back to its
+original priority when there are higher priority threads waiting on its lock.
 
 ---- SYNCHRONIZATION ----
 
@@ -143,13 +230,43 @@ for race conditions, so adding the critical section was an obvious improvement.
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
 
+When a thread calls thread_set_priority, it is trying to modify its 
+own priority. However, some other thread may also be donation its 
+priority to the first thread, by called thread_donate_priority.
+A thread's priority has become a shared resource, so we make sure 
+we have disabled interrupts whenever we access the priority field.
+
+We could not use a lock to protect the priority field. Indeed, if 
+thread A is trying to acquire a given lock L, and thread B already 
+holds it, then thread A will try to donate its priority to thread B. 
+If, to do so, it has to acquire a lock L_B, we may run into a deadlock.
+Imagine thread B is about to call set_priority and will also need to 
+acquire lock L_B. Then threads A and B are both trying to acquire 
+locks L and L_B, but in reverse order. We have introduced circularity 
+and we risk deadlock.
+
+
 ---- RATIONALE ----
 
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
-			  ADVANCED SCHEDULER
-			  ==================
+We chose this design for simplicity. For example, we could have had a new
+priority field and started using that, yet by continuing to use the
+priority field (and just storing the original priority) much of the code
+could be left the same; the exchange only needed to be made during
+donation and release. 
+
+The other ways we considered included having a global list of locks and
+cycling through them, as opposed to a list of locks for each
+thread. However, this would create unnecessary global variables, and could
+have a large amount of overhead needed to loop through all the locks
+frequently. Therefore, the current design was opted for as it reduced the
+need for global variables and it kept most of the computation local to the
+thread and lock structs.
+
+              ADVANCED SCHEDULER
+              ==================
 
 ---- DATA STRUCTURES ----
 
@@ -262,8 +379,8 @@ Having compiled functions instead of macros also made debugging in
 gdb easier.
 
 
-			   SURVEY QUESTIONS
-			   ================
+               SURVEY QUESTIONS
+               ================
 
 Answering these questions is optional, but it will help us improve the
 course in future quarters.  Feel free to tell us anything you
@@ -274,8 +391,12 @@ the quarter.
 >> In your opinion, was this assignment, or any one of the three problems
 >> in it, too easy or too hard?  Did it take too long or too little time?
 
+It was ok.
+
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
+
+Yes. The priority scheduling.
 
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
@@ -284,4 +405,11 @@ the quarter.
 >> Do you have any suggestions for the TAs to more effectively assist
 >> students, either for future quarters or the remaining projects?
 
+Not really.
+
 >> Any other comments?
+
+There is a small bug in the mlfqs-recent-1 test, making the recent_cpus 
+off by 1 compared to the expected results, although it remains within 
+the tolerance.
+I brought this up with Stephen Rumble.
