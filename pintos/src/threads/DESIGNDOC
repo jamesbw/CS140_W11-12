@@ -179,7 +179,7 @@ lets the lock_release function check for if the current thread should
 drop its priority to a waiting thread's level, rather than revert to its
 original priority.
 
-See nested_donation.png file for diagram of nested donation process.
+See NestedDonation.png file for diagram of nested donation process.
 
 ---- ALGORITHMS ----
 
