@@ -3,6 +3,8 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
+#include <console.h>
 
 static void syscall_handler (struct intr_frame *);
 
@@ -15,6 +17,62 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  printf ("system call!\n");
-  thread_exit ();
+  uint32_t * k_esp = (uint32_t *) translate_uaddr_to_kaddr(f->esp);
+  uint32_t syscall_number = (uint32_t) *(k_esp);
+  uint32_t arg1 = (uint32_t) *(k_esp + 4);
+  // uint32_t arg2 = (uint32_t) *(k_esp + 8);
+  // uint32_t arg3 = (uint32_t) *(k_esp + 12);
+
+  switch (syscall_number)
+  {
+      case SYS_HALT:
+      case SYS_EXIT:
+      case SYS_EXEC:
+      {
+        printf ("%s: exit(%d)\n", thread_current ()->name, arg1);
+        f->eax = arg1;
+        thread_exit ();
+      }
+      case SYS_WAIT:
+      case SYS_CREATE:
+      case SYS_REMOVE:
+      case SYS_OPEN:
+      case SYS_FILESIZE:
+      case SYS_READ:
+      case SYS_WRITE:
+      {
+        void *buf = (void *) arg2;
+        int size = arg3;
+        check_buffer_uaddr (buf, size);
+
+        if (arg1 ==1) //fd 1
+          putbuf (buf, size);
+        
+      }
+      case SYS_SEEK:
+      case SYS_TELL:
+      case SYS_CLOSE:
+      default:
+      {
+        printf ("system call!\n");
+        thread_exit ();
+      }  
+      
+  }
+}
+
+static void *
+translate_uaddr_to_kaddr (const void *vaddr)
+{
+  ASSERT (is_user_addr (vaddr)); // Not user address
+  void *kaddr = pagedir_get_page (thread_current ()->pagedir, vaddr);
+  ASSERT (kaddr != NULL); // Not mapped
+  return kaddr;
+}
+
+static void
+check_buffer_uaddr (const void *buf, int size)
+{
+  for (int i = 0; i < size; ++i)
+    ASSERT (translate_uaddr_to_kaddr (buf + i) != NULL);
 }
