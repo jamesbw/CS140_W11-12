@@ -5,6 +5,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include <console.h>
+#include "pagedir.h"
 
 static void syscall_handler (struct intr_frame *);
 static void *translate_uaddr_to_kaddr (const void *vaddr);
