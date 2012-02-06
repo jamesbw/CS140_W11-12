@@ -68,7 +68,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 static void *
 translate_uaddr_to_kaddr (const void *vaddr)
 {
-  ASSERT (is_user_addr (vaddr)); // Not user address
+  ASSERT (is_user_vaddr (vaddr)); // Not user address
   void *kaddr = pagedir_get_page (thread_current ()->pagedir, vaddr);
   ASSERT (kaddr != NULL); // Not mapped
   return kaddr;
