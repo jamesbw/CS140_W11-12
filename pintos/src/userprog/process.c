@@ -479,7 +479,7 @@ setup_stack (void **esp, const char *command_line)
         //pushing argv elements
         token = save_ptr = NULL;
         uint32_t count = 0;
-        for (token = strtok_r (end_of_args, " ", &save_ptr); count < argc ; token = strtok_r (NULL, " ", &save_ptr))
+        for (token = strtok_r (end_of_args, "\0", &save_ptr); count < argc ; token = strtok_r (NULL, "\0", &save_ptr))
         {
           count ++;
           *esp -=4;
