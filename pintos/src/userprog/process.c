@@ -449,7 +449,7 @@ setup_stack (void **esp, const char *command_line)
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success){
 
-        cl_copy = palloc_get_page (0);
+        char *cl_copy = palloc_get_page (0);
         ASSERT (cl_copy != NULL)
         strlcpy (cl_copy, command_line, PGSIZE);
 
