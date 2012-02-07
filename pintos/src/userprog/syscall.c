@@ -50,7 +50,7 @@ syscall_handler (struct intr_frame *f UNUSED)
         check_buffer_uaddr (buf, size);
 
         if (arg1 ==1) //fd 1
-          putbuf (buf, size);
+          putbuf (translate_uaddr_to_kaddr(buf), size);
         
       }
       case SYS_SEEK:
