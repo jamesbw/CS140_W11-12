@@ -656,7 +656,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   char *space = strchr (t->name, ' ');
   if(space != NULL){
-    space = '\0'; // shorten file_name to contain only executable name
+    *space = '\0'; // shorten file_name to contain only executable name
   } 
 
   t->stack = (uint8_t *) t + PGSIZE;
