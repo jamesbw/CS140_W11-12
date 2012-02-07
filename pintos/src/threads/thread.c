@@ -178,7 +178,7 @@ thread_create (const char *name, int priority,
 {
   struct thread *t;
   struct kernel_thread_frame *kf;
-  struct switch_entry_frame *e
+  struct switch_entry_frame *e;
   struct switch_threads_frame *sf;
   tid_t tid;
   enum intr_level old_level;
