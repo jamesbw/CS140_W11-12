@@ -28,7 +28,6 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  printf("process_execute: %s\n",file_name);
   char *fn_copy;
   tid_t tid;
 
@@ -52,7 +51,6 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
-  printf("start_process: %s\n",file_name);
   struct intr_frame if_;
   bool success;
 
@@ -225,12 +223,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   //TODO: change file name
-  printf("%s\n",file_name);
   char *first_space = strchr (file_name, ' ');
   if(first_space != NULL){
-    printf("%s\n",file_name);
     *first_space = '\0'; // shorten file_name to contain only executable name
-    printf("%s\n",file_name);
   } 
 
   /* Open executable file. */
@@ -316,9 +311,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   //TODO pass filename in for stack setup
   if(first_space != NULL){
-    printf("%s\n",file_name);
     *first_space = ' '; // restore original file_name
-    printf("%s\n",file_name);
   } 
   if (!setup_stack (esp, file_name))
     goto done;
@@ -464,13 +457,11 @@ setup_stack (void **esp, const char *command_line)
         char *token, *save_ptr;
         *esp = PHYS_BASE;
 
-        printf("%s\n",cl_copy);
 
         //pushing argument strings
         for (token = strtok_r (cl_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
         {
           argc ++ ;
-          printf("%d\n",argc);
           *esp -= strlen(token) + 1;
           memcpy(*esp, token, strlen(token) + 1);          
         }
