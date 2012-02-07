@@ -77,6 +77,7 @@ translate_uaddr_to_kaddr (const void *vaddr)
 static void
 check_buffer_uaddr (const void *buf, int size)
 {
-  for (int i = 0; i < size; ++i)
+  int i;
+  for (i = 0; i < size; ++i)
     ASSERT (translate_uaddr_to_kaddr (buf + i) != NULL);
 }

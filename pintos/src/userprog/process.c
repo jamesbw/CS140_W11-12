@@ -448,12 +448,17 @@ setup_stack (void **esp, const char *command_line)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success){
+
+        cl_copy = palloc_get_page (0);
+        ASSERT (cl_copy != NULL)
+        strlcpy (cl_copy, command_line, PGSIZE);
+
         uint32_t argc = 0;
         char *token, *save_ptr;
         *esp = PHYS_BASE;
 
         //pushing argument strings
-        for (token = strtok_r (command_line, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
+        for (token = strtok_r (cl_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
         {
           argc ++ ;
           *esp -= strlen(token) + 1;
@@ -468,7 +473,7 @@ setup_stack (void **esp, const char *command_line)
 
         //pushing argv elements
         token = save_ptr = NULL;
-        int count = 0;
+        uint32_t count = 0;
         for (token = strtok_r (end_of_args, " ", &save_ptr); count < argc ; token = strtok_r (NULL, " ", &save_ptr))
         {
           count ++;
@@ -488,7 +493,7 @@ setup_stack (void **esp, const char *command_line)
         *esp -=4;
         memset(*esp, 0, 4);
 
-
+        palloc_free_page (cl_copy);
       }
       else
         palloc_free_page (kpage);
