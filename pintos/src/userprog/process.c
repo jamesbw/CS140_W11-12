@@ -461,6 +461,7 @@ setup_stack (void **esp, const char *command_line)
         for (token = strtok_r (cl_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
         {
           argc ++ ;
+          printf("%d\n",argc);
           *esp -= strlen(token) + 1;
           memcpy(*esp, token, strlen(token) + 1);          
         }
