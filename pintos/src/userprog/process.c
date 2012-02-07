@@ -478,7 +478,9 @@ setup_stack (void **esp, const char *command_line)
 
         //pushing argv elements
         token = end_of_args;
-        while(count < argc){
+        uint32_t count =0;
+        while(count < argc)
+        {
           count ++;
           *esp -=4;
           *((char **) *esp) = token;
