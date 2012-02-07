@@ -655,8 +655,8 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
 
   char *space = strchr (t->name, ' ');
-  if(first_space != NULL){
-    *first_space = '\0'; // shorten file_name to contain only executable name
+  if(space != NULL){
+    space = '\0'; // shorten file_name to contain only executable name
   } 
 
   t->stack = (uint8_t *) t + PGSIZE;
