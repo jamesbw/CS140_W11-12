@@ -52,7 +52,7 @@ syscall_handler (struct intr_frame *f UNUSED)
         if (arg1 ==1) //fd 1
           putbuf (translate_uaddr_to_kaddr(buf), size);
         f->eax = size;
-        thread_exit ();
+        break;
         
       }
       case SYS_SEEK:
@@ -71,7 +71,6 @@ static void *
 translate_uaddr_to_kaddr (const void *vaddr)
 {
   ASSERT (is_user_vaddr (vaddr)); // Not user address
-  printf("%p", pagedir_get_page (thread_current ()->pagedir, vaddr));
   uint32_t *kaddr = pagedir_get_page (thread_current ()->pagedir, vaddr);
   ASSERT (kaddr != NULL); // Not mapped
   return kaddr;
