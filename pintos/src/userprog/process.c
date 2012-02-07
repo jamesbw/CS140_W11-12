@@ -457,6 +457,8 @@ setup_stack (void **esp, const char *command_line)
         char *token, *save_ptr;
         *esp = PHYS_BASE;
 
+        printf("%s\n",cl_copy);
+
         //pushing argument strings
         for (token = strtok_r (cl_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
         {
@@ -493,6 +495,8 @@ setup_stack (void **esp, const char *command_line)
         //pushing fake return address
         *esp -=4;
         memset(*esp, 0, 4);
+
+        hex_dump( 0, *esp, PHYS_BASE - *esp, true);
 
         palloc_free_page (cl_copy);
       }
