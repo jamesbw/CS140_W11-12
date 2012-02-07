@@ -477,14 +477,19 @@ setup_stack (void **esp, const char *command_line)
         *((uint32_t *) *esp) = 0;
 
         //pushing argv elements
-        token = save_ptr = NULL;
-        uint32_t count = 0;
-        for (token = strtok_r (end_of_args, "\0", &save_ptr); count < argc ; token = strtok_r (NULL, "\0", &save_ptr))
-        {
+        token = end_of_args;
+        while(count < argc){
           count ++;
           *esp -=4;
           *((char **) *esp) = token;
+          token = strchr(token,'\0') + 1;
         }
+        // for (token = strtok_r (end_of_args, "\0", &save_ptr); count < argc ; token = strtok_r (NULL, "\0", &save_ptr))
+        // {
+        //   count ++;
+        //   *esp -=4;
+        //   *((char **) *esp) = token;
+        // }
 
         //pushing &argv
         *esp -=4;
