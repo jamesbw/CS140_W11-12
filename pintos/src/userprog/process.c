@@ -223,6 +223,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   //TODO: change file name
+  printf("%s\n",file_name);
   char *first_space = strchr (file_name, ' ');
   if(first_space != NULL){
     printf("%s\n",file_name);
