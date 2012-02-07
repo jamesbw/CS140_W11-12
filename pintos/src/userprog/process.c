@@ -225,7 +225,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
   //TODO: change file name
   char *first_space = strchr (file_name, ' ');
   if(first_space != NULL){
+    printf("%s\n",file_name);
     *first_space = '\0'; // shorten file_name to contain only executable name
+    printf("%s\n",file_name);
   } 
 
   /* Open executable file. */
@@ -311,7 +313,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   //TODO pass filename in for stack setup
   if(first_space != NULL){
+    printf("%s\n",file_name);
     *first_space = ' '; // restore original file_name
+    printf("%s\n",file_name);
   } 
   if (!setup_stack (esp, file_name))
     goto done;
