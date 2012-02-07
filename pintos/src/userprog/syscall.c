@@ -51,6 +51,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 
         if (arg1 ==1) //fd 1
           putbuf (translate_uaddr_to_kaddr(buf), size);
+        f->eax = size;
+        thread_exit ();
         
       }
       case SYS_SEEK:
