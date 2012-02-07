@@ -474,6 +474,10 @@ setup_stack (void **esp, const char *command_line)
         *esp -= word_align_length;
         memset(*esp, 0, word_align_length);
 
+        //push sentinel
+        *esp -= 4;
+        *((uint32_t *) *esp) = 0;
+
         //pushing argv elements
         token = save_ptr = NULL;
         uint32_t count = 0;
@@ -490,13 +494,14 @@ setup_stack (void **esp, const char *command_line)
 
         //pusing argc
         *esp -= 4;
-        *((int *) *esp) = argc;
+        *((uint32_t *) *esp) = argc;
 
         //pushing fake return address
         *esp -=4;
         memset(*esp, 0, 4);
 
         hex_dump( 0, *esp, PHYS_BASE - *esp, true);
+
 
         palloc_free_page (cl_copy);
       }
