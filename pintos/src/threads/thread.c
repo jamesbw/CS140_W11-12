@@ -178,7 +178,7 @@ thread_create (const char *name, int priority,
 {
   struct thread *t;
   struct kernel_thread_frame *kf;
-  struct switch_entry_frame *ef;
+  struct switch_entry_frame *e
   struct switch_threads_frame *sf;
   tid_t tid;
   enum intr_level old_level;
@@ -653,6 +653,12 @@ init_thread (struct thread *t, const char *name, int priority)
   memset (t, 0, sizeof *t);
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
+
+  char *space = strchr (t->name, ' ');
+  if(first_space != NULL){
+    *first_space = '\0'; // shorten file_name to contain only executable name
+  } 
+
   t->stack = (uint8_t *) t + PGSIZE;
 
   /* mlfqs */
