@@ -483,7 +483,7 @@ setup_stack (void **esp, const char *command_line)
         {
           count ++;
           *esp -=4;
-          memcpy(*esp, &token,4);
+          *((char **) *esp) = token;
         }
 
         //pushing &argv
