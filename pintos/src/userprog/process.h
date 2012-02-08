@@ -16,9 +16,9 @@ struct process
     tid_t tid;
     bool parent_finished;
     bool finished;
-    struct semaphore sema_loaded;
     struct semaphore sema_finished;
     uint32_t exit_code;
+    struct list_elem elem;
 };
 
 #endif /* userprog/process.h */

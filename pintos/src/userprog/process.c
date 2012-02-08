@@ -27,6 +27,7 @@ struct start_process_frame
   char * file_name;
   bool success;
   struct semaphore *sema_loaded;
+  tid parent_tid;
 };
 
 /* Starts a new thread running a user program loaded from
@@ -53,6 +54,7 @@ process_execute (const char *file_name)
   spf->file_name = fn_copy;
   spf->success = false;
   sfp->sema_loaded = &loaded;
+  sfp->parent_tid = thread_current ()->tid;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, &spf);
@@ -86,6 +88,19 @@ start_process (void *spf_)
   success = load (file_name, &if_.eip, &if_.esp);
 
   spf->success = success;
+
+  //create a struct process, add it to list
+  struct process *new_process = malloc (sizeof (struct process));
+  ASSERT (new_process);
+  new_process->parent_tid = spf->parent_tid;
+  new_process->tid = thread_current ()->tid;
+  new_process->parent_finished = false;
+  new_process->finished = false;
+  sema_init (&new_process->sema_finished);
+  new_process->exit_code = 666; //should never read this as is
+  list_push_back ( &process_list, &new_process->elem);
+
+
   sema_up (sfp->sema_loaded);
 
   /* If load failed, quit. */
