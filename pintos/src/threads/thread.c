@@ -653,6 +653,12 @@ init_thread (struct thread *t, const char *name, int priority)
   memset (t, 0, sizeof *t);
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
+
+  char *space = strchr (t->name, ' ');
+  if(space != NULL){
+    *space = '\0'; // shorten file_name to contain only executable name
+  } 
+
   t->stack = (uint8_t *) t + PGSIZE;
 
   /* mlfqs */

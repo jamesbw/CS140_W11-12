@@ -30,12 +30,7 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-  /*char s[] = file_name;
-  char *token, *save_ptr;
-  for (token = strtok_r(s, " ", &save_ptr); token != NULL; token =
-	 strtok_r(NULL, " ", &save_ptr)) {
-
-	 }*/
+  
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
@@ -203,7 +198,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, const char *command_line);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -228,6 +223,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
+
+  //TODO: change file name
+  char *first_space = strchr (file_name, ' ');
+  if(first_space != NULL){
+    *first_space = '\0'; // shorten file_name to contain only executable name
+  } 
 
   /* Open executable file. */
   file = filesys_open (file_name);
@@ -310,7 +311,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  //TODO pass filename in for stack setup
+  if(first_space != NULL){
+    *first_space = ' '; // restore original file_name
+  } 
+  if (!setup_stack (esp, file_name))
     goto done;
 
   /* Start address. */
@@ -435,7 +440,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, const char *command_line)
 {
   uint8_t *kpage;
   bool success = false;
@@ -444,8 +449,63 @@ setup_stack (void **esp)
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE - 12;
+      if (success){
+
+        char *cl_copy = palloc_get_page (0);
+        ASSERT (cl_copy != NULL)
+        strlcpy (cl_copy, command_line, PGSIZE);
+
+        uint32_t argc = 0;
+        char *token, *save_ptr;
+        *esp = PHYS_BASE;
+
+
+        //pushing argument strings
+        for (token = strtok_r (cl_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr))
+        {
+          argc ++ ;
+          *esp -= strlen(token) + 1;
+          memcpy(*esp, token, strlen(token) + 1);          
+        }
+        char *end_of_args = *esp;
+
+        //word align
+        int word_align_length = (uint32_t) *esp % 4;
+        *esp -= word_align_length;
+        memset(*esp, 0, word_align_length);
+
+        //push sentinel
+        *esp -= 4;
+        *((uint32_t *) *esp) = 0;
+
+        //pushing argv elements
+        token = end_of_args;
+        uint32_t count =0;
+        while(count < argc)
+        {
+          count ++;
+          *esp -=4;
+          *((char **) *esp) = token;
+          token = strchr(token,'\0') + 1;
+        }
+
+        //pushing &argv
+        *esp -=4;
+        *((char ***) *esp )=  *esp + 4;
+
+        //pusing argc
+        *esp -= 4;
+        *((uint32_t *) *esp) = argc;
+
+        //pushing fake return address
+        *esp -=4;
+        memset(*esp, 0, 4);
+
+        hex_dump( 0, *esp, PHYS_BASE - *esp, true);
+
+
+        palloc_free_page (cl_copy);
+      }
       else
         palloc_free_page (kpage);
     }
