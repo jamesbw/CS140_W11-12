@@ -20,6 +20,14 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+struct list process_list;
+
+struct start_process_frame
+{
+  char * file_name;
+  bool success;
+  struct semaphore *sema_loaded;
+};
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -38,19 +46,35 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  struct semaphore loaded;
+  sema_init(&loaded);
+
+  struct start_process_frame spf;
+  spf->file_name = fn_copy;
+  spf->success = false;
+  sfp->sema_loaded = &loaded;
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, &spf);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
+  else 
+  {
+    sema_down ( &loaded);
+    if (! spf->success)
+      return TID_ERROR;
+  }
   return tid;
 }
 
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *file_name_)
+start_process (void *spf_)
 {
-  char *file_name = file_name_;
+  struct start_process_frame *spf = spf_;
+
+  char *file_name = spf->file_name;
   struct intr_frame if_;
   bool success;
 
@@ -60,6 +84,9 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
+
+  spf->success = success;
+  sema_up (sfp->sema_loaded);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
