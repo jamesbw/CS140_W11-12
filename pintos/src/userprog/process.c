@@ -226,6 +226,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   //TODO: change file name
   char *first_space = strchr (file_name, ' ');
+  while (first_space == file_name) {
+    file_name++;
+    first_space = strchr(file_name, ' ');
+  }
   if(first_space != NULL){
     *first_space = '\0'; // shorten file_name to contain only executable name
   } 
