@@ -666,8 +666,9 @@ wrap_file (struct file *file)
 struct file_wrapper *
 lookup_fd ( fd_t fd)
 {
+  struct thread *cur = thread_current ();
   struct file_wrapper *fw = NULL;
-  struct list_elem e;
+  struct list_elem *e;
 
   for (e = list_begin (&cur->open_files); e != list_end (&cur->open_files);e = list_next (e))
   {
