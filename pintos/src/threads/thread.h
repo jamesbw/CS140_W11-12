@@ -97,7 +97,6 @@ struct thread
 
     struct lock *lock_waited_on; /* If thread is blocked on a lock */
     struct list locks_held; /* All locks currently held */
-
     /* mlfqs. */
     int nice;
     int17_14t recent_cpu;

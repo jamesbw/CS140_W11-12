@@ -224,7 +224,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-  //TODO: change file name
+  //Ignore leading spaces
   char *first_space = strchr (file_name, ' ');
   while (first_space == file_name) {
     file_name++;
