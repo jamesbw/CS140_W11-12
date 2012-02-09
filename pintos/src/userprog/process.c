@@ -203,11 +203,11 @@ process_exit (void)
   }
 
   //Close all open files
-  struct list_elem *e = list_begin (&cur->open_files);
+  e = list_begin (&cur->open_files);
   while (!list_empty (&cur->open_files))
   {
     struct file_wrapper *fw = list_entry (e, struct file_wrapper, elem);
-    e = remove (e);
+    e = list_remove (e);
     lock_acquire (&filesys_lock);
     file_close (fw->file);
     lock_release (&filesys_lock);
@@ -317,6 +317,7 @@ static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
                           bool writable);
+static fd_t allocate_fd (void);
 
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
