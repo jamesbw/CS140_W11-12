@@ -8,7 +8,6 @@ tid_t process_execute (const char *file_name);
 int process_wait (tid_t);
 void process_exit (void);
 void process_activate (void);
-struct file_wrapper * lookup_fd ( fd_t fd)
 
 
 extern struct list process_list;
@@ -34,6 +33,7 @@ struct file_wrapper
     struct list_elem elem;
 };
 
+struct file_wrapper * lookup_fd ( fd_t fd);
 struct file_wrapper *wrap_file (struct file *file);
 
 #endif /* userprog/process.h */
