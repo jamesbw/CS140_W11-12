@@ -173,20 +173,18 @@ process_exit (void)
     p = list_entry (e, struct process, elem);
     if (p->parent_tid == cur->tid)
     {
+      if (p->finished)
       {
-        if (p->finished)
-        {
-          e = list_remove (e);
-          free (p);
-        }
-        else
-        {
-          p->parent_finished = true;
-          e = list_next (e);
-        }
+        e = list_remove (e);
+        free (p);
+      }
+      else
+      {
+        p->parent_finished = true;
+        e = list_next (e);
       }
     }
-    if (p->tid == cur->tid)
+    else if (p->tid == cur->tid)
     {
       if (p->parent_finished)
       {
@@ -200,6 +198,8 @@ process_exit (void)
         e = list_next (e);
       }
     }
+    else
+      e = list_next (e);
   }
 
   //Close all open files
