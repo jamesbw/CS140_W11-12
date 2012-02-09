@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
+#include "threads/synch.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -28,7 +29,7 @@ struct start_process_frame
   char * file_name;
   bool success;
   struct semaphore *sema_loaded;
-  tid parent_tid;
+  tid_t parent_tid;
 };
 
 /* Starts a new thread running a user program loaded from
@@ -52,10 +53,10 @@ process_execute (const char *file_name)
   sema_init(&loaded);
 
   struct start_process_frame spf;
-  spf->file_name = fn_copy;
-  spf->success = false;
-  sfp->sema_loaded = &loaded;
-  sfp->parent_tid = thread_current ()->tid;
+  spf.file_name = fn_copy;
+  spf.success = false;
+  spf.sema_loaded = &loaded;
+  spf.parent_tid = thread_current ()->tid;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, &spf);
@@ -64,7 +65,7 @@ process_execute (const char *file_name)
   else 
   {
     sema_down ( &loaded);
-    if (! spf->success)
+    if (! spf.success)
       return TID_ERROR;
   }
   return tid;
@@ -102,7 +103,7 @@ start_process (void *spf_)
   list_push_back ( &process_list, &new_process->elem);
 
 
-  sema_up (sfp->sema_loaded);
+  sema_up (spf->sema_loaded);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -144,7 +145,7 @@ process_wait (tid_t child_tid UNUSED)
 
   if (p == NULL)
     return -1;
-  sema_down (p->sema_finished);
+  sema_down (&p->sema_finished);
   list_remove (p->elem);
   int saved_exit_code = p->exit_code;
   free (p);
