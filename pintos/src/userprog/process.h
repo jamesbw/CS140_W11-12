@@ -14,10 +14,10 @@ struct process
 {
     tid_t parent_tid;
     tid_t tid;
-    bool parent_finished;
     bool finished;
+    bool parent_finished;
     struct semaphore sema_finished;
-    uint32_t exit_code;
+    int exit_code;
     struct list_elem elem;
 };
 

@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -89,13 +90,13 @@ start_process (void *spf_)
 
   spf->success = success;
 
-  //create a struct process, add it to list
+  //create a struct process, add it to list_push_back
   struct process *new_process = malloc (sizeof (struct process));
   ASSERT (new_process);
   new_process->parent_tid = spf->parent_tid;
   new_process->tid = thread_current ()->tid;
-  new_process->parent_finished = false;
   new_process->finished = false;
+  new_process->parent_finished = false;
   sema_init (&new_process->sema_finished);
   new_process->exit_code = 666; //should never read this as is
   list_push_back ( &process_list, &new_process->elem);
@@ -130,8 +131,24 @@ start_process (void *spf_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(true);;
-  return -1;
+  tid_t cur_tid = thread_current ()->tid;
+  struct list_elem *e;
+  struct process *p = NULL;
+  for (e = list_begin (&process_list); e != list_end (&process_list);
+           e = list_next (e))
+  {
+    p = list_entry (e, struct process, elem);
+    if (p->parent_tid == cur_tid && p->tid == child_tid)
+      break;
+  }
+
+  if (p == NULL)
+    return -1;
+  sema_down (p->sema_finished);
+  list_remove (p->elem);
+  int saved_exit_code = p->exit_code;
+  free (p);
+  return saved_exit_code;
 }
 
 /* Free the current process's resources. */
@@ -140,6 +157,43 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  struct list_elem *e = list_begin (&process_list);
+  struct process *p = NULL;
+  while (e != list_end (&process_list))
+  {
+    p = list_entry (e, struct process, elem);
+    if (p->parent_tid == cur->tid)
+    {
+      {
+        if (p->finished)
+        {
+          e = list_remove (e);
+          free (p);
+        }
+        else
+        {
+          p->parent_finished = true;
+          e = list_next (e);
+        }
+      }
+    }
+    if (p->tid == cur->tid)
+    {
+      if (p->parent_finished)
+      {
+        e = list_remove (e);
+        free (p);
+      }
+      else
+      {
+        p->finished = true;
+        sema_up (&p->sema_finished);
+        e = list_next (e);
+      }
+    }
+  }
+
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
