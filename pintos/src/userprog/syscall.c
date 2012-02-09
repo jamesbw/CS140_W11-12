@@ -48,6 +48,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 
         //update exit code
         struct list_elem *e;
+        struct process *p;
         for (e = list_begin (&process_list); e != list_end (&process_list);e = list_next (e))
         {
           p = list_entry (e, struct process, elem);
