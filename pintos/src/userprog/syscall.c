@@ -41,11 +41,7 @@ syscall_handler (struct intr_frame *f UNUSED)
         printf ("%s: exit(%d)\n", thread_current ()->name, arg1);
         f->eax = arg1;
         thread_exit ();
-      }
-      case SYS_WAIT:
-      case SYS_CREATE:
-      case SYS_REMOVE:
-        break;
+	break;
       }
       case SYS_EXEC:
       {
