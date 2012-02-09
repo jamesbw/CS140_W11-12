@@ -50,7 +50,7 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   struct semaphore loaded;
-  sema_init(&loaded);
+  sema_init(&loaded, 0);
 
   struct start_process_frame spf;
   spf.file_name = fn_copy;
@@ -98,7 +98,7 @@ start_process (void *spf_)
   new_process->tid = thread_current ()->tid;
   new_process->finished = false;
   new_process->parent_finished = false;
-  sema_init (&new_process->sema_finished);
+  sema_init (&new_process->sema_finished, 0);
   new_process->exit_code = 666; //should never read this as is
   list_push_back ( &process_list, &new_process->elem);
 
@@ -146,7 +146,7 @@ process_wait (tid_t child_tid UNUSED)
   if (p == NULL)
     return -1;
   sema_down (&p->sema_finished);
-  list_remove (p->elem);
+  list_remove (e);
   int saved_exit_code = p->exit_code;
   free (p);
   return saved_exit_code;
