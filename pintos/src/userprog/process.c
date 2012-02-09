@@ -104,7 +104,7 @@ start_process (void *spf_)
   new_process->finished = false;
   new_process->parent_finished = false;
   sema_init (&new_process->sema_finished, 0);
-  new_process->exit_code = 666; //should never read this as is
+  new_process->exit_code = 0; 
   list_push_back ( &process_list, &new_process->elem);
 
 

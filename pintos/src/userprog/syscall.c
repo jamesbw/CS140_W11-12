@@ -45,6 +45,19 @@ syscall_handler (struct intr_frame *f UNUSED)
       {
         printf ("%s: exit(%d)\n", thread_current ()->name, arg1);
         f->eax = arg1;
+
+        //update exit code
+        struct list_elem *e;
+        for (e = list_begin (&process_list); e != list_end (&process_list);e = list_next (e))
+        {
+          p = list_entry (e, struct process, elem);
+          if (p->tid == thread_current ()->tid)
+          {
+            p->exit_code = arg1;
+            break;
+          }
+        }
+
         thread_exit ();
         break;
       }
