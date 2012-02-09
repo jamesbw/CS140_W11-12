@@ -104,7 +104,7 @@ start_process (void *spf_)
   new_process->finished = false;
   new_process->parent_finished = false;
   sema_init (&new_process->sema_finished, 0);
-  new_process->exit_code = 0; 
+  new_process->exit_code = -1; 
   list_push_back ( &process_list, &new_process->elem);
 
 
@@ -148,7 +148,7 @@ process_wait (tid_t child_tid UNUSED)
       break;
   }
 
-  if (p == NULL)
+  if (e == list_end (&process_list)) //not found
     return -1;
   sema_down (&p->sema_finished);
   list_remove (e);
@@ -212,6 +212,15 @@ process_exit (void)
     file_close (fw->file);
     lock_release (&filesys_lock);
     free (fw);
+  }
+
+  //Release all locks if some are still held
+  e = list_begin (&cur->locks_held);
+  while (!list_empty (&cur->locks_held))
+  {
+    struct lock *l = list_entry (e, struct lock, elem);
+    e = list_remove (e);
+    lock_release (l);
   }
 
 

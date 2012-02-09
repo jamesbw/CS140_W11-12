@@ -90,10 +90,15 @@ syscall_handler (struct intr_frame *f UNUSED)
         void *k_arg1 = translate_uaddr_to_kaddr( (void *) arg1);
         lock_acquire (&filesys_lock);
         struct file *file = filesys_open ( (char *) k_arg1);
-        struct file_wrapper *fw = wrap_file (file); 
+        if (file == NULL)
+          f->eax = -1;
+        else
+        {
+          struct file_wrapper *fw = wrap_file (file); 
+          list_push_back (&thread_current ()->open_files, &fw->elem);   
+          f->eax = fw->fd;
+        }
         lock_release (&filesys_lock);
-        list_push_back (&thread_current ()->open_files, &fw->elem);
-        f->eax = fw->fd;
         break;
       }
       case SYS_FILESIZE:
