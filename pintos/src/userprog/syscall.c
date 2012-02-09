@@ -214,10 +214,11 @@ syscall_handler (struct intr_frame *f UNUSED)
 static void *
 translate_uaddr_to_kaddr (const void *vaddr)
 {
-  //TODO kill process instead of failing ASSERT
-  ASSERT (is_user_vaddr (vaddr)); // Not user address
+  if (!is_user_vaddr (vaddr))
+    thread_exit (); // Not user address
   uint32_t *kaddr = pagedir_get_page (thread_current ()->pagedir, vaddr);
-  ASSERT (kaddr != NULL); // Not mapped
+  if (kaddr == NULL)
+    thread_exit (); // Not mapped
   return kaddr;
 }
 
@@ -227,5 +228,6 @@ check_buffer_uaddr (const void *buf, int size)
   //TODO kill process instead of failing ASSERT
   int i;
   for (i = 0; i < size; ++i)
-    ASSERT (translate_uaddr_to_kaddr (buf + i) != NULL);
+    if (translate_uaddr_to_kaddr (buf + i) == NULL)
+      thread_exit ();
 }
