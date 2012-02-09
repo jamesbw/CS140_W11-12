@@ -10,9 +10,9 @@
 #include "devices/shutdown.h"
 #include "filesys/filesys.h"
 #include "process.h"
-#include "file.h"
-#include "devices/console.h"
-#include "devices/input.h"
+#include "filesys/file.h"
+#include <input.h>
+#include "threads/malloc.h"
 
 static void syscall_handler (struct intr_frame *);
 static void *translate_uaddr_to_kaddr (const void *vaddr);

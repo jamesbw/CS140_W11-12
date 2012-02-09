@@ -661,6 +661,23 @@ wrap_file (struct file *file)
   return fw;
 }
 
+// Returns a struct file wrapper for a file descriptor.
+// If the current thread doesn't have this fd, returns NULL.
+struct file_wrapper *
+lookup_fd ( fd_t fd)
+{
+  struct file_wrapper *fw = NULL;
+  struct list_elem e;
+
+  for (e = list_begin (&cur->open_files); e != list_end (&cur->open_files);e = list_next (e))
+  {
+    fw = list_entry (e, struct file_wrapper, elem);
+    if (fw->fd == fd)
+      break;
+  }
+  return fw;
+}
+
 /* Returns a fd to use for a new open file. */
 // Filesys lock must be acquired while this is called.
 static fd_t
