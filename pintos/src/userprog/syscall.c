@@ -11,7 +11,7 @@
 #include "filesys/filesys.h"
 #include "process.h"
 #include "filesys/file.h"
-#include <input.h>
+#include "devices/input.h"
 #include "threads/malloc.h"
 
 static void syscall_handler (struct intr_frame *);
@@ -95,7 +95,7 @@ syscall_handler (struct intr_frame *f UNUSED)
         void *buf = (void *) arg2;
         int size = arg3;
         check_buffer_uaddr (buf, size);
-        void *k_buf = translate_uaddr_to_kaddr(buf);
+        char *k_buf = translate_uaddr_to_kaddr(buf);
 
         if ( arg1  == 0) // Read from keyboard
         {
