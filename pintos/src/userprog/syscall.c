@@ -9,6 +9,10 @@
 
 #include "devices/shutdown.h"
 #include "filesys/filesys.h"
+#include "process.h"
+#include "file.h"
+#include "devices/console.h"
+#include "devices/input.h"
 
 static void syscall_handler (struct intr_frame *);
 static void *translate_uaddr_to_kaddr (const void *vaddr);
@@ -46,7 +50,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       }
       case SYS_EXEC:
       {
-        f->eax = process_execute ( (char *) arg1);
+        void *k_arg1 = translate_uaddr_to_kaddr( (void *) arg1);
+        f->eax = process_execute ( (char *) k_arg1);
         break;
       }
       case SYS_WAIT:
@@ -56,33 +61,128 @@ syscall_handler (struct intr_frame *f UNUSED)
       }
       case SYS_CREATE:
       {
-        f->eax = filesys_create ( (char *) arg1, arg2);
+        void *k_arg1 = translate_uaddr_to_kaddr( (void *) arg1);
+        f->eax = filesys_create ( (char *) k_arg1, arg2);
         break;
       }
       case SYS_REMOVE:
       {
-        f->eax = filesys_remove ( (char *) arg1);
+        void *k_arg1 = translate_uaddr_to_kaddr( (void *) arg1);
+        f->eax = filesys_remove ( (char *) k_arg1);
         break;
       }
       case SYS_OPEN:
+      {
+        void *k_arg1 = translate_uaddr_to_kaddr( (void *) arg1);
+        lock_acquire (&filesys_lock);
+        struct file *file = filesys_open ( (char *) k_arg1);
+        struct file_wrapper *fw = wrap_file (file); 
+        lock_release (&filesys_lock);
+        list_push_back (&thread_current ()->open_files, &fw->elem);
+        f->eax = fw->fd;
+        break;
+      }
       case SYS_FILESIZE:
+      {
+        struct file_wrapper *fw = lookup_fd ( (fd_t) arg1);
+        lock_acquire (&filesys_lock);
+        f->eax = file_length (fw->file);
+        lock_release (&filesys_lock);
+        break;
+      }
       case SYS_READ:
+      {
+        void *buf = (void *) arg2;
+        int size = arg3;
+        check_buffer_uaddr (buf, size);
+        void *k_buf = translate_uaddr_to_kaddr(buf);
+
+        if ( arg1  == 0) // Read from keyboard
+        {
+          int count = 0;
+          while (size - count > 0)
+          {
+            k_buf[count] = input_getc ();
+            count ++;
+          }
+        }
+        else
+        {
+          struct file_wrapper *fw = lookup_fd ( (fd_t) arg1);
+          if (fw == NULL)
+            f->eax =  -1;
+          else
+          {
+            lock_acquire (&filesys_lock);
+            f->eax = file_read (fw->file, k_buf, size);
+            lock_release (&filesys_lock);
+          }
+        }
+        break;
+      }
       case SYS_WRITE:
       {
         void *buf = (void *) arg2;
         int size = arg3;
         check_buffer_uaddr (buf, size);
+        void *k_buf = translate_uaddr_to_kaddr(buf);
 
-        if (arg1 ==1) //fd 1
-          putbuf (translate_uaddr_to_kaddr(buf), size);
-        f->eax = size;
-        break;
-         //TODO if arg1 is not 1, ie console
-        
+        if (arg1 ==1) // Write to console
+        { 
+          putbuf ( k_buf, size);
+          f->eax = size;
+        }
+        else
+        {
+          struct file_wrapper *fw = lookup_fd ( (fd_t) arg1);
+          if (fw == NULL)
+            f->eax =  -1;
+          else
+          {
+            lock_acquire (&filesys_lock);
+            f->eax = file_write (fw->file, k_buf, size);
+            lock_release (&filesys_lock);
+          }
+        }
+        break;        
       }
       case SYS_SEEK:
+      {
+        struct file_wrapper *fw = lookup_fd ( (fd_t) arg1);
+        if (fw != NULL)
+        {
+          lock_acquire (&filesys_lock);
+          file_seek (fw->file, arg2);
+          lock_release (&filesys_lock);
+        }
+        break;
+      }
       case SYS_TELL:
+      {
+        struct file_wrapper *fw = lookup_fd ( (fd_t) arg1);
+        if (fw == NULL)
+          f->eax =  -1;
+        else
+        {
+          lock_acquire (&filesys_lock);
+          f->eax = file_tell (fw->file);
+          lock_release (&filesys_lock);
+        }
+        break;
+      }
       case SYS_CLOSE:
+      {
+        struct file_wrapper *fw = lookup_fd ( (fd_t) arg1);
+        if (fw != NULL)
+        {
+          list_remove (&fw->elem);
+          lock_acquire (&filesys_lock);
+          file_close (fw->file);
+          lock_release (&filesys_lock);
+          free (fw);
+        }
+        break;
+      }
       default:
       {
         printf ("system call!\n");

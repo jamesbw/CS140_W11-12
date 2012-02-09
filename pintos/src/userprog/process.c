@@ -93,7 +93,7 @@ start_process (void *spf_)
   lock_acquire ( &filesys_lock);
   success = load (file_name, &if_.eip, &if_.esp);
   lock_release ( &filesys_lock);
-  
+
   spf->success = success;
 
   //create a struct process, add it to list_push_back
@@ -164,6 +164,8 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
+
+  // Update the process list
   struct list_elem *e = list_begin (&process_list);
   struct process *p = NULL;
   while (e != list_end (&process_list))
@@ -198,6 +200,18 @@ process_exit (void)
         e = list_next (e);
       }
     }
+  }
+
+  //Close all open files
+  struct list_elem *e = list_begin (&cur->open_files);
+  while (!list_empty (&cur->open_files))
+  {
+    struct file_wrapper *fw = list_entry (e, struct file_wrapper, elem);
+    e = remove (e);
+    lock_acquire (&filesys_lock);
+    file_close (fw->file);
+    lock_release (&filesys_lock);
+    free (fw);
   }
 
 
@@ -632,3 +646,35 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+
+// Wraps a struct file into a struct with a file descriptor
+// and a list_elem so that it can be inserted into a list.
+struct file_wrapper *
+wrap_file (struct file *file)
+{
+  struct file_wrapper *fw = malloc (sizeof (struct file_wrapper));
+  ASSERT (fw);
+  fw->file = file;
+  fw->fd = allocate_fd ();
+  return fw;
+}
+
+/* Returns a fd to use for a new open file. */
+// Filesys lock must be acquired while this is called.
+static fd_t
+allocate_fd (void) 
+{
+
+  ASSERT (lock_held_by_current_thread (&filesys_lock));
+
+  static fd_t next_fd = 2; // 0 and 1 are reserved
+  fd_t fd;
+
+  fd = next_fd++;
+
+  return fd;
+}
+
+
+

@@ -9,8 +9,11 @@ int process_wait (tid_t);
 void process_exit (void);
 void process_activate (void);
 
+
 extern struct list process_list;
 extern struct lock filesys_lock;
+
+typedef int fd_t;
 
 struct process
 {
@@ -22,5 +25,14 @@ struct process
     int exit_code;
     struct list_elem elem;
 };
+
+struct file_wrapper
+{
+    fd_t fd;
+    struct file *file;
+    struct list_elem elem;
+};
+
+struct file_wrapper *wrap_file (struct file *file);
 
 #endif /* userprog/process.h */
