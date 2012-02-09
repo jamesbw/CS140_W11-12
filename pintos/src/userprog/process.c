@@ -17,9 +17,20 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
+#include "threads/synch.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+struct list process_list;
+
+struct start_process_frame
+{
+  char * file_name;
+  bool success;
+  struct semaphore *sema_loaded;
+  tid_t parent_tid;
+};
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -38,19 +49,36 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  struct semaphore loaded;
+  sema_init(&loaded, 0);
+
+  struct start_process_frame spf;
+  spf.file_name = fn_copy;
+  spf.success = false;
+  spf.sema_loaded = &loaded;
+  spf.parent_tid = thread_current ()->tid;
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, &spf);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
+  else 
+  {
+    sema_down ( &loaded);
+    if (! spf.success)
+      return TID_ERROR;
+  }
   return tid;
 }
 
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *file_name_)
+start_process (void *spf_)
 {
-  char *file_name = file_name_;
+  struct start_process_frame *spf = spf_;
+
+  char *file_name = spf->file_name;
   struct intr_frame if_;
   bool success;
 
@@ -60,6 +88,22 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
+
+  spf->success = success;
+
+  //create a struct process, add it to list_push_back
+  struct process *new_process = malloc (sizeof (struct process));
+  ASSERT (new_process);
+  new_process->parent_tid = spf->parent_tid;
+  new_process->tid = thread_current ()->tid;
+  new_process->finished = false;
+  new_process->parent_finished = false;
+  sema_init (&new_process->sema_finished, 0);
+  new_process->exit_code = 666; //should never read this as is
+  list_push_back ( &process_list, &new_process->elem);
+
+
+  sema_up (spf->sema_loaded);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -88,10 +132,24 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while (1) {
-
+  tid_t cur_tid = thread_current ()->tid;
+  struct list_elem *e;
+  struct process *p = NULL;
+  for (e = list_begin (&process_list); e != list_end (&process_list);
+           e = list_next (e))
+  {
+    p = list_entry (e, struct process, elem);
+    if (p->parent_tid == cur_tid && p->tid == child_tid)
+      break;
   }
-  return -1;
+
+  if (p == NULL)
+    return -1;
+  sema_down (&p->sema_finished);
+  list_remove (e);
+  int saved_exit_code = p->exit_code;
+  free (p);
+  return saved_exit_code;
 }
 
 /* Free the current process's resources. */
@@ -100,6 +158,43 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  struct list_elem *e = list_begin (&process_list);
+  struct process *p = NULL;
+  while (e != list_end (&process_list))
+  {
+    p = list_entry (e, struct process, elem);
+    if (p->parent_tid == cur->tid)
+    {
+      {
+        if (p->finished)
+        {
+          e = list_remove (e);
+          free (p);
+        }
+        else
+        {
+          p->parent_finished = true;
+          e = list_next (e);
+        }
+      }
+    }
+    if (p->tid == cur->tid)
+    {
+      if (p->parent_finished)
+      {
+        e = list_remove (e);
+        free (p);
+      }
+      else
+      {
+        p->finished = true;
+        sema_up (&p->sema_finished);
+        e = list_next (e);
+      }
+    }
+  }
+
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -505,7 +600,8 @@ setup_stack (void **esp, const char *command_line)
         *esp -=4;
         memset(*esp, 0, 4);
 
-        hex_dump( 0, *esp, PHYS_BASE - *esp, true);
+        //TODO remove this
+        // hex_dump( 0, *esp, PHYS_BASE - *esp, true);
 
 
         palloc_free_page (cl_copy);

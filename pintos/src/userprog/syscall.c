@@ -6,6 +6,8 @@
 #include "threads/vaddr.h"
 #include <console.h>
 #include "pagedir.h"
+#include "devices/shutdown.h"
+#include "filesys/filesys.h"
 
 static void syscall_handler (struct intr_frame *);
 static void *translate_uaddr_to_kaddr (const void *vaddr);
@@ -22,7 +24,7 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   uint32_t * k_esp = (uint32_t *) translate_uaddr_to_kaddr(f->esp);
-  uint32_t syscall_number = (uint32_t) *(k_esp);
+  uint32_t syscall_number = (uint32_t) *(k_esp); //TODO check all these addresses too
   uint32_t arg1 = (uint32_t) *(k_esp + 1);
   uint32_t arg2 = (uint32_t) *(k_esp + 2);
   uint32_t arg3 = (uint32_t) *(k_esp + 3);
@@ -30,8 +32,11 @@ syscall_handler (struct intr_frame *f UNUSED)
   switch (syscall_number)
   {
       case SYS_HALT:
+      {
+        shutdown_power_off ();
+        break;
+      }
       case SYS_EXIT:
-      case SYS_EXEC:
       {
         printf ("%s: exit(%d)\n", thread_current ()->name, arg1);
         f->eax = arg1;
@@ -40,6 +45,28 @@ syscall_handler (struct intr_frame *f UNUSED)
       case SYS_WAIT:
       case SYS_CREATE:
       case SYS_REMOVE:
+        break;
+      }
+      case SYS_EXEC:
+      {
+        f->eax = process_execute ( (char *) arg1);
+        break;
+      }
+      case SYS_WAIT:
+      {
+        f->eax = process_wait ( (tid_t) arg1);
+        break;
+      }
+      case SYS_CREATE:
+      {
+        f->eax = filesys_create ( (char *) arg1, arg2);
+        break;
+      }
+      case SYS_REMOVE:
+      {
+        f->eax = filesys_remove ( (char *) arg1);
+        break;
+      }
       case SYS_OPEN:
       case SYS_FILESIZE:
       case SYS_READ:
@@ -53,6 +80,7 @@ syscall_handler (struct intr_frame *f UNUSED)
           putbuf (translate_uaddr_to_kaddr(buf), size);
         f->eax = size;
         break;
+         //TODO if arg1 is not 1, ie console
         
       }
       case SYS_SEEK:
@@ -70,6 +98,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 static void *
 translate_uaddr_to_kaddr (const void *vaddr)
 {
+  //TODO kill process instead of failing ASSERT
   ASSERT (is_user_vaddr (vaddr)); // Not user address
   uint32_t *kaddr = pagedir_get_page (thread_current ()->pagedir, vaddr);
   ASSERT (kaddr != NULL); // Not mapped
@@ -79,6 +108,7 @@ translate_uaddr_to_kaddr (const void *vaddr)
 static void
 check_buffer_uaddr (const void *buf, int size)
 {
+  //TODO kill process instead of failing ASSERT
   int i;
   for (i = 0; i < size; ++i)
     ASSERT (translate_uaddr_to_kaddr (buf + i) != NULL);
