@@ -596,7 +596,8 @@ setup_stack (void **esp, const char *command_line)
         *esp -=4;
         memset(*esp, 0, 4);
 
-        hex_dump( 0, *esp, PHYS_BASE - *esp, true);
+        //TODO remove this
+        // hex_dump( 0, *esp, PHYS_BASE - *esp, true);
 
 
         palloc_free_page (cl_copy);
