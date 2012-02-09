@@ -10,6 +10,7 @@ void process_exit (void);
 void process_activate (void);
 
 extern struct list process_list;
+extern struct lock filesys_lock;
 
 struct process
 {

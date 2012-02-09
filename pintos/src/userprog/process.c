@@ -32,6 +32,8 @@ struct start_process_frame
   tid_t parent_tid;
 };
 
+struct lock filesys_lock;
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -87,8 +89,11 @@ start_process (void *spf_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
 
+  lock_acquire ( &filesys_lock);
+  success = load (file_name, &if_.eip, &if_.esp);
+  lock_release ( &filesys_lock);
+  
   spf->success = success;
 
   //create a struct process, add it to list_push_back
