@@ -194,6 +194,7 @@ process_exit (void)
       else
       {
         p->finished = true;
+        printf ("%s: exit(%d)\n", cur->name, p->exit_code);
         sema_up (&p->sema_finished);
         e = list_next (e);
       }

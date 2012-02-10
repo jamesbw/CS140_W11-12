@@ -43,7 +43,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       }
       case SYS_EXIT:
       {
-        printf ("%s: exit(%d)\n", thread_current ()->name, arg1);
+        
         f->eax = arg1;
 
         //update exit code
