@@ -21,7 +21,7 @@
 #include "threads/synch.h"
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static bool load (const char *cmdline, void (**eip) (void), void **esp, struct file **executable);
 struct list process_list;
 
 struct start_process_frame
@@ -90,11 +90,6 @@ start_process (void *spf_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
 
-  lock_acquire ( &filesys_lock);
-  success = load (file_name, &if_.eip, &if_.esp);
-  lock_release ( &filesys_lock);
-
-  spf->success = success;
 
   //create a struct process, add it to list_push_back
   struct process *new_process = malloc (sizeof (struct process));
@@ -107,6 +102,11 @@ start_process (void *spf_)
   new_process->exit_code = -1; 
   list_push_back ( &process_list, &new_process->elem);
 
+  lock_acquire ( &filesys_lock);
+  success = load (file_name, &if_.eip, &if_.esp, &new_process->executable);
+  lock_release ( &filesys_lock);
+
+  spf->success = success;
 
   sema_up (spf->sema_loaded);
 
@@ -194,6 +194,7 @@ process_exit (void)
       else
       {
         p->finished = true;
+        file_close(p->executable);
         printf ("%s: exit(%d)\n", cur->name, p->exit_code);
         sema_up (&p->sema_finished);
         e = list_next (e);
@@ -334,7 +335,7 @@ static fd_t allocate_fd (void);
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (const char *file_name, void (**eip) (void), void **esp, struct file **executable) 
 {
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
@@ -362,6 +363,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+  file_deny_write (file);
+  *executable = file;
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr

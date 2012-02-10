@@ -225,7 +225,6 @@ translate_uaddr_to_kaddr (const void *vaddr)
 static void
 check_buffer_uaddr (const void *buf, int size)
 {
-  //TODO kill process instead of failing ASSERT
   int i;
   for (i = 0; i < size; ++i)
     if (translate_uaddr_to_kaddr (buf + i) == NULL)

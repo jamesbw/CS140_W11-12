@@ -23,6 +23,7 @@ struct process
     bool parent_finished;
     struct semaphore sema_finished;
     int exit_code;
+    struct file *executable;
     struct list_elem elem;
 };
 
