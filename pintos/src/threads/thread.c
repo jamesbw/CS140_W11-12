@@ -98,7 +98,9 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+
   list_init (&process_list);
+  lock_init (&filesys_lock);
 
   load_avg = 0; //set to O
 
@@ -684,6 +686,7 @@ init_thread (struct thread *t, const char *name, int priority)
     thread_update_priority (t, NULL);
 
   list_init (&(t->locks_held));
+  list_init (&(t->open_files));
 
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);

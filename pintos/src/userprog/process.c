@@ -21,7 +21,7 @@
 #include "threads/synch.h"
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static bool load (const char *cmdline, void (**eip) (void), void **esp, struct file **executable);
 struct list process_list;
 
 struct start_process_frame
@@ -31,6 +31,7 @@ struct start_process_frame
   struct semaphore *sema_loaded;
   tid_t parent_tid;
 };
+
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -87,9 +88,7 @@ start_process (void *spf_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
 
-  spf->success = success;
 
   //create a struct process, add it to list_push_back
   struct process *new_process = malloc (sizeof (struct process));
@@ -99,9 +98,14 @@ start_process (void *spf_)
   new_process->finished = false;
   new_process->parent_finished = false;
   sema_init (&new_process->sema_finished, 0);
-  new_process->exit_code = 666; //should never read this as is
+  new_process->exit_code = -1; 
   list_push_back ( &process_list, &new_process->elem);
 
+  lock_acquire ( &filesys_lock);
+  success = load (file_name, &if_.eip, &if_.esp, &new_process->executable);
+  lock_release ( &filesys_lock);
+
+  spf->success = success;
 
   sema_up (spf->sema_loaded);
 
@@ -132,6 +136,12 @@ start_process (void *spf_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+<<<<<<< HEAD
+  while (1) {
+
+  }
+  return -1;
+=======
   tid_t cur_tid = thread_current ()->tid;
   struct list_elem *e;
   struct process *p = NULL;
@@ -143,13 +153,14 @@ process_wait (tid_t child_tid UNUSED)
       break;
   }
 
-  if (p == NULL)
+  if (e == list_end (&process_list)) //not found
     return -1;
   sema_down (&p->sema_finished);
   list_remove (e);
   int saved_exit_code = p->exit_code;
   free (p);
   return saved_exit_code;
+>>>>>>> 61f9c5a675d371395d23306cb538c2ee27e8549c
 }
 
 /* Free the current process's resources. */
@@ -159,6 +170,8 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
+
+  // Update the process list
   struct list_elem *e = list_begin (&process_list);
   struct process *p = NULL;
   while (e != list_end (&process_list))
@@ -166,20 +179,18 @@ process_exit (void)
     p = list_entry (e, struct process, elem);
     if (p->parent_tid == cur->tid)
     {
+      if (p->finished)
       {
-        if (p->finished)
-        {
-          e = list_remove (e);
-          free (p);
-        }
-        else
-        {
-          p->parent_finished = true;
-          e = list_next (e);
-        }
+        e = list_remove (e);
+        free (p);
+      }
+      else
+      {
+        p->parent_finished = true;
+        e = list_next (e);
       }
     }
-    if (p->tid == cur->tid)
+    else if (p->tid == cur->tid)
     {
       if (p->parent_finished)
       {
@@ -189,10 +200,35 @@ process_exit (void)
       else
       {
         p->finished = true;
+        file_close(p->executable);
+        printf ("%s: exit(%d)\n", cur->name, p->exit_code);
         sema_up (&p->sema_finished);
         e = list_next (e);
       }
     }
+    else
+      e = list_next (e);
+  }
+
+  //Close all open files
+  e = list_begin (&cur->open_files);
+  while (!list_empty (&cur->open_files))
+  {
+    struct file_wrapper *fw = list_entry (e, struct file_wrapper, elem);
+    e = list_remove (e);
+    lock_acquire (&filesys_lock);
+    file_close (fw->file);
+    lock_release (&filesys_lock);
+    free (fw);
+  }
+
+  //Release all locks if some are still held
+  e = list_begin (&cur->locks_held);
+  while (!list_empty (&cur->locks_held))
+  {
+    struct lock *l = list_entry (e, struct lock, elem);
+    e = list_remove (e);
+    lock_release (l);
   }
 
 
@@ -298,13 +334,14 @@ static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
                           bool writable);
+static fd_t allocate_fd (void);
 
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (const char *file_name, void (**eip) (void), void **esp, struct file **executable) 
 {
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
@@ -319,12 +356,17 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+<<<<<<< HEAD
   //Ignore leading spaces
   char *first_space = strchr (file_name, ' ');
   while (first_space == file_name) {
     file_name++;
     first_space = strchr(file_name, ' ');
   }
+=======
+  //TODO: change file name
+  char *first_space = strchr (file_name, ' ');
+>>>>>>> 61f9c5a675d371395d23306cb538c2ee27e8549c
   if(first_space != NULL){
     *first_space = '\0'; // shorten file_name to contain only executable name
   } 
@@ -336,6 +378,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+  file_deny_write (file);
+  *executable = file;
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -424,7 +468,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
   return success;
 }
 
@@ -600,8 +643,12 @@ setup_stack (void **esp, const char *command_line)
         *esp -=4;
         memset(*esp, 0, 4);
 
+<<<<<<< HEAD
+        hex_dump( 0, *esp, PHYS_BASE - *esp, true);
+=======
         //TODO remove this
         // hex_dump( 0, *esp, PHYS_BASE - *esp, true);
+>>>>>>> 61f9c5a675d371395d23306cb538c2ee27e8549c
 
 
         palloc_free_page (cl_copy);
@@ -631,3 +678,53 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+
+// Wraps a struct file into a struct with a file descriptor
+// and a list_elem so that it can be inserted into a list.
+struct file_wrapper *
+wrap_file (struct file *file)
+{
+  struct file_wrapper *fw = malloc (sizeof (struct file_wrapper));
+  ASSERT (fw);
+  fw->file = file;
+  fw->fd = allocate_fd ();
+  return fw;
+}
+
+// Returns a struct file wrapper for a file descriptor.
+// If the current thread doesn't have this fd, returns NULL.
+struct file_wrapper *
+lookup_fd ( fd_t fd)
+{
+  struct thread *cur = thread_current ();
+  struct file_wrapper *fw = NULL;
+  struct list_elem *e;
+
+  for (e = list_begin (&cur->open_files); e != list_end (&cur->open_files);e = list_next (e))
+  {
+    fw = list_entry (e, struct file_wrapper, elem);
+    if (fw->fd == fd)
+      break;
+  }
+  return fw;
+}
+
+/* Returns a fd to use for a new open file. */
+// Filesys lock must be acquired while this is called.
+static fd_t
+allocate_fd (void) 
+{
+
+  ASSERT (lock_held_by_current_thread (&filesys_lock));
+
+  static fd_t next_fd = 2; // 0 and 1 are reserved
+  fd_t fd;
+
+  fd = next_fd++;
+
+  return fd;
+}
+
+
+
