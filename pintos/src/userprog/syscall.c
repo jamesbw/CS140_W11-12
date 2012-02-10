@@ -8,19 +8,23 @@
 #include "pagedir.h"
 #include "devices/shutdown.h"
 #include "filesys/filesys.h"
+#include "process.h"
+#include "filesys/file.h"
+#include "devices/input.h"
+#include "threads/malloc.h"
 
 static void syscall_handler (struct intr_frame *);
 static void *translate_uaddr_to_kaddr (const void *vaddr);
 static void check_buffer_uaddr (const void *buf, int size);
-// Prototypes for each system call called by the handler.
 
+// Prototypes for each system call called by the handler.
 void syscall_halt (void);
 void syscall_exit (struct intr_frame *f, uint32_t status);
 void syscall_exec (struct intr_frame *f, uint32_t file);
 void syscall_wait (struct intr_frame *f, uint32_t tid);
 void syscall_create (struct intr_frame *f, uint32_t file, uint32_t i_size);
 void syscall_remove (struct intr_frame *f, uint32_t file);
-void syscall_open (struct intr_frame *f, uint32_t file);
+void syscall_open (struct intr_frame *f, uint32_t fd);
 void syscall_filesize (struct intr_frame *f, uint32_t fd);
 void syscall_read (struct intr_frame *f, uint32_t fd, uint32_t buffer,
 		   uint32_t length); 
@@ -133,7 +137,8 @@ void syscall_exit(struct intr_frame *f, uint32_t status) {
 }
 
 void syscall_exec(struct intr_frame *f, uint32_t file) {
-  f->eax = process_execute ((char *) file);
+  void *k_file = translate_uaddr_to_kaddr((void *) file);
+  f->eax = process_execute ((char *) k_file);
 }
 
 void syscall_wait(struct intr_frame *f, uint32_t tid) {
@@ -142,24 +147,59 @@ void syscall_wait(struct intr_frame *f, uint32_t tid) {
 
 void syscall_create(struct intr_frame *f, uint32_t file, uint32_t i_size)
 {
-  f->eax = filesys_create ( (char *) file, i_size);
+  void *k_file = translate_uaddr_to_kaddr( (void *) file);
+  f->eax = filesys_create ( (char *) k_file, i_size);
 }
 
 void syscall_remove(struct intr_frame *f, uint32_t file) {
-  f->eax = filesys_remove ( (char *) file);
+  void *k_file = translate_uaddr_to_kaddr( (void *) file);
+  f->eax = filesys_remove ( (char *) k_file);
 }
 
-void syscall_open(struct intr_frame *f, uint32_t file) {
-  //TODO
+void syscall_open(struct intr_frame *f, uint32_t fd) {
+  void *k_fd = translate_uaddr_to_kaddr( (void *) fd);
+  lock_acquire (&filesys_lock);
+  struct file *file = filesys_open ( (char *) k_fd);
+  if (file == NULL) {
+    f->eax = -1;
+  } else {
+    struct file_wrapper *fw = wrap_file (file); 
+    list_push_back (&thread_current ()->open_files, &fw->elem);   
+    f->eax = fw->fd;
+  }
+  lock_release (&filesys_lock);
 }
 
 void syscall_filesize(struct intr_frame *f, uint32_t fd) {
-  //TODO
+  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+  lock_acquire (&filesys_lock);
+  f->eax = file_length (fw->file);
+  lock_release (&filesys_lock);
 }
 
 void syscall_read(struct intr_frame *f, uint32_t fd, uint32_t buffer,
 		  uint32_t length) {
-  //TODO
+  void *buf = (void *) buffer;
+  int size = length;
+  check_buffer_uaddr (buf, size);
+  char *k_buf = translate_uaddr_to_kaddr(buf);
+  
+  if (fd  == 0) { //Read from Keyboard
+    int count = 0;
+    while (size - count > 0) {
+      k_buf[count] = input_getc ();
+      count ++;
+    }
+  } else {
+    struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+    if (fw == NULL) {
+      f->eax =  -1;
+    } else {
+      lock_acquire (&filesys_lock);
+      f->eax = file_read (fw->file, k_buf, size);
+      lock_release (&filesys_lock);
+    }
+  }
 }
 
 void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
@@ -167,39 +207,70 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
   void *buf = (void *) buffer;
   int size = length;
   check_buffer_uaddr (buf, size);
-  if (fd == 1) //fd 1
-    putbuf (translate_uaddr_to_kaddr(buf), size);
-  f->eax = size;
-  //TODO if arg1 is not 1, ie console
+  void *k_buf = translate_uaddr_to_kaddr(buf);
+  
+  if (fd == 1) {  //Write to console 
+    putbuf ( k_buf, size);
+    f->eax = size;
+  } else {
+    struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+    if (fw == NULL) {
+      f->eax =  -1;
+    } else {
+      lock_acquire (&filesys_lock);
+      f->eax = file_write (fw->file, k_buf, size);
+      lock_release (&filesys_lock);
+    }
+  }
 }
 
 void syscall_seek(struct intr_frame *f, uint32_t fd, uint32_t position) {
-  //TODO
+  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+  if (fw != NULL) {
+    lock_acquire (&filesys_lock);
+    file_seek (fw->file, position);
+    lock_release (&filesys_lock);
+  }
 }
 
 void syscall_tell(struct intr_frame *f, uint32_t fd) {
-  //TODO
+  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+  if (fw == NULL) {
+    f->eax =  -1;
+  } else {
+    lock_acquire (&filesys_lock);
+    f->eax = file_tell (fw->file);
+    lock_release (&filesys_lock);
+  }
 }
 
 void syscall_close(struct intr_frame *f, uint32_t fd) {
-  //TODO
+  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+  if (fw != NULL) {
+    list_remove (&fw->elem);
+    lock_acquire (&filesys_lock);
+    file_close (fw->file);
+    lock_release (&filesys_lock);
+    free (fw);
+  }
 }
 
 static void *
 translate_uaddr_to_kaddr (const void *vaddr)
 {
-  //TODO kill process instead of failing ASSERT
-  ASSERT (is_user_vaddr (vaddr)); // Not user address
+  if (!is_user_vaddr (vaddr))
+    thread_exit (); // Not user address
   uint32_t *kaddr = pagedir_get_page (thread_current ()->pagedir, vaddr);
-  ASSERT (kaddr != NULL); // Not mapped
+  if (kaddr == NULL)
+    thread_exit (); // Not mapped
   return kaddr;
 }
 
 static void
 check_buffer_uaddr (const void *buf, int size)
 {
-  //TODO kill process instead of failing ASSERT
   int i;
   for (i = 0; i < size; ++i)
-    ASSERT (translate_uaddr_to_kaddr (buf + i) != NULL);
+    if (translate_uaddr_to_kaddr (buf + i) == NULL)
+      thread_exit ();
 }
