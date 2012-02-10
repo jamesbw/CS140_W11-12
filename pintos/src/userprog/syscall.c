@@ -44,10 +44,10 @@ static void
 syscall_handler (struct intr_frame *f) 
 {
   uint32_t * k_esp = (uint32_t *) translate_uaddr_to_kaddr(f->esp);
-  uint32_t syscall_number = (uint32_t) *(k_esp); //TODO check all these addresses too
-  uint32_t arg1 = (uint32_t) *(k_esp + 1);
-  uint32_t arg2 = (uint32_t) *(k_esp + 2);
-  uint32_t arg3 = (uint32_t) *(k_esp + 3);
+  uint32_t syscall_number = (uint32_t) *(k_esp);
+  uint32_t arg1 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 4);
+  uint32_t arg2 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 8);
+  uint32_t arg3 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 12);
 
   switch (syscall_number)
   {
@@ -131,8 +131,18 @@ void syscall_halt(void) {
 }
 
 void syscall_exit(struct intr_frame *f, uint32_t status) {
-  printf ("%s: exit(%d)\n", thread_current ()->name, status);
   f->eax = status;
+  //Update exit code
+  struct list_elem *e;
+  struct process *p;
+  for (e = list_begin(&process_list); e != list_end(&process_list); e =
+	 list_next (e)) {
+    p = list_entry(e, struct process, elem);
+    if (p->tid == thread_current()->tid) {
+      p->exit_code = status;
+      break;
+    }
+  }
   thread_exit ();
 }
 
@@ -226,7 +236,7 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
 
 void syscall_seek(struct intr_frame *f, uint32_t fd, uint32_t position) {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  if (fw != NULL) {
+  if (fw != NULL) {  //TODO Dealing with illegal files
     lock_acquire (&filesys_lock);
     file_seek (fw->file, position);
     lock_release (&filesys_lock);

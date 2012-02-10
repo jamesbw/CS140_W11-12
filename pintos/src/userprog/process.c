@@ -136,12 +136,6 @@ start_process (void *spf_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-<<<<<<< HEAD
-  while (1) {
-
-  }
-  return -1;
-=======
   tid_t cur_tid = thread_current ()->tid;
   struct list_elem *e;
   struct process *p = NULL;
@@ -160,7 +154,6 @@ process_wait (tid_t child_tid UNUSED)
   int saved_exit_code = p->exit_code;
   free (p);
   return saved_exit_code;
->>>>>>> 61f9c5a675d371395d23306cb538c2ee27e8549c
 }
 
 /* Free the current process's resources. */
@@ -355,18 +348,12 @@ load (const char *file_name, void (**eip) (void), void **esp, struct file **exec
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
-
-<<<<<<< HEAD
-  //Ignore leading spaces
+  
   char *first_space = strchr (file_name, ' ');
   while (first_space == file_name) {
     file_name++;
     first_space = strchr(file_name, ' ');
   }
-=======
-  //TODO: change file name
-  char *first_space = strchr (file_name, ' ');
->>>>>>> 61f9c5a675d371395d23306cb538c2ee27e8549c
   if(first_space != NULL){
     *first_space = '\0'; // shorten file_name to contain only executable name
   } 
@@ -642,14 +629,6 @@ setup_stack (void **esp, const char *command_line)
         //pushing fake return address
         *esp -=4;
         memset(*esp, 0, 4);
-
-<<<<<<< HEAD
-        hex_dump( 0, *esp, PHYS_BASE - *esp, true);
-=======
-        //TODO remove this
-        // hex_dump( 0, *esp, PHYS_BASE - *esp, true);
->>>>>>> 61f9c5a675d371395d23306cb538c2ee27e8549c
-
 
         palloc_free_page (cl_copy);
       }

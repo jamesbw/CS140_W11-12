@@ -11,7 +11,7 @@ void process_activate (void);
 
 
 extern struct list process_list;
-extern struct lock filesys_lock;
+struct lock filesys_lock;
 
 typedef int fd_t;
 
