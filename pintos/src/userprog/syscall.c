@@ -30,9 +30,9 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
   uint32_t * k_esp = (uint32_t *) translate_uaddr_to_kaddr(f->esp);
   uint32_t syscall_number = (uint32_t) *(k_esp); 
-  uint32_t arg1 = (uint32_t) translate_uaddr_to_kaddr(f->esp + 4);
-  uint32_t arg2 = (uint32_t) translate_uaddr_to_kaddr(f->esp + 8);
-  uint32_t arg3 = (uint32_t) translate_uaddr_to_kaddr(f->esp + 12);
+  uint32_t arg1 = (uint32_t) *translate_uaddr_to_kaddr(f->esp + 4);
+  uint32_t arg2 = (uint32_t) *translate_uaddr_to_kaddr(f->esp + 8);
+  uint32_t arg3 = (uint32_t) *translate_uaddr_to_kaddr(f->esp + 12);
 
   switch (syscall_number)
   {
