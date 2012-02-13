@@ -32,6 +32,7 @@ struct start_process_frame
   tid_t parent_tid;
 };
 
+struct lock filesys_lock;
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
