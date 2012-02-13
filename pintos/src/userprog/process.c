@@ -100,8 +100,9 @@ start_process (void *spf_)
   new_process->parent_finished = false;
   sema_init (&new_process->sema_finished, 0);
   new_process->exit_code = -1; 
+  lock_acquire(&process_lock);
   list_push_back ( &process_list, &new_process->elem);
-
+  lock_release(&process_lock);
   lock_acquire ( &filesys_lock);
   success = load (file_name, &if_.eip, &if_.esp, &new_process->executable);
   lock_release ( &filesys_lock);
@@ -139,6 +140,7 @@ process_wait (tid_t child_tid UNUSED)
 {
   tid_t cur_tid = thread_current ()->tid;
   struct list_elem *e;
+  lock_acquire(&process_lock);
   struct process *p = NULL;
   for (e = list_begin (&process_list); e != list_end (&process_list);
            e = list_next (e))
@@ -148,10 +150,13 @@ process_wait (tid_t child_tid UNUSED)
       break;
   }
 
-  if (e == list_end (&process_list)) //not found
+  if (e == list_end (&process_list))  { //not found
+    lock_release(&process_lock);
     return -1;
+  }
   sema_down (&p->sema_finished);
   list_remove (e);
+  lock_release(&process_lock);
   int saved_exit_code = p->exit_code;
   free (p);
   return saved_exit_code;
@@ -166,6 +171,7 @@ process_exit (void)
 
 
   // Update the process list
+  lock_acquire(&process_lock);
   struct list_elem *e = list_begin (&process_list);
   struct process *p = NULL;
   while (e != list_end (&process_list))
@@ -203,7 +209,7 @@ process_exit (void)
     else
       e = list_next (e);
   }
-
+  lock_release(&process_lock);
   //Close all open files
   e = list_begin (&cur->open_files);
   while (!list_empty (&cur->open_files))

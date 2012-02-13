@@ -100,6 +100,7 @@ thread_init (void)
   list_init (&all_list);
 
   list_init (&process_list);
+  lock_init (&process_lock);
   lock_init (&filesys_lock);
 
   load_avg = 0; //set to O

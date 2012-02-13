@@ -234,7 +234,7 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
   }
 }
 
-void syscall_seek(struct intr_frame *f, uint32_t fd, uint32_t position) {
+void syscall_seek(struct intr_frame *f UNUSED, uint32_t fd, uint32_t position) {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL) {  //TODO Dealing with illegal files
     lock_acquire (&filesys_lock);
@@ -254,7 +254,7 @@ void syscall_tell(struct intr_frame *f, uint32_t fd) {
   }
 }
 
-void syscall_close(struct intr_frame *f, uint32_t fd) {
+void syscall_close(struct intr_frame *f UNUSED, uint32_t fd) {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL) {
     list_remove (&fw->elem);
