@@ -220,11 +220,11 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
   int size = length;
   check_buffer_uaddr (buf, size);
   void *k_buf = translate_uaddr_to_kaddr(buf);
-  int buf_chunk = 200;
+  int BUF_CHUNK = 200;
   if (fd == 1) {  //Write to console 
-    while (size > buf_chunk) {
-      putbuf(k_buf, buf_chunk);
-      size -= buf_chunk;
+    while (size > BUF_CHUNK) {
+      putbuf(k_buf, BUF_CHUNK);
+      size -= BUF_CHUNK;
     }
     putbuf(k_buf, size);
     size = length;
