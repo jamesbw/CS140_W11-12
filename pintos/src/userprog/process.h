@@ -21,11 +21,11 @@ struct process
 {
     tid_t parent_tid;
     tid_t tid;
-    bool finished;
-    bool parent_finished;
-    struct semaphore sema_finished;
+    bool finished; // toggled when the process has terminated
+    bool parent_finished; //toggled when the parent thread has terminated
+    struct semaphore sema_finished; //upped when terminated, downed when waiting
     int exit_code;
-    struct file *executable;
+    struct file *executable; //pointer to file to keep open
     struct list_elem elem;
 };
 

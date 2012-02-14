@@ -14,7 +14,7 @@
 #include "threads/malloc.h"
 
 static void syscall_handler (struct intr_frame *);
-static void verify_uaddr (const void *vaddr);
+static void verify_uaddr (const void *uaddr);
 static void check_buffer_uaddr (const void *buf, int size);
 
 // Prototypes for each system call called by the handler.
@@ -51,6 +51,8 @@ syscall_handler (struct intr_frame *f)
   uint32_t arg2 = 0;
   uint32_t arg3 = 0;
 
+
+  // Initializing only the arguments that are needed
   switch (syscall_number)
   {
     case SYS_READ:
@@ -290,11 +292,11 @@ void syscall_close (struct intr_frame *f UNUSED, uint32_t fd)
 }
 
 static void
-verify_uaddr (const void *vaddr)
+verify_uaddr (const void *uaddr)
 {
-  if (!is_user_vaddr (vaddr))
+  if (!is_user_vaddr (uaddr))
     thread_exit (); // Not user address
-  if ( pagedir_get_page (thread_current ()->pagedir, vaddr) == NULL)
+  if ( pagedir_get_page (thread_current ()->pagedir, uaddr) == NULL)
     thread_exit (); // Not mapped
 }
 
