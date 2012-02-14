@@ -86,12 +86,9 @@ the results of a ls command can be fed in as arguments to rm command. The line
 ls . | rm can be parsed by the shell, whereas the kernel would treat ., | and rm 
 as arguments to ls.
 
-One advantage to the Unix approach is that it lessens the amount of work
-that the kernel needs to do, instead keeping the responsibility of parsing
-the command line with the user-controlled shell.  This also has the
-additional advantage of allowing the user to better define behavior using
-additional flags or command line instructions without increasing the
-kernel's work load.   
+* Another advantage is that it is one less thing that the kernel has to do.
+
+
 
 
                  SYSTEM CALLS
