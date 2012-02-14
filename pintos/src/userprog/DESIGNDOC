@@ -40,19 +40,49 @@ Stewart MacGregor-Dennis <sadennis@stanford.edu>
 >> you arrange for the elements of argv[] to be in the right order?
 >> How do you avoid overflowing the stack page?
 
+Arguments in the command line are passed to the setup_stack() function
+from the load() function.  The function declaration of setup_stack was
+changed to accept the additional command line argument along with esp.  A
+small amount of preliminary string parsing is done in load to strip any
+leading spaces from the command line, so that -Y´  echo x¡ is passed to
+setup_stack as ´echo x¡.  Inside of setup_stack, the command line is
+broken up into tokens using the strtok_r() function, pushing each token
+onto the stack as strtok_r() iterates through the whole command line.  For
+every token, the argc count is incremented to keep track of the number of
+arguments.  The order of the elements in argv[] on the stack is preserved
+by building the array one token address at a time. 
 
-
+In order to prevent the stack from overflowing the page limit of 4KB, we
+track the total number of bytes the stack is offset from PHYS_BASE.  If
+this number meets or exceeds 4096, then trying to 
+modify the stack at that address would cause a page fault, so instead the
+setup is halted, the allocated page for the loading process is freed, and
+the load of the process is aborted.  This prevents the loading of a too
+large process from crashing entire kernel.  
 
 
 ---- RATIONALE ----
 
 >> A3: Why does Pintos implement strtok_r() but not strtok()?
-
+Pintos implements strtok_r() and not strtok() because the stack is built
+from top to bottom, and the tokens at the higher numbered addresses are
+supposed to be after tokens at lower numbered addresses.  Because
+strtok_r() works from the end of the command line and works its way
+forward, this allows for a very simple loop where every call of strtok_r()
+is pushed onto the stack, creating the correct order in the stack. 
 
 
 >> A4: In Pintos, the kernel separates commands into a executable name
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
+
+One advantage to the Unix approach is that it lessens the amount of work
+that the kernel needs to do, instead keeping the responsibility of parsing
+the command line with the user-controlled shell.  This also has the
+additional advantage of allowing the user to better define behavior using
+additional flags or command line instructions without increasing the
+kernel's work load.   
+
 
                  SYSTEM CALLS
                  ============
