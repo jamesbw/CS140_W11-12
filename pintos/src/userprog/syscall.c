@@ -72,6 +72,7 @@ syscall_handler (struct intr_frame *f)
       verify_uaddr (f->esp + 4);
       arg1 = *(uint32_t *) (f->esp + 4);
     case SYS_HALT:
+      break;
   }
 
   switch (syscall_number)
@@ -264,7 +265,7 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
       f->eax =  -1;
     } else {
       lock_acquire (&filesys_lock);
-      f->eax = file_write (fw->file, k_buf, size);
+      f->eax = file_write (fw->file, buf, size);
       lock_release (&filesys_lock);
     }
   }
@@ -315,5 +316,5 @@ check_buffer_uaddr (const void *buf, int size)
 {
   int i;
   for (i = 0; i < size; ++i)
-    verify_uaddr (buf + i)
+    verify_uaddr (buf + i);
 }
