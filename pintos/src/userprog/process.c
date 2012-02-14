@@ -156,9 +156,11 @@ process_wait (tid_t child_tid UNUSED)
     lock_release(&process_lock);
     return -1;
   }
-  list_remove (e);
   lock_release(&process_lock);
   sema_down (&p->sema_finished);
+  lock_acquire(&process_lock);
+  list_remove (e);
+  lock_release(&process_lock);
   int saved_exit_code = p->exit_code;
   free (p);
   return saved_exit_code;
