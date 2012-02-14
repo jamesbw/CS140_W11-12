@@ -47,9 +47,9 @@ syscall_handler (struct intr_frame *f)
   verify_uaddr (k_esp);
   uint32_t syscall_number = (uint32_t) *(k_esp); 
 
-  uint32_t arg1;
-  uint32_t arg2;
-  uint32_t arg3;
+  uint32_t arg1 = 0; //Initialized to prevent compiler warnings
+  uint32_t arg2 = 0;
+  uint32_t arg3 = 0;
 
   switch (syscall_number)
   {
@@ -78,85 +78,58 @@ syscall_handler (struct intr_frame *f)
   switch (syscall_number)
   {
       case SYS_HALT:
-      {
-	syscall_halt();
+      	syscall_halt ();
         break;
-      }
       case SYS_EXIT:
-      {
-	syscall_exit(f, arg1);
-	break;
-      }
+      	syscall_exit (f, arg1);
+      	break;
       case SYS_EXEC:
-      {
-	syscall_exec(f, arg1);
+      	syscall_exec (f, arg1);
         break;
-      }
       case SYS_WAIT:
-      {
-	syscall_wait(f, arg1);
+      	syscall_wait (f, arg1);
         break;
-      }
       case SYS_CREATE:
-      {
-	syscall_create(f, arg1, arg2);
+      	syscall_create (f, arg1, arg2);
         break;
-      }
       case SYS_REMOVE:
-      {
-	syscall_remove(f, arg1);
+      	syscall_remove (f, arg1);
         break;
-      }
       case SYS_OPEN:
-      {
-	syscall_open(f, arg1);
-	break;
-      }
+      	syscall_open (f, arg1);
+      	break;
       case SYS_FILESIZE:
-      {
-	syscall_filesize(f, arg1);
-	break;
-      }
+      	syscall_filesize (f, arg1);
+      	break;
       case SYS_READ:
-      {
-	syscall_read(f, arg1, arg2, arg3);
-	break;
-      }
+      	syscall_read (f, arg1, arg2, arg3);
+      	break;
       case SYS_WRITE:
-      {
-	syscall_write(f, arg1, arg2, arg3);
+      	syscall_write (f, arg1, arg2, arg3);
         break;        
-      }
       case SYS_SEEK:
-      {
-	syscall_seek(f, arg1, arg2);
-	break;
-      }
+      	syscall_seek (f, arg1, arg2);
+      	break;
       case SYS_TELL:
-      {
-	syscall_tell(f, arg1);
-	break;
-      }
+      	syscall_tell (f, arg1);
+      	break;
       case SYS_CLOSE:
-      {
-	syscall_close(f, arg1);
-	break;
-      }
+      	syscall_close (f, arg1);
+      	break;
       default:
-      {
         printf ("system call!\n");
         thread_exit ();
-	break;
-      }  
-      
+      	break;
   }
 }
 
-void syscall_halt(void) {
+void syscall_halt (void) 
+{
   shutdown_power_off ();
 }
 
-void syscall_exit(struct intr_frame *f, uint32_t status) {
+void syscall_exit (struct intr_frame *f, uint32_t status) 
+{
   f->eax = status;
   //Update exit code
   struct list_elem *e;
@@ -174,24 +147,32 @@ void syscall_exit(struct intr_frame *f, uint32_t status) {
   thread_exit ();
 }
 
-void syscall_exec(struct intr_frame *f, uint32_t file_name) {
+void syscall_exec (struct intr_frame *f, uint32_t file_name) 
+{
+  verify_uaddr ((char *) file_name);
   f->eax = process_execute ((char *) file_name);
 }
 
-void syscall_wait(struct intr_frame *f, uint32_t tid) {
+void syscall_wait (struct intr_frame *f, uint32_t tid) 
+{
   f->eax = process_wait ( (tid_t) tid);
 }
 
-void syscall_create(struct intr_frame *f, uint32_t file_name, uint32_t i_size)
+void syscall_create (struct intr_frame *f, uint32_t file_name, uint32_t i_size)
 {
+  verify_uaddr ((char *) file_name);
   f->eax = filesys_create ( (char *) file_name, i_size);
 }
 
-void syscall_remove(struct intr_frame *f, uint32_t file_name) {
+void syscall_remove (struct intr_frame *f, uint32_t file_name) 
+{
+  verify_uaddr ((char *) file_name);
   f->eax = filesys_remove ( (char *) file_name);
 }
 
-void syscall_open(struct intr_frame *f, uint32_t file_name) {
+void syscall_open (struct intr_frame *f, uint32_t file_name) 
+{
+  verify_uaddr ((char *) file_name);
   lock_acquire (&filesys_lock);
   struct file *file = filesys_open ( (char *) file_name);
   if (file == NULL) {
@@ -204,7 +185,8 @@ void syscall_open(struct intr_frame *f, uint32_t file_name) {
   lock_release (&filesys_lock);
 }
 
-void syscall_filesize(struct intr_frame *f, uint32_t fd) {
+void syscall_filesize (struct intr_frame *f, uint32_t fd) 
+{
   if (fd == 0 || fd ==1)
     f->eax = 0;
   else
@@ -221,8 +203,9 @@ void syscall_filesize(struct intr_frame *f, uint32_t fd) {
   }
 }
 
-void syscall_read(struct intr_frame *f, uint32_t fd, uint32_t buffer,
-		  uint32_t length) {
+void syscall_read (struct intr_frame *f, uint32_t fd, uint32_t buffer,
+		  uint32_t length)
+{
   char *buf = (void *) buffer;
   int size = length;
   check_buffer_uaddr (buf, size);
@@ -245,8 +228,9 @@ void syscall_read(struct intr_frame *f, uint32_t fd, uint32_t buffer,
   }
 }
 
-void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
-		   uint32_t length) {
+void syscall_write (struct intr_frame *f, uint32_t fd, uint32_t buffer,
+		   uint32_t length) 
+{
   char *buf = (void *) buffer;
   int size = length;
   check_buffer_uaddr (buf, size);
@@ -271,7 +255,8 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
   }
 }
 
-void syscall_seek(struct intr_frame *f UNUSED, uint32_t fd, uint32_t position) {
+void syscall_seek (struct intr_frame *f UNUSED, uint32_t fd, uint32_t position) 
+{
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL) { 
     lock_acquire (&filesys_lock);
@@ -280,7 +265,8 @@ void syscall_seek(struct intr_frame *f UNUSED, uint32_t fd, uint32_t position) {
   }
 }
 
-void syscall_tell(struct intr_frame *f, uint32_t fd) {
+void syscall_tell (struct intr_frame *f, uint32_t fd) 
+{
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw == NULL) {
     f->eax =  -1;
@@ -291,7 +277,8 @@ void syscall_tell(struct intr_frame *f, uint32_t fd) {
   }
 }
 
-void syscall_close(struct intr_frame *f UNUSED, uint32_t fd) {
+void syscall_close (struct intr_frame *f UNUSED, uint32_t fd) 
+{
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL) {
     list_remove (&fw->elem);
