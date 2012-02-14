@@ -14,7 +14,7 @@
 #include "threads/malloc.h"
 
 static void syscall_handler (struct intr_frame *);
-static void *translate_uaddr_to_kaddr (const void *vaddr);
+static void verify_uaddr (const void *vaddr);
 static void check_buffer_uaddr (const void *buf, int size);
 
 // Prototypes for each system call called by the handler.
@@ -43,11 +43,36 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-  uint32_t * k_esp = (uint32_t *) translate_uaddr_to_kaddr(f->esp);
+  uint32_t * k_esp = (uint32_t *) (f->esp);
+  verify_uaddr (k_esp);
   uint32_t syscall_number = (uint32_t) *(k_esp); 
-  uint32_t arg1 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 4);
-  uint32_t arg2 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 8);
-  uint32_t arg3 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 12);
+
+  uint32_t arg1;
+  uint32_t arg2;
+  uint32_t arg3;
+
+  switch (syscall_number)
+  {
+    case SYS_READ:
+    case SYS_WRITE:
+      verify_uaddr (f->esp + 12);
+      arg3 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 12);
+    case SYS_CREATE:
+    case SYS_SEEK:
+      verify_uaddr (f->esp + 8);
+      arg2 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 8);
+    case SYS_EXIT:
+    case SYS_EXEC:
+    case SYS_WAIT:
+    case SYS_REMOVE:
+    case SYS_OPEN:
+    case SYS_FILESIZE:
+    case SYS_TELL:
+    case SYS_CLOSE:
+      verify_uaddr (f->esp + 4);
+      arg1 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 4);
+    case SYS_HALT:
+  }
 
   switch (syscall_number)
   {
@@ -282,15 +307,13 @@ void syscall_close(struct intr_frame *f UNUSED, uint32_t fd) {
   }
 }
 
-static void *
-translate_uaddr_to_kaddr (const void *vaddr)
+static void
+verify_uaddr (const void *vaddr)
 {
   if (!is_user_vaddr (vaddr))
     thread_exit (); // Not user address
-  uint32_t *kaddr = pagedir_get_page (thread_current ()->pagedir, vaddr);
-  if (kaddr == NULL)
+  if ( pagedir_get_page (thread_current ()->pagedir, vaddr) == NULL)
     thread_exit (); // Not mapped
-  return kaddr;
 }
 
 static void
@@ -298,6 +321,5 @@ check_buffer_uaddr (const void *buf, int size)
 {
   int i;
   for (i = 0; i < size; ++i)
-    if (translate_uaddr_to_kaddr (buf + i) == NULL)
-      thread_exit ();
+    verify_uaddr (buf + i)
 }
