@@ -47,9 +47,9 @@ syscall_handler (struct intr_frame *f)
   verify_uaddr (k_esp);
   uint32_t syscall_number = (uint32_t) *(k_esp); 
 
-  uint32_t arg1;
-  uint32_t arg2;
-  uint32_t arg3;
+  uint32_t arg1 = 0; //Initialized to prevent compiler warnings
+  uint32_t arg2 = 0;
+  uint32_t arg3 = 0;
 
   switch (syscall_number)
   {
