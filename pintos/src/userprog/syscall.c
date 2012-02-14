@@ -183,10 +183,20 @@ void syscall_open(struct intr_frame *f, uint32_t fd) {
 }
 
 void syscall_filesize(struct intr_frame *f, uint32_t fd) {
-  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  lock_acquire (&filesys_lock);
-  f->eax = file_length (fw->file);
-  lock_release (&filesys_lock);
+  if (fd == 0 || fd ==1)
+    f->eax = 0;
+  else
+  {    
+    struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+    if (fw == NULL)
+      f->eax = -1;
+    else
+    {    
+      lock_acquire (&filesys_lock);
+      f->eax = file_length (fw->file);
+      lock_release (&filesys_lock);
+    }
+  }
 }
 
 void syscall_read(struct intr_frame *f, uint32_t fd, uint32_t buffer,
@@ -243,7 +253,7 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
 
 void syscall_seek(struct intr_frame *f UNUSED, uint32_t fd, uint32_t position) {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  if (fw != NULL) {  //TODO Dealing with illegal files
+  if (fw != NULL) { 
     lock_acquire (&filesys_lock);
     file_seek (fw->file, position);
     lock_release (&filesys_lock);
