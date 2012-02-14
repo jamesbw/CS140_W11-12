@@ -82,7 +82,7 @@ start_process (void *spf_)
 
   char *file_name = spf->file_name;
   struct intr_frame if_;
-  bool success;
+  bool success = false;
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -93,20 +93,22 @@ start_process (void *spf_)
 
   //create a struct process, add it to list_push_back
   struct process *new_process = malloc (sizeof (struct process));
-  ASSERT (new_process);
-  new_process->parent_tid = spf->parent_tid;
-  new_process->tid = thread_current ()->tid;
-  new_process->finished = false;
-  new_process->parent_finished = false;
-  sema_init (&new_process->sema_finished, 0);
-  new_process->exit_code = -1; 
-  lock_acquire(&process_lock);
-  list_push_back ( &process_list, &new_process->elem);
-  lock_release(&process_lock);
-  lock_acquire ( &filesys_lock);
-  success = load (file_name, &if_.eip, &if_.esp, &new_process->executable);
-  lock_release ( &filesys_lock);
+  if (new_process != NULL)
+  {
+    new_process->parent_tid = spf->parent_tid;
+    new_process->tid = thread_current ()->tid;
+    new_process->finished = false;
+    new_process->parent_finished = false;
+    sema_init (&new_process->sema_finished, 0);
+    new_process->exit_code = -1; 
+    lock_acquire(&process_lock);
+    list_push_back ( &process_list, &new_process->elem);
+    lock_release(&process_lock);
+    lock_acquire ( &filesys_lock);
+    success = load (file_name, &if_.eip, &if_.esp, &new_process->executable);
+    lock_release ( &filesys_lock);
 
+  }
   spf->success = success;
 
   sema_up (spf->sema_loaded);
@@ -588,7 +590,8 @@ setup_stack (void **esp, const char *command_line)
       if (success){
 
         char *cl_copy = palloc_get_page (0);
-        ASSERT (cl_copy != NULL)
+        if (cl_copy == NULL)
+          return false;
         strlcpy (cl_copy, command_line, PGSIZE);
 
         uint32_t argc = 0;
@@ -672,7 +675,8 @@ struct file_wrapper *
 wrap_file (struct file *file)
 {
   struct file_wrapper *fw = malloc (sizeof (struct file_wrapper));
-  ASSERT (fw);
+  if (fw == NULL) //couldn't allocate memory
+    thread_exit ();
   fw->file = file;
   fw->fd = allocate_fd ();
   return fw;
