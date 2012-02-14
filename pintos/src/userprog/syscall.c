@@ -308,7 +308,7 @@ check_buffer_uaddr (const void *buf, int size)
 {
   verify_uaddr (buf);
   int i;
-  for(i = 1; i < (size -2 )/ PGSIZE)
+  for(i = 1; i < (size -2 )/ PGSIZE; i++)
     verify_uaddr (buf + i*PGSIZE);
   verify_uaddr (buf + size - 1);
 }
