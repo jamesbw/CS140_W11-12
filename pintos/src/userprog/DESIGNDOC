@@ -64,17 +64,27 @@ large process from crashing entire kernel.
 ---- RATIONALE ----
 
 >> A3: Why does Pintos implement strtok_r() but not strtok()?
-Pintos implements strtok_r() and not strtok() because the stack is built
-from top to bottom, and the tokens at the higher numbered addresses are
-supposed to be after tokens at lower numbered addresses.  Because
-strtok_r() works from the end of the command line and works its way
-forward, this allows for a very simple loop where every call of strtok_r()
-is pushed onto the stack, creating the correct order in the stack. 
 
+strtok_r doesn't keep an internal state about where to start again. Instead, 
+it populates its third argument, save_ptr, with that information. This means 
+that strtok_r is thread safe, whereas strtok isn't because it keeps a static
+internal variable.
+
+Since we might have multiple threads in setup_stack at the same time, we need 
+thread safeness.
 
 >> A4: In Pintos, the kernel separates commands into a executable name
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
+
+* The shell can keep information about environment variables so that it 
+can resolve names to their locations, for example, before they get passed
+to the kernel.
+
+* The shell also allows to build a commandline programmatically. For example, 
+the results of a ls command can be fed in as arguments to rm command. The line 
+ls . | rm can be parsed by the shell, whereas the kernel would treat ., | and rm 
+as arguments to ls.
 
 One advantage to the Unix approach is that it lessens the amount of work
 that the kernel needs to do, instead keeping the responsibility of parsing
