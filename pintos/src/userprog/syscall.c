@@ -20,11 +20,11 @@ static void check_buffer_uaddr (const void *buf, int size);
 // Prototypes for each system call called by the handler.
 void syscall_halt (void);
 void syscall_exit (struct intr_frame *f, uint32_t status);
-void syscall_exec (struct intr_frame *f, uint32_t file);
+void syscall_exec (struct intr_frame *f, uint32_t file_name);
 void syscall_wait (struct intr_frame *f, uint32_t tid);
-void syscall_create (struct intr_frame *f, uint32_t file, uint32_t i_size);
-void syscall_remove (struct intr_frame *f, uint32_t file);
-void syscall_open (struct intr_frame *f, uint32_t fd);
+void syscall_create (struct intr_frame *f, uint32_t file_name, uint32_t i_size);
+void syscall_remove (struct intr_frame *f, uint32_t file_name);
+void syscall_open (struct intr_frame *f, uint32_t file_name);
 void syscall_filesize (struct intr_frame *f, uint32_t fd);
 void syscall_read (struct intr_frame *f, uint32_t fd, uint32_t buffer,
 		   uint32_t length); 
@@ -56,11 +56,11 @@ syscall_handler (struct intr_frame *f)
     case SYS_READ:
     case SYS_WRITE:
       verify_uaddr (f->esp + 12);
-      arg3 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 12);
+      arg3 = *(uint32_t *) (f->esp + 12);
     case SYS_CREATE:
     case SYS_SEEK:
       verify_uaddr (f->esp + 8);
-      arg2 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 8);
+      arg2 = *(uint32_t *) (f->esp + 8);
     case SYS_EXIT:
     case SYS_EXEC:
     case SYS_WAIT:
@@ -70,7 +70,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_TELL:
     case SYS_CLOSE:
       verify_uaddr (f->esp + 4);
-      arg1 = *(uint32_t *) translate_uaddr_to_kaddr(f->esp + 4);
+      arg1 = *(uint32_t *) (f->esp + 4);
     case SYS_HALT:
   }
 
@@ -173,30 +173,26 @@ void syscall_exit(struct intr_frame *f, uint32_t status) {
   thread_exit ();
 }
 
-void syscall_exec(struct intr_frame *f, uint32_t file) {
-  void *k_file = translate_uaddr_to_kaddr((void *) file);
-  f->eax = process_execute ((char *) k_file);
+void syscall_exec(struct intr_frame *f, uint32_t file_name) {
+  f->eax = process_execute ((char *) file_name);
 }
 
 void syscall_wait(struct intr_frame *f, uint32_t tid) {
   f->eax = process_wait ( (tid_t) tid);
 }
 
-void syscall_create(struct intr_frame *f, uint32_t file, uint32_t i_size)
+void syscall_create(struct intr_frame *f, uint32_t file_name, uint32_t i_size)
 {
-  void *k_file = translate_uaddr_to_kaddr( (void *) file);
-  f->eax = filesys_create ( (char *) k_file, i_size);
+  f->eax = filesys_create ( (char *) file_name, i_size);
 }
 
-void syscall_remove(struct intr_frame *f, uint32_t file) {
-  void *k_file = translate_uaddr_to_kaddr( (void *) file);
-  f->eax = filesys_remove ( (char *) k_file);
+void syscall_remove(struct intr_frame *f, uint32_t file_name) {
+  f->eax = filesys_remove ( (char *) file_name);
 }
 
-void syscall_open(struct intr_frame *f, uint32_t fd) {
-  void *k_fd = translate_uaddr_to_kaddr( (void *) fd);
+void syscall_open(struct intr_frame *f, uint32_t file_name) {
   lock_acquire (&filesys_lock);
-  struct file *file = filesys_open ( (char *) k_fd);
+  struct file *file = filesys_open ( (char *) file_name);
   if (file == NULL) {
     f->eax = -1;
   } else {
@@ -226,15 +222,14 @@ void syscall_filesize(struct intr_frame *f, uint32_t fd) {
 
 void syscall_read(struct intr_frame *f, uint32_t fd, uint32_t buffer,
 		  uint32_t length) {
-  void *buf = (void *) buffer;
+  char *buf = (void *) buffer;
   int size = length;
   check_buffer_uaddr (buf, size);
-  char *k_buf = translate_uaddr_to_kaddr(buf);
   
   if (fd  == 0) { //Read from Keyboard
     int count = 0;
     while (size - count > 0) {
-      k_buf[count] = input_getc ();
+      buf[count] = input_getc ();
       count ++;
     }
   } else {
@@ -243,7 +238,7 @@ void syscall_read(struct intr_frame *f, uint32_t fd, uint32_t buffer,
       f->eax =  -1;
     } else {
       lock_acquire (&filesys_lock);
-      f->eax = file_read (fw->file, k_buf, size);
+      f->eax = file_read (fw->file, buf, size);
       lock_release (&filesys_lock);
     }
   }
@@ -251,17 +246,16 @@ void syscall_read(struct intr_frame *f, uint32_t fd, uint32_t buffer,
 
 void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
 		   uint32_t length) {
-  void *buf = (void *) buffer;
+  char *buf = (void *) buffer;
   int size = length;
   check_buffer_uaddr (buf, size);
-  void *k_buf = translate_uaddr_to_kaddr(buf);
   int BUF_CHUNK = 200;
   if (fd == 1) {  //Write to console 
     while (size > BUF_CHUNK) {
-      putbuf(k_buf, BUF_CHUNK);
+      putbuf(buf, BUF_CHUNK);
       size -= BUF_CHUNK;
     }
-    putbuf(k_buf, size);
+    putbuf(buf, size);
     size = length;
     f->eax = size;
   } else {
