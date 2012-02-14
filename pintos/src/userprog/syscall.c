@@ -218,8 +218,14 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
   int size = length;
   check_buffer_uaddr (buf, size);
   void *k_buf = translate_uaddr_to_kaddr(buf);
+  int buf_chunk = 200;
   if (fd == 1) {  //Write to console 
+    while (size > buf_chunk) {
+      putbuf(k_buf, buf_chunk);
+      size -= buf_chunk;
+    }
     putbuf(k_buf, size);
+    size = length;
     f->eax = size;
   } else {
     struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
