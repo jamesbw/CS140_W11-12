@@ -175,6 +175,7 @@ void syscall_exit(struct intr_frame *f, uint32_t status) {
 }
 
 void syscall_exec(struct intr_frame *f, uint32_t file_name) {
+  verify_uaddr ((char *) file_name);
   f->eax = process_execute ((char *) file_name);
 }
 
@@ -184,14 +185,17 @@ void syscall_wait(struct intr_frame *f, uint32_t tid) {
 
 void syscall_create(struct intr_frame *f, uint32_t file_name, uint32_t i_size)
 {
+  verify_uaddr ((char *) file_name);
   f->eax = filesys_create ( (char *) file_name, i_size);
 }
 
 void syscall_remove(struct intr_frame *f, uint32_t file_name) {
+  verify_uaddr ((char *) file_name);
   f->eax = filesys_remove ( (char *) file_name);
 }
 
 void syscall_open(struct intr_frame *f, uint32_t file_name) {
+  verify_uaddr ((char *) file_name);
   lock_acquire (&filesys_lock);
   struct file *file = filesys_open ( (char *) file_name);
   if (file == NULL) {
