@@ -184,6 +184,11 @@ each byte in the buffer with verify_uaddr.
 >> for a system call that only copies 2 bytes of data?  Is there room
 >> for improvement in these numbers, and how much?
 
+Our implementation currently calls pagedir_get_page on every byte of 
+a buffer. Therefore we would have 4096 calls for the full page, two calls
+for the 2 bytes.
+
+
 >> B5: Briefly describe your implementation of the "wait" system call
 >> and how it interacts with process termination.
 

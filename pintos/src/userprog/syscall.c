@@ -303,7 +303,6 @@ verify_uaddr (const void *uaddr)
 static void
 check_buffer_uaddr (const void *buf, int size)
 {
-  int i;
-  for (i = 0; i < size; ++i)
-    verify_uaddr (buf + i);
+  verify_uaddr (buf);
+  verify_uaddr (buf + size - 1);
 }
