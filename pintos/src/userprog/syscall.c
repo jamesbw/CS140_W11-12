@@ -300,9 +300,15 @@ verify_uaddr (const void *uaddr)
     thread_exit (); // Not mapped
 }
 
+
+/*check the start and end of buffer, and one address every PGSIZE
+in between*/
 static void
 check_buffer_uaddr (const void *buf, int size)
 {
   verify_uaddr (buf);
+  int i;
+  for(i = 1; i < (size -2 )/ PGSIZE)
+    verify_uaddr (buf + i*PGSIZE);
   verify_uaddr (buf + size - 1);
 }
