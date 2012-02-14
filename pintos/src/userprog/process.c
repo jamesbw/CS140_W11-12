@@ -644,6 +644,7 @@ setup_stack (void **esp, const char *command_line)
         {
           count ++;
           *esp -=4;
+	  offset += 4;
 	  if (offset >= 4096) {
 	    palloc_free_page(cl_copy);
 	    palloc_free_page(kpage);
@@ -655,6 +656,7 @@ setup_stack (void **esp, const char *command_line)
 
         //pushing &argv
         *esp -=4;
+	offset += 4;
 	if (offset >= 4096) {
 	  palloc_free_page(cl_copy);
 	  palloc_free_page(kpage);
@@ -664,6 +666,7 @@ setup_stack (void **esp, const char *command_line)
 
         //pusing argc
         *esp -= 4;
+	offset += 4;
 	if (offset >= 4096) {
 	  palloc_free_page(cl_copy);
 	  palloc_free_page(kpage);
@@ -673,6 +676,7 @@ setup_stack (void **esp, const char *command_line)
 
         //pushing fake return address
         *esp -=4;
+	offset += 4;
 	if (offset >= 4096) {
 	  palloc_free_page(cl_copy);
 	  palloc_free_page(kpage);
