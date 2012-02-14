@@ -135,6 +135,7 @@ void syscall_exit(struct intr_frame *f, uint32_t status) {
   //Update exit code
   struct list_elem *e;
   struct process *p;
+  lock_acquire (&process_lock);
   for (e = list_begin(&process_list); e != list_end(&process_list); e =
 	 list_next (e)) {
     p = list_entry(e, struct process, elem);
@@ -143,6 +144,7 @@ void syscall_exit(struct intr_frame *f, uint32_t status) {
       break;
     }
   }
+  lock_release (&process_lock);
   thread_exit ();
 }
 
