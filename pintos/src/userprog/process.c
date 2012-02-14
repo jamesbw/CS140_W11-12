@@ -606,12 +606,13 @@ setup_stack (void **esp, const char *command_line)
         {
           argc ++ ;
           *esp -= strlen(token) + 1;
-	  offset += strlen(token) + 1;
-	  if (offset >= 4096) {
-	    palloc_free_page(cl_copy);
-	    palloc_free_page(kpage);
-	    return false;
-	  }
+      	  offset += strlen(token) + 1;
+      	  if (offset >= 4096) 
+          {
+      	    palloc_free_page(cl_copy);
+      	    palloc_free_page(kpage);
+      	    return false;
+      	  }
           memcpy(*esp, token, strlen(token) + 1);          
         }
         char *end_of_args = *esp;
@@ -619,22 +620,24 @@ setup_stack (void **esp, const char *command_line)
         //word align
         int word_align_length = (uint32_t) *esp % 4;
         *esp -= word_align_length;
-	offset += word_align_length;
-	if (offset >= 4096) {
-	  palloc_free_page(cl_copy);
-	  palloc_free_page(kpage);
-	  return false;
-	}
-	memset(*esp, 0, word_align_length);
+      	offset += word_align_length;
+      	if (offset >= 4096) 
+        {
+      	  palloc_free_page(cl_copy);
+      	  palloc_free_page(kpage);
+      	  return false;
+      	}
+      	memset(*esp, 0, word_align_length);
 
         //push sentinel
         *esp -= 4;
-	offset += 4;
-	if (offset >= 4096) {
-	  palloc_free_page(cl_copy);
-	  palloc_free_page(kpage);
-	  return false;
-	}
+      	offset += 4;
+      	if (offset >= 4096) 
+        {
+      	  palloc_free_page(cl_copy);
+      	  palloc_free_page(kpage);
+      	  return false;
+      	}
         *((uint32_t *) *esp) = 0;
 
         //pushing argv elements
@@ -644,44 +647,48 @@ setup_stack (void **esp, const char *command_line)
         {
           count ++;
           *esp -=4;
-	  offset += 4;
-	  if (offset >= 4096) {
-	    palloc_free_page(cl_copy);
-	    palloc_free_page(kpage);
-	    return false;
-	  }
+      	  offset += 4;
+      	  if (offset >= 4096) 
+          {
+      	    palloc_free_page(cl_copy);
+      	    palloc_free_page(kpage);
+      	    return false;
+      	  }
           *((char **) *esp) = token;
           token = strchr(token,'\0') + 1;
         }
 
         //pushing &argv
         *esp -=4;
-	offset += 4;
-	if (offset >= 4096) {
-	  palloc_free_page(cl_copy);
-	  palloc_free_page(kpage);
-	  return false;
-	}
+      	offset += 4;
+      	if (offset >= 4096) 
+        {
+      	  palloc_free_page(cl_copy);
+      	  palloc_free_page(kpage);
+      	  return false;
+      	}
         *((char ***) *esp )=  *esp + 4;
 
         //pusing argc
         *esp -= 4;
-	offset += 4;
-	if (offset >= 4096) {
-	  palloc_free_page(cl_copy);
-	  palloc_free_page(kpage);
-	  return false;
-	}
+      	offset += 4;
+      	if (offset >= 4096) 
+        {
+      	  palloc_free_page(cl_copy);
+      	  palloc_free_page(kpage);
+      	  return false;
+      	}
         *((uint32_t *) *esp) = argc;
 
         //pushing fake return address
         *esp -=4;
-	offset += 4;
-	if (offset >= 4096) {
-	  palloc_free_page(cl_copy);
-	  palloc_free_page(kpage);
-	  return false;
-	}
+      	offset += 4;
+      	if (offset >= 4096) 
+        {
+      	  palloc_free_page(cl_copy);
+      	  palloc_free_page(kpage);
+      	  return false;
+      	}
         memset(*esp, 0, 4);
 
         palloc_free_page (cl_copy);

@@ -161,7 +161,7 @@ to the user. The wrapper is called struct file_wrapper. This struct
 has a list_elem field so that it can be added to a list of open files 
 that is maintained in the struct thread.
 The file descriptors are assigned by allocate_fd, a function which 
-keeps a static counter and increments it a every allocation. We mimicked 
+keeps a static counter and increments it at every allocation. We mimicked 
 allocate_tid here. Therefore the file descriptors are unique within the OS.
 
 ---- ALGORITHMS ----
@@ -174,7 +174,7 @@ verify_uaddr on the address. This checks that the address is in
 user space and that it is mapped. If either test fails, the process 
 exits.
 For user supplied buffers, we call check_buffer_uaddr, which will check 
-each byte in the buffer with verify_uaddr.
+the buffer with verify_uaddr.
 
 
 >> B4: Suppose a system call causes a full page (4,096 bytes) of data
@@ -184,9 +184,17 @@ each byte in the buffer with verify_uaddr.
 >> for a system call that only copies 2 bytes of data?  Is there room
 >> for improvement in these numbers, and how much?
 
-Our implementation currently calls pagedir_get_page on every byte of 
-a buffer. Therefore we would have 4096 calls for the full page, two calls
-for the 2 bytes.
+When we verify a buffer, we check the first address and the last address 
+in the buffer. If the buffer spans more than PGSIZE + 2 bytes, then 
+there can be another page between the start and end, so we check one 
+address every PGSIZE bytes too.
+
+In the case of the 4096 byte page, we will only call pagedir_get_page 
+twice, because the buffer can only span 2 pages of user memory at most.
+This is also the case for just 2 bytes. It could be that the first byte 
+is on one page, and the second on another page, so we check both.
+
+We don't think there can be much improvement on this number.
 
 
 >> B5: Briefly describe your implementation of the "wait" system call
@@ -227,7 +235,7 @@ Then is the argument is itself a pointer ( for example a string or a
 buffer), then this pointer is also checked within the system call 
 functions.
 
-All the checking steps user helper functions called verify_uaddr and 
+All the checking steps use helper functions called verify_uaddr and 
 check_buffer_uaddr. Therefore the system call logic is not obscured much.
 Moreover, in case the thread needs to exit, a call to thread_exit is enough.
 All the resources freeing will happen in process_exit.
@@ -237,7 +245,7 @@ This includes:
 removing the process from the list if needed; 
 - closing all open files by looping through the open_files list in 
 struct thread
-- release all the held locks by looping through the locks_held list 
+- releasing all the held locks by looping through the locks_held list 
 in struct thread
 - destroying the pagedir, thereby freeing all allocated pages.
 
