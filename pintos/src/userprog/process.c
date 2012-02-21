@@ -30,6 +30,7 @@ struct start_process_frame
   bool success;
   struct semaphore *sema_loaded;
   tid_t parent_tid;
+  uint32_t *pagedir; //Local page directory
 };
 
 struct lock filesys_lock;
@@ -46,7 +47,7 @@ process_execute (const char *file_name)
   
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
+  fn_copy = palloc_get_page (PAL_USER); //From user pool;
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
@@ -591,7 +592,7 @@ setup_stack (void **esp, const char *command_line)
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success){
 
-        char *cl_copy = palloc_get_page (0);
+        char *cl_copy = palloc_get_page (PAL_USER); //From user pool.
         if (cl_copy == NULL)
           return false;
         strlcpy (cl_copy, command_line, PGSIZE);
