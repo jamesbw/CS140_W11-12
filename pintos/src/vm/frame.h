@@ -3,14 +3,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <hash.h>
+#include "vm/page.h"
 
-struct frame {
-  struct hash_elem elem;
-  void *upage;
-  void *kpage;
-  void *addr;
-  uint32_t *pd;
-};
+
 
 
 #endif
