@@ -106,7 +106,7 @@ void page_insert_zero (void *vaddr)
 /* Returns the page containing the given virtual address,
    or a null pointer if no such page exists. */
 struct page *
-page_lookup (const void *address)
+page_lookup ( void *address)
 {
   struct page p;
   struct hash_elem *e;

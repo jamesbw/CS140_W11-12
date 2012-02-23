@@ -41,7 +41,7 @@ void page_insert_swap (void *vaddr, uint32_t swap_slot);
 void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t valid_bytes);
 void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t valid_bytes, bool writable);
 void page_insert_zero (void *vaddr);
-struct page *page_lookup (const void *address);
+struct page *page_lookup ( void *address);
 void page_extend_stack (void *vaddr);
 bool install_page (void *upage, void *kpage, bool writable);
 
