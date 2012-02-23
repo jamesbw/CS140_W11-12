@@ -117,10 +117,7 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
 
-  hash_init(&frame_table, frame_hash, frame_less, NULL);
-  lock_init (&frame_table_lock);
-  hash_init(&page_table, page_hash, page_less, NULL);
-  lock_init (&page_table_lock);
+
 
 }
 
