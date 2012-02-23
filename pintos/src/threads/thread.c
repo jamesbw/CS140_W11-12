@@ -17,6 +17,10 @@
 
 #include "fixed_point.h"
 
+#include "vm/page.h"
+#include "vm/frame.h"
+#include <hash.h>
+
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -103,6 +107,8 @@ thread_init (void)
   lock_init (&process_lock);
   lock_init (&filesys_lock);
 
+
+
   load_avg = 0; //set to O
 
   /* Set up a thread structure for the running thread. */
@@ -110,6 +116,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
 
 
 }

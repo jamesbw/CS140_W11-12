@@ -4,26 +4,47 @@
 #include <stdint.h>
 #include <hash.h>
 
-/* This struct will be the primary unit used to manage memory.  Pages will
-   be put into hash tables according to one or another field, e.g. the
-   virtual address + page directory for the supplemental page table, or
-   the physical address for the frame table.
-   
-   NOTE:
-   Other fields will need to be added to support mmaped files or other
-   information as we come to it. 
-*/
+#include "filesys/off_t.h"
+#include "threads/synch.h"
 
-struct page {
-  struct hash_elem elem;
-  void *paddr;
-  void *vaddr;
-  uint32_t *pd;
-  int IN_SWAP:1; /*single bit, should consider combining into some flag
-		   with defined masks */
-  int MMAPPED:1; /*single bit, as above */ 
+typedef int mapid_t;
+
+
+struct hash page_table;
+struct lock page_table_lock;
+
+enum page_type
+{
+  SWAP,
+  MMAPPED,
+  EXECUTABLE,
+  NONE,
 };
 
+
+struct page 
+{
+  void *vaddr;
+  enum page_type type;
+  bool writable;
+  uint32_t swap_slot;
+  mapid_t mapid;
+  struct file *file;
+  off_t offset;
+  uint32_t valid_bytes; // mmapped pages might be incomplete and must be filled with zeros.
+  struct hash_elem elem;
+};
+
+
+unsigned page_hash (const struct hash_elem *p_, void *aux);
+bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux);
+void page_insert_swap (void *vaddr, uint32_t swap_slot);
+void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t valid_bytes);
+void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t valid_bytes, bool writable);
+void page_insert_zero (void *vaddr);
+struct page *page_lookup ( void *address);
+void page_extend_stack (void *vaddr);
+bool install_page (void *upage, void *kpage, bool writable);
 
 
 #endif
