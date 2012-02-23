@@ -600,7 +600,7 @@ setup_stack (void **esp, const char *command_line)
     {
       memset (kpage, 0, PGSIZE);
       uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
-      // success = install_page (upage, kpage, true);
+      success = install_page (upage, kpage, true);
       // success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success){
 
