@@ -103,6 +103,12 @@ thread_init (void)
   lock_init (&process_lock);
   lock_init (&filesys_lock);
 
+
+  hash_init(&frame_table, frame_hash, frame_less, NULL);
+  lock_init (&frame_table_lock);
+  hash_init(&page_table, page_hash, page_less, NULL);
+  lock_init (&page_table_lock);
+
   load_avg = 0; //set to O
 
   /* Set up a thread structure for the running thread. */

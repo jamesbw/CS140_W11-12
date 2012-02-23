@@ -149,6 +149,53 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
+
+
+  if (not_present)
+  {
+    void *page_addr = pg_round_down (fault_addr);
+    struct page *supp_page = page_lookup (page_addr);
+    if (supp_page)
+    {
+      switch (supp_page->type)
+      {
+        case EXECUTABLE:
+          void *kpage = frame_allocate (page_addr, supp_page->writable);
+          install_page (page_addr, kpage, supp_page->writable);
+          file_seek (supp_page->file, supp_page->offset);
+          file_read (supp_page->file, kpage, supp_page->valid_bytes);
+          memset (kpage + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
+          break;
+        case SWAP:
+        case MMAPPED:
+        default:
+          break;
+      }
+      return;
+    }
+    else
+    {
+      if ( fault_addr >= thread_current ()->stack - 32) 
+      {
+        page_extend_stack (fault_addr);
+        return;
+      }
+      else
+        ;
+        // terminate
+    }
+
+      
+  }
+  else
+    ;
+    // terminate // writing r/o page
+
+
+
+
+
+
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
