@@ -1,10 +1,16 @@
 #include "page.h"
+#include <debug.h>
+#include "threads/thread.h"
+#include "threads/vaddr.h"
+#include "threads/malloc.h"
+#include "frame.h"
+#include "userprog/pagedir.h"
 
 struct hash page_table;
 
 /* Returns a hash for page p */
 unsigned 
-page_hash(const struct hash_elem *p_, void *aux UNUSED) {
+page_hash(const struct hash_elem *p_, void *aux ) {
   const struct page *p = hash_entry(p_, struct page, elem);
   return hash_bytes(&p->vaddr, sizeof(p->vaddr));
 }
@@ -12,7 +18,7 @@ page_hash(const struct hash_elem *p_, void *aux UNUSED) {
 /* Returns true if page a precedes page b in virtual memory */
 bool 
 page_less(const struct hash_elem *a_, const struct hash_elem *b_,
-void *aux UNUSED) {
+void *aux ) {
   const struct page *a = hash_entry(a_, struct page, elem);
   const struct page *b = hash_entry(b_, struct page, elem);
   return a->vaddr < b->vaddr;
@@ -34,7 +40,7 @@ void page_insert_swap (void *vaddr, uint32_t swap_slot)
         new_page->offset = -1;
         new_page->valid_bytes = PGSIZE;
 
-        hash_insert (&page_table, &new_page->hash_elem);
+        hash_insert (&page_table, &new_page->elem);
 }
 
 void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t valid_bytes)
@@ -53,7 +59,7 @@ void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t val
         new_page->offset = offset;
         new_page->valid_bytes = valid_bytes;
 
-        hash_insert (&page_table, &new_page->hash_elem);
+        hash_insert (&page_table, &new_page->elem);
 }
 
 
@@ -73,7 +79,7 @@ void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint3
         new_page->offset = offset;
         new_page->valid_bytes = valid_bytes;
 
-        hash_insert (&page_table, &new_page->hash_elem);
+        hash_insert (&page_table, &new_page->elem);
 }
 
 
@@ -93,7 +99,7 @@ void page_insert_zero (void *vaddr)
         new_page->offset = -1;
         new_page->valid_bytes = 0;
 
-        hash_insert (&page_table, &new_page->hash_elem);
+        hash_insert (&page_table, &new_page->elem);
 }
 
 /* Returns the page containing the given virtual address,

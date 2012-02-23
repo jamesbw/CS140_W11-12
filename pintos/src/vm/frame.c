@@ -1,4 +1,7 @@
 #include "frame.h"
+#include <debug.h>
+#include "threads/thread.h"
+#include "threads/malloc.h"
 
 struct hash frame_table;
 
@@ -46,7 +49,7 @@ frame_allocate (void *upage, bool writable)
     new_frame->pinned = false;
 
 
-    hash_insert (&frame_table, &new_frame->hash_elem);
+    hash_insert (&frame_table, &new_frame->elem);
     return kpage;
 }
 
