@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <hash.h>
+#include "threads/synch.h"
 
 
 struct hash frame_table;

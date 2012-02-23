@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <hash.h>
 #include "filesys/off_t.h"
+#include "threads/synch.h"
 
 typedef int mapid_t;
 

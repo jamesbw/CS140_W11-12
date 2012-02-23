@@ -9,6 +9,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include "filesys/file.h"
+#include <string.h>
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
