@@ -120,7 +120,7 @@ page_lookup (const void *address)
 void page_extend_stack (void *vaddr)
 {
         void *page_addr = pg_round_down (vaddr);
-        void *kpage = frame_allocate (page_addr, true);
+        void *kpage = frame_allocate (page_addr);
         memset (kpage, 0, PGSIZE);
         install_page (page_addr, kpage, true);
         page_insert_zero (page_addr);

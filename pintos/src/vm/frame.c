@@ -2,6 +2,7 @@
 #include <debug.h>
 #include "threads/thread.h"
 #include "threads/malloc.h"
+#include "threads/palloc.h"
 
 struct hash frame_table;
 
@@ -23,9 +24,9 @@ void *aux UNUSED) {
 
 
 void *
-frame_allocate (void *upage, bool writable)
+frame_allocate (void *upage)
 {
-    uint32_t *pd = thread_current ()->pagedir;
+    // uint32_t *pd = thread_current ()->pagedir;
     void *kpage = palloc_get_page (PAL_USER);
     ASSERT (kpage);
     if (kpage == NULL)

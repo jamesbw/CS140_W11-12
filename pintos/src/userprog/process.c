@@ -595,7 +595,7 @@ setup_stack (void **esp, const char *command_line)
   bool success = false;
   uint32_t offset = 0;
   // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  kpage = frame_allocate (*esp, true);
+  kpage = frame_allocate (*esp);
   if (kpage != NULL) 
     {
       memset (kpage, 0, PGSIZE);
