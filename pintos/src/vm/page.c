@@ -5,12 +5,13 @@
 #include "threads/malloc.h"
 #include "frame.h"
 #include "userprog/pagedir.h"
+#include <string.h>
 
 struct hash page_table;
 
 /* Returns a hash for page p */
 unsigned 
-page_hash(const struct hash_elem *p_, void *aux ) {
+page_hash(const struct hash_elem *p_, void *aux UNUSED) {
   const struct page *p = hash_entry(p_, struct page, elem);
   return hash_bytes(&p->vaddr, sizeof(p->vaddr));
 }
@@ -18,7 +19,7 @@ page_hash(const struct hash_elem *p_, void *aux ) {
 /* Returns true if page a precedes page b in virtual memory */
 bool 
 page_less(const struct hash_elem *a_, const struct hash_elem *b_,
-void *aux ) {
+void *aux UNUSED) {
   const struct page *a = hash_entry(a_, struct page, elem);
   const struct page *b = hash_entry(b_, struct page, elem);
   return a->vaddr < b->vaddr;
@@ -26,7 +27,7 @@ void *aux ) {
 
 void page_insert_swap (void *vaddr, uint32_t swap_slot)
 {
-        ASSERT (vaddr % PGSIZE == 0);
+        ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
         struct page *new_page = malloc (sizeof (struct page));
         ASSERT (new_page);
@@ -45,7 +46,7 @@ void page_insert_swap (void *vaddr, uint32_t swap_slot)
 
 void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t valid_bytes)
 {
-        ASSERT (vaddr % PGSIZE == 0);
+        ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
         struct page *new_page = malloc (sizeof (struct page));
         ASSERT (new_page);
@@ -65,7 +66,7 @@ void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t val
 
 void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t valid_bytes, bool writable)
 {
-        ASSERT (vaddr % PGSIZE == 0);
+        ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
         struct page *new_page = malloc (sizeof (struct page));
         ASSERT (new_page);
@@ -85,7 +86,7 @@ void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint3
 
 void page_insert_zero (void *vaddr)
 {
-        ASSERT (vaddr % PGSIZE == 0);
+        ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
         struct page *new_page = malloc (sizeof (struct page));
         ASSERT (new_page);
