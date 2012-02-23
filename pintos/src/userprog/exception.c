@@ -166,7 +166,7 @@ page_fault (struct intr_frame *f)
       switch (supp_page->type)
       {
         case EXECUTABLE:
-          kpage = frame_allocate (page_addr, supp_page->writable);
+          kpage = frame_allocate (page_addr);
           install_page (page_addr, kpage, supp_page->writable);
           file_seek (supp_page->file, supp_page->offset);
           file_read (supp_page->file, kpage, supp_page->valid_bytes);
