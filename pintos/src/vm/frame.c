@@ -31,11 +31,11 @@ frame_allocate (void *upage, bool writable)
         ASSERT(false);
     }
 
-    if (!install_page (upage, kpage, writable))
-    {
-        palloc_free_page (kpage);
-        return NULL;
-    }
+    // if (!install_page (upage, kpage, writable))
+    // {
+    //     palloc_free_page (kpage);
+    //     return NULL;
+    // }
 
     // add frame to frame table
     struct frame *new_frame = malloc (sizeof (struct frame));
