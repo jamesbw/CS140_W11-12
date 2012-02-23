@@ -8,6 +8,7 @@
 #include "threads/vaddr.h"
 #include "vm/page.h"
 #include "vm/frame.h"
+#include "filesys/file.h"
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
@@ -160,10 +161,11 @@ page_fault (struct intr_frame *f)
     struct page *supp_page = page_lookup (page_addr);
     if (supp_page)
     {
+      void *kpage;
       switch (supp_page->type)
       {
         case EXECUTABLE:
-          void *kpage = frame_allocate (page_addr, supp_page->writable);
+          kpage = frame_allocate (page_addr, supp_page->writable);
           install_page (page_addr, kpage, supp_page->writable);
           file_seek (supp_page->file, supp_page->offset);
           file_read (supp_page->file, kpage, supp_page->valid_bytes);
@@ -178,7 +180,7 @@ page_fault (struct intr_frame *f)
     }
     else
     {
-      if ( fault_addr >= thread_current ()->stack - 32) 
+      if ( (uint32_t) fault_addr >= (uint32_t) (thread_current ()->stack - 32)) 
       {
         page_extend_stack (fault_addr);
         return;
