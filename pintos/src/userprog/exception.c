@@ -166,14 +166,14 @@ page_fault (struct intr_frame *f)
       switch (supp_page->type)
       {
         case EXECUTABLE:
+        case MMAPPED:
           kpage = frame_allocate (page_addr);
-          install_page (page_addr, kpage, supp_page->writable);
           file_seek (supp_page->file, supp_page->offset);
           file_read (supp_page->file, kpage, supp_page->valid_bytes);
           memset (kpage + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
+          pagedir_set_page (thread_current ()->pagedir, page_addr, kpage, supp_page->writable);
           break;
         case SWAP:
-        case MMAPPED:
         default:
           break;
       }

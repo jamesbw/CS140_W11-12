@@ -5,8 +5,7 @@
 #include <hash.h>
 #include "filesys/off_t.h"
 #include "threads/synch.h"
-
-typedef int mapid_t;
+#include "userprog/process.h"
 
 
 struct hash page_table;
@@ -43,7 +42,7 @@ void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint3
 void page_insert_zero (void *vaddr);
 struct page *page_lookup ( void *address);
 void page_extend_stack (void *vaddr);
-bool install_page (void *upage, void *kpage, bool writable);
+// bool install_page (void *upage, void *kpage, bool writable);
 void page_free (void *upage);
 
 

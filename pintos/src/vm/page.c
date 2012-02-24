@@ -25,28 +25,28 @@ void *aux UNUSED) {
   return a->vaddr < b->vaddr;
 }
 
-void page_insert_swap (void *vaddr, uint32_t swap_slot)
-{
-  ASSERT ((uint32_t) vaddr % PGSIZE == 0);
+// void page_insert_swap (void *vaddr, uint32_t swap_slot)
+// {
+//   ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
-  struct page *new_page = malloc (sizeof (struct page));
-  ASSERT (new_page);
+//   struct page *new_page = malloc (sizeof (struct page));
+//   ASSERT (new_page);
 
-  new_page->vaddr = vaddr;
-  new_page->type = SWAP;
-  new_page->writable = true;
-  new_page->swap_slot = swap_slot;
-  new_page->mapid = -1;
-  new_page->file = NULL;
-  new_page->offset = -1;
-  new_page->valid_bytes = PGSIZE;
+//   new_page->vaddr = vaddr;
+//   new_page->type = SWAP;
+//   new_page->writable = true;
+//   new_page->swap_slot = swap_slot;
+//   new_page->mapid = -1;
+//   new_page->file = NULL;
+//   new_page->offset = -1;
+//   new_page->valid_bytes = PGSIZE;
 
-  lock_acquire (&page_table_lock);
-  hash_insert (&page_table, &new_page->elem);
-  lock_release (&page_table_lock);
-}
+//   lock_acquire (&page_table_lock);
+//   hash_insert (&page_table, &new_page->elem);
+//   lock_release (&page_table_lock);
+// }
 
-void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t valid_bytes)
+void page_insert_mmapped (void *vaddr, mapid_t mapid, struct file *file, off_t offset, uint32_t valid_bytes)
 {
   ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
@@ -58,7 +58,7 @@ void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t val
   new_page->writable = true;
   new_page->swap_slot = -1;
   new_page->mapid = mapid;
-  new_page->file = NULL;
+  new_page->file = file;
   new_page->offset = offset;
   new_page->valid_bytes = valid_bytes;
 
@@ -132,29 +132,29 @@ void page_extend_stack (void *vaddr)
   void *page_addr = pg_round_down (vaddr);
   void *kpage = frame_allocate (page_addr);
   memset (kpage, 0, PGSIZE);
-  install_page (page_addr, kpage, true);
+  pagedir_set_page (thread_current ()->pagedir, page_addr, kpage, true);
   page_insert_zero (page_addr);
 }
 
-/* Adds a mapping from user virtual address UPAGE to kernel
-   virtual address KPAGE to the page table.
-   If WRITABLE is true, the user process may modify the page;
-   otherwise, it is read-only.
-   UPAGE must not already be mapped.
-   KPAGE should probably be a page obtained from the user pool
-   with palloc_get_page().
-   Returns true on success, false if UPAGE is already mapped or
-   if memory allocation fails. */
-bool
-install_page (void *upage, void *kpage, bool writable)
-{
-  struct thread *t = thread_current ();
+//  Adds a mapping from user virtual address UPAGE to kernel
+//    virtual address KPAGE to the page table.
+//    If WRITABLE is true, the user process may modify the page;
+//    otherwise, it is read-only.
+//    UPAGE must not already be mapped.
+//    KPAGE should probably be a page obtained from the user pool
+//    with palloc_get_page().
+//    Returns true on success, false if UPAGE is already mapped or
+//    if memory allocation fails. 
+// bool
+// install_page (void *upage, void *kpage, bool writable)
+// {
+//   struct thread *t = thread_current ();
 
-  /* Verify that there's not already a page at that virtual
-     address, then map our page there. */
-  return (pagedir_get_page (t->pagedir, upage) == NULL
-          && pagedir_set_page (t->pagedir, upage, kpage, writable));
-}
+//   /* Verify that there's not already a page at that virtual
+//      address, then map our page there. */
+//   return (pagedir_get_page (t->pagedir, upage) == NULL
+//           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+// }
 
 void
 page_free (void *upage)

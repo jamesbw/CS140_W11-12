@@ -343,7 +343,7 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
   for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
   {
     int valid_bytes = size_left < PGSIZE ? size_left : PGSIZE;
-    page_insert_mmapped (page, mf->mapid, offset, valid_bytes);
+    page_insert_mmapped (page, mf->mapid, mf->file, offset, valid_bytes);
   }
 
   struct mmapped_file *mf = malloc (sizeof (struct mmapped_file));

@@ -26,7 +26,8 @@ void *aux UNUSED) {
 void *
 frame_allocate (void *upage)
 {
-    // uint32_t *pd = thread_current ()->pagedir;
+    ASSERT (pagedir_get_page (thread_current ()->pagedir, upage) == NULL );
+
     void *kpage = palloc_get_page (PAL_USER);
     ASSERT (kpage);
     if (kpage == NULL)
