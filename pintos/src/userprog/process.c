@@ -782,5 +782,19 @@ allocate_fd (void)
   return fd;
 }
 
+struct mmapped_file * 
+lookup_mmapped ( mapid_t mapid)
+{
+  struct thread *cur = thread_current ();
+  struct mmapped_file *mf = NULL;
+  struct list_elem *e;
 
+  for (e = list_begin (&cur->mmapped_files); e != list_end (&cur->mmapped_files);e = list_next (e))
+  {
+    mf = list_entry (e, struct mmapped_file, elem);
+    if (mf->mapid == mapid)
+      break;
+  }
+  return mf;
+}
 

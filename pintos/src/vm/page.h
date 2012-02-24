@@ -44,6 +44,7 @@ void page_insert_zero (void *vaddr);
 struct page *page_lookup ( void *address);
 void page_extend_stack (void *vaddr);
 bool install_page (void *upage, void *kpage, bool writable);
+void page_free (void *upage);
 
 
 

@@ -105,6 +105,7 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     struct list open_files;
+    struct list mmapped_files;
 #endif
 
     /* Owned by thread.c. */

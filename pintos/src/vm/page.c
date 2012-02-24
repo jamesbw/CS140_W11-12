@@ -27,80 +27,88 @@ void *aux UNUSED) {
 
 void page_insert_swap (void *vaddr, uint32_t swap_slot)
 {
-        ASSERT ((uint32_t) vaddr % PGSIZE == 0);
+  ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
-        struct page *new_page = malloc (sizeof (struct page));
-        ASSERT (new_page);
+  struct page *new_page = malloc (sizeof (struct page));
+  ASSERT (new_page);
 
-        new_page->vaddr = vaddr;
-        new_page->type = SWAP;
-        new_page->writable = true;
-        new_page->swap_slot = swap_slot;
-        new_page->mapid = -1;
-        new_page->file = NULL;
-        new_page->offset = -1;
-        new_page->valid_bytes = PGSIZE;
+  new_page->vaddr = vaddr;
+  new_page->type = SWAP;
+  new_page->writable = true;
+  new_page->swap_slot = swap_slot;
+  new_page->mapid = -1;
+  new_page->file = NULL;
+  new_page->offset = -1;
+  new_page->valid_bytes = PGSIZE;
 
-        hash_insert (&page_table, &new_page->elem);
+  lock_acquire (&page_table_lock);
+  hash_insert (&page_table, &new_page->elem);
+  lock_release (&page_table_lock);
 }
 
 void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t valid_bytes)
 {
-        ASSERT ((uint32_t) vaddr % PGSIZE == 0);
+  ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
-        struct page *new_page = malloc (sizeof (struct page));
-        ASSERT (new_page);
+  struct page *new_page = malloc (sizeof (struct page));
+  ASSERT (new_page);
 
-        new_page->vaddr = vaddr;
-        new_page->type = MMAPPED;
-        new_page->writable = true;
-        new_page->swap_slot = -1;
-        new_page->mapid = mapid;
-        new_page->file = NULL;
-        new_page->offset = offset;
-        new_page->valid_bytes = valid_bytes;
+  new_page->vaddr = vaddr;
+  new_page->type = MMAPPED;
+  new_page->writable = true;
+  new_page->swap_slot = -1;
+  new_page->mapid = mapid;
+  new_page->file = NULL;
+  new_page->offset = offset;
+  new_page->valid_bytes = valid_bytes;
 
-        hash_insert (&page_table, &new_page->elem);
+  lock_acquire (&page_table_lock);
+  hash_insert (&page_table, &new_page->elem);
+  lock_release (&page_table_lock);
 }
 
 
 void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t valid_bytes, bool writable)
 {
-        ASSERT ((uint32_t) vaddr % PGSIZE == 0);
+  ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
-        struct page *new_page = malloc (sizeof (struct page));
-        ASSERT (new_page);
+  struct page *new_page = malloc (sizeof (struct page));
+  ASSERT (new_page);
 
-        new_page->vaddr = vaddr;
-        new_page->type = EXECUTABLE;
-        new_page->writable = writable;
-        new_page->swap_slot = -1;
-        new_page->mapid = -1;
-        new_page->file = file;
-        new_page->offset = offset;
-        new_page->valid_bytes = valid_bytes;
+  new_page->vaddr = vaddr;
+  new_page->type = EXECUTABLE;
+  new_page->writable = writable;
+  new_page->swap_slot = -1;
+  new_page->mapid = -1;
+  new_page->file = file;
+  new_page->offset = offset;
+  new_page->valid_bytes = valid_bytes;
 
-        hash_insert (&page_table, &new_page->elem);
+  lock_acquire (&page_table_lock);
+  hash_insert (&page_table, &new_page->elem);
+  lock_release (&page_table_lock);
 }
 
 
 void page_insert_zero (void *vaddr)
 {
-        ASSERT ((uint32_t) vaddr % PGSIZE == 0);
+  ASSERT ((uint32_t) vaddr % PGSIZE == 0);
 
-        struct page *new_page = malloc (sizeof (struct page));
-        ASSERT (new_page);
+  struct page *new_page = malloc (sizeof (struct page));
+  ASSERT (new_page);
 
-        new_page->vaddr = vaddr;
-        new_page->type = NONE;
-        new_page->writable = true;
-        new_page->swap_slot = -1;
-        new_page->mapid = -1;
-        new_page->file = NULL;
-        new_page->offset = -1;
-        new_page->valid_bytes = 0;
+  new_page->vaddr = vaddr;
+  new_page->type = NONE;
+  new_page->writable = true;
+  new_page->swap_slot = -1;
+  new_page->mapid = -1;
+  new_page->file = NULL;
+  new_page->offset = -1;
+  new_page->valid_bytes = 0;
 
-        hash_insert (&page_table, &new_page->elem);
+  lock_acquire (&page_table_lock);
+  hash_insert (&page_table, &new_page->elem);
+  lock_release (&page_table_lock);
 }
 
 /* Returns the page containing the given virtual address,
@@ -119,11 +127,13 @@ page_lookup ( void *address)
 /* Add a zero page to the stack that contains VADDR*/
 void page_extend_stack (void *vaddr)
 {
-        void *page_addr = pg_round_down (vaddr);
-        void *kpage = frame_allocate (page_addr);
-        memset (kpage, 0, PGSIZE);
-        install_page (page_addr, kpage, true);
-        page_insert_zero (page_addr);
+
+//TODO: limit stack growth
+  void *page_addr = pg_round_down (vaddr);
+  void *kpage = frame_allocate (page_addr);
+  memset (kpage, 0, PGSIZE);
+  install_page (page_addr, kpage, true);
+  page_insert_zero (page_addr);
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
@@ -144,5 +154,22 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+void
+page_free (void *upage)
+{
+    struct page p;
+    struct hash_elem *e;
+
+    p.vaddr = upage;
+
+    lock_acquire (&page_table_lock);
+    e = hash_delete (&page_table, &p.elem);
+    lock_release (&page_table_lock);
+
+    ASSERT (e);
+
+    free (hash_entry (e, struct page, elem));
 }
 
