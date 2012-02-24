@@ -3,6 +3,7 @@
 
 #include "threads/thread.h"
 #include "threads/synch.h"
+#include <user/syscall.h>
 
 tid_t process_execute (const char *file_name);
 int process_wait (tid_t);
@@ -41,8 +42,8 @@ struct file_wrapper *wrap_file (struct file *file);
 
 
 
-typedef int mapid_t;
-#define MAP_FAILED ((mapid_t) -1)
+// typedef int mapid_t;
+// #define MAP_FAILED ((mapid_t) -1)
 
 
 
