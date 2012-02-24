@@ -696,7 +696,6 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init (&(t->locks_held));
   list_init (&(t->open_files));
   list_init (&(t->mmapped_files));
-  hash_init (&(t->supp_page_table), page_hash, page_less, NULL);
 
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);

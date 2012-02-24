@@ -105,6 +105,10 @@ start_process (void *spf_)
     new_process->parent_finished = false;
     sema_init (&new_process->sema_finished, 0);
     new_process->exit_code = -1; 
+
+    hash_init (&(new_process->supp_page_table), page_hash, page_less, NULL);
+    thread_current ()->supp_page_table = &new_process->supp_page_table;
+
     lock_acquire(&process_lock);
     list_push_back ( &process_list, &new_process->elem);
     lock_release(&process_lock);

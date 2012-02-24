@@ -107,7 +107,7 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
     struct list open_files;
     struct list mmapped_files;
-    struct hash supp_page_table;
+    struct hash *supp_page_table;
 #endif
 
     /* Owned by thread.c. */

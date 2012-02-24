@@ -67,7 +67,7 @@ page_insert_mmapped (void *vaddr, mapid_t mapid, struct file *file, off_t offset
   new_page->valid_bytes = valid_bytes;
 
   // lock_acquire (&page_table_lock);
-  hash_insert (&cur->supp_page_table, &new_page->elem);
+  hash_insert (cur->supp_page_table, &new_page->elem);
   // lock_release (&page_table_lock);
   return new_page;
 }
@@ -94,7 +94,7 @@ page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t v
   new_page->valid_bytes = valid_bytes;
 
   // lock_acquire (&page_table_lock);
-  hash_insert (&cur->supp_page_table, &new_page->elem);
+  hash_insert (cur->supp_page_table, &new_page->elem);
   // lock_release (&page_table_lock);
 
   return new_page;
@@ -122,7 +122,7 @@ page_insert_zero (void *vaddr)
   new_page->valid_bytes = 0;
 
   // lock_acquire (&page_table_lock);
-  hash_insert (&cur->supp_page_table, &new_page->elem);
+  hash_insert (cur->supp_page_table, &new_page->elem);
   // lock_release (&page_table_lock);
 
   return new_page;
@@ -139,7 +139,7 @@ page_lookup ( void *address)
   struct thread *cur = thread_current ();
 
   p.vaddr = address;
-  e = hash_find (&cur->supp_page_table, &p.elem);
+  e = hash_find (cur->supp_page_table, &p.elem);
   return e != NULL ? hash_entry (e, struct page, elem) : NULL;
 }
 
@@ -184,7 +184,7 @@ page_free (void *upage)
     p.vaddr = upage;
 
     // lock_acquire (&page_table_lock);
-    e = hash_delete (&thread_current ()->supp_page_table, &p.elem);
+    e = hash_delete (thread_current ()->supp_page_table, &p.elem);
     // lock_release (&page_table_lock);
 
     ASSERT (e);
