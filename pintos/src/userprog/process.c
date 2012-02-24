@@ -22,7 +22,7 @@
 
 #include "vm/page.h"
 #include "vm/frame.h"
-#include <syscall.h>
+#include <user/syscall.h>
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp, struct file **executable);
@@ -242,7 +242,7 @@ process_exit (void)
   //Remove all mmapped files
   while (!list_empty (&cur->mmapped_files))
   {
-    struct mapped_file *mf = list_entry (list_begin (&cur->mmapped_files), struct mmapped_file, elem);
+    struct mmapped_file *mf = list_entry (list_begin (&cur->mmapped_files), struct mmapped_file, elem);
     munmap (mf->mapid); // TODO: ok to use syscall?
   }
 
