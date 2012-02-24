@@ -3,6 +3,7 @@
 #include "threads/thread.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
+#include "userprog/pagedir.h"
 
 struct hash frame_table;
 
