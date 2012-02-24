@@ -6,11 +6,19 @@
 #include "userprog/pagedir.h"
 
 struct hash frame_table;
-void *clock_start;// = user_pool->base;
+void *clock_start;
+void *base;
+void *end;
 /* Returns a hash for frame f */
 
 
 void *run_clock(void);
+
+void frame_init_base(void *user_base, void *user_end) {
+  clock_start = base;
+  base = user_base;
+  end = user_end;
+}
 
 unsigned 
 frame_hash (const struct hash_elem *f_, void *aux UNUSED) {
@@ -79,6 +87,7 @@ frame_free (void *kpage)
 void *run_clock() {
   lock_acquire(&frame_table_lock);
   void *hand = clock_start;
+  uint32_t pool_size = (uint32_t)end - (uint32_t)base;
   struct page p;  // Dummy page for hash_find comparison.
   struct page *f; // Pointer to the actual frame.
   struct hash_elem *e;
@@ -91,7 +100,7 @@ void *run_clock() {
       f = hash_entry(e, struct page, elem);
       if (!pagedir_is_accessed(pd, hand)) {
 	if (!pagedir_is_dirty(pd, hand)) {
-	  clock_start = ((uint32_t)hand + 4)% (uint32_t)(user_pool->base);
+	  clock_start = ((uint32_t)hand + 4)% pool_size + base;
 	  lock_release(&frame_table_lock);
 	  return hand;
 	} else { /* Is dirty */
@@ -102,11 +111,11 @@ void *run_clock() {
 	pagedir_set_accessed(pd, hand, false);
       }
     } else {
-      clock_start = ((uint32_t)hand + 4) % (uint32_t)(user_pool->base);
+      clock_start = ((uint32_t)hand + 4)% pool_size + base;
       lock_release(&frame_table_lock);
       return hand;
     }
-    hand = ((uint32_t)hand + 4) % (uint32_t)(user_pool->base);
+    hand = ((uint32_t)hand + 4)% pool_size + base;
     if (hand == clock_start) {
       lock_release(&frame_table_lock);
       return NULL;
