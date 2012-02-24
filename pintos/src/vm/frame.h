@@ -11,7 +11,7 @@ struct lock frame_table_lock;
 
 unsigned frame_hash (const struct hash_elem *f_, void *aux );
 bool frame_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux );
-void *frame_allocate (struct page *page);
+void *frame_allocate (void *upage);
 void frame_free (void *kpage);
 
 struct frame
