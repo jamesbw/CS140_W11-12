@@ -194,8 +194,6 @@ paging_init (void)
 
   hash_init(&frame_table, frame_hash, frame_less, NULL);
   lock_init (&frame_table_lock);
-  hash_init(&page_table, page_hash, page_less, NULL);
-  lock_init (&page_table_lock);
 }
 
 /* Breaks the kernel command line into words and returns them as

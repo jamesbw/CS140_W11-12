@@ -37,18 +37,12 @@ frame_allocate (void *upage)
         ASSERT(false);
     }
 
-    // if (!install_page (upage, kpage, writable))
-    // {
-    //     palloc_free_page (kpage);
-    //     return NULL;
-    // }
-
     // add frame to frame table
     struct frame *new_frame = malloc (sizeof (struct frame));
     ASSERT (new_frame);
 
     new_frame->paddr = kpage; // TODO - PHYS_BASE?
-    new_frame->upage = upage;
+    new_frame->supp_page = page;
     new_frame->pinned = false;
 
 
