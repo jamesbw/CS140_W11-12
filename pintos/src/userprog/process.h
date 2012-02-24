@@ -42,8 +42,8 @@ struct file_wrapper *wrap_file (struct file *file);
 
 
 
-// typedef int mapid_t;
-// #define MAP_FAILED ((mapid_t) -1)
+typedef int mapid_t;
+#define MAP_FAILED ((mapid_t) -1)
 
 
 
@@ -56,5 +56,6 @@ struct mmapped_file
 };
 
 struct mmapped_file * lookup_mmapped ( mapid_t mapid);
+void process_munmap (mapid_t mapid);
 
 #endif /* userprog/process.h */

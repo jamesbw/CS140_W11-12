@@ -22,8 +22,7 @@
 
 #include "vm/page.h"
 #include "vm/frame.h"
-#include <user/syscall.h>
-#include "syscall.h"
+
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp, struct file **executable);
@@ -244,7 +243,7 @@ process_exit (void)
   while (!list_empty (&cur->mmapped_files))
   {
     struct mmapped_file *mf = list_entry (list_begin (&cur->mmapped_files), struct mmapped_file, elem);
-    syscall_munmap (NULL, mf->mapid); // TODO: ok to use syscall?
+    process_munmap ( mf->mapid); 
   }
 
   //Free swap
@@ -812,4 +811,39 @@ lookup_mmapped ( mapid_t mapid)
   }
   return mf;
 }
+
+void
+process_munmap (mapid_t mapid)
+{
+  struct mmapped_file *mf = lookup_mmapped ( (mapid_t) mapid);
+  if (mf == NULL)
+    return;
+
+  void *page;
+  uint32_t *pd = thread_current ()->pagedir;
+  void *kpage;
+  int size = file_length (mf->file);
+
+  for (page = mf->base_page; page - mf->base_page < size; page += PGSIZE)
+  {
+    if ( pagedir_is_dirty (pd, page))
+    {
+      off_t offset = (off_t) (page - mf->base_page);
+      file_seek (mf->file, offset);
+      int bytes_to_write = size - offset > PGSIZE ? PGSIZE : size - offset;
+      file_write (mf->file, page, bytes_to_write);
+    }
+    kpage = pagedir_get_page (pd, page);
+    frame_free (kpage);
+    pagedir_clear_page (pd, page);
+    page_free (page);
+  }
+
+
+  //remove from list of mmapped files
+  list_remove (&mf->elem);
+  free (mf);
+}
+
+
 
