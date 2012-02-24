@@ -42,7 +42,7 @@ frame_allocate (void *upage)
     ASSERT (new_frame);
 
     new_frame->paddr = kpage; // TODO - PHYS_BASE?
-    new_frame->supp_page = page;
+    new_frame->upage = upage;
     new_frame->pinned = false;
 
 
