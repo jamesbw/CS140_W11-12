@@ -389,19 +389,19 @@ syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
   list_remove (&mf->elem);
   free (mf);
 
-  struct list_elem *e;
-  struct list *mmap_list = &thread_current ()->mmapped_files;
+  // struct list_elem *e;
+  // struct list *mmap_list = &thread_current ()->mmapped_files;
 
-  for (e = list_begin (mmap_list); e != list_end (mmap_list);
-       e = list_next (e))
-  {
-    struct mmapped_file *mf = list_entry (e, struct mmapped_file, elem);
-    if (mf->mapid == (mapid_t) mapid){
-      list_remove (e);
-      free (mf);
-      break;
-    }
-  }
+  // for (e = list_begin (mmap_list); e != list_end (mmap_list);
+  //      e = list_next (e))
+  // {
+  //   struct mmapped_file *mf = list_entry (e, struct mmapped_file, elem);
+  //   if (mf->mapid == (mapid_t) mapid){
+  //     list_remove (e);
+  //     free (mf);
+  //     break;
+  //   }
+  // }
 }
 
 

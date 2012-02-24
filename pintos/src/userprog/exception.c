@@ -187,14 +187,16 @@ page_fault (struct intr_frame *f)
         page_extend_stack (fault_addr);
         return;
       }
-      else{;}
+      else
+        thread_exit ();
         
         // terminate
     }
 
       
   }
-  else{;}
+  else
+    thread_exit ();
     
     // terminate // writing r/o page
 

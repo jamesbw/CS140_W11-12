@@ -67,5 +67,7 @@ frame_free (void *kpage)
 
     ASSERT (e);
 
+    palloc_free_page (kpage);
+
     free (hash_entry (e, struct frame, elem));
 }
