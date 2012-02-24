@@ -3,7 +3,6 @@
 
 #include "threads/thread.h"
 #include "threads/synch.h"
-#include <user/syscall.h>
 
 tid_t process_execute (const char *file_name);
 int process_wait (tid_t);
