@@ -325,12 +325,10 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
 
   //check that no pages are mapped in the space needed for the file
   int num_pages = (file_length (fw->file) -1 )/ PGSIZE + 1;
-  struct page p;
   off_t offset;
   for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
   {
-    p.vaddr = vaddr + offset;
-    if (hash_find (&page_table, &p.elem))
+    if (page_lookup (vaddr + offset))
     {
       f->eax =  MAP_FAILED;
       return;
