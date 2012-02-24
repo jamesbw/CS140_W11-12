@@ -5,7 +5,7 @@
 #include "threads/palloc.h"
 
 struct hash frame_table;
-
+void *clock_start;
 /* Returns a hash for frame f */
 
 unsigned 
@@ -43,7 +43,7 @@ frame_allocate (void *upage)
     // }
 
     // add frame to frame table
-    struct frame *new_frame = malloc (sizeof (struct frame));
+    struct page *new_frame = malloc (sizeof (struct page));
     ASSERT (new_frame);
 
     new_frame->paddr = kpage; // TODO - PHYS_BASE?
@@ -66,5 +66,40 @@ frame_free (void *kpage)
 
     ASSERT (e);
 
-    free (hash_entry (e, struct frame, elem));
+    free (hash_entry (e, struct page, elem));
+}
+
+
+void *run_clock() {
+  lock_acquire(&frame_table_lock);
+  void *hand = clock_start;
+  struct page p;  // Dummy page for hash_find comparison.
+  struct page *f; // Pointer to the actual frame.
+  struct hash_elem *e;
+  struct thread *t = thread_current();
+  uint32_t *pd = t->pagedir; // Current Page Directory
+  while (1) {
+    p.paddr = hand;
+    e = hash_find(&frame_table, struct page, elem);
+    if (e != NULL) {
+      f = hash_entry(e, struct page, elem);
+      if (!pagedir_is_accessed(pd, hand)) {
+	if (!pagedir_is_dirty(pd, hand)) {
+	  clock_start = (uint32_t)hand + 4;
+	  lock_release(&frame_table_lock);
+	  return hand;
+	} else { /* Is dirty */
+	  page_dir_set_dirty(pd, hand, false);
+	  /* Begin writing to disk */
+	}
+      } else {
+	pagedir_set_accessed(pd, hand, false);
+      }
+    } else {
+      clock_start = (uint32_t)hand + 4;
+      lock_release(&frame_table_lock);
+      return hand;
+    }
+    hand = (uint32_t)hand + 4;
+  }
 }

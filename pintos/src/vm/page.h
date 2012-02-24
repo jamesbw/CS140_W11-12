@@ -25,6 +25,9 @@ enum page_type
 struct page 
 {
   void *vaddr;
+  void *paddr;
+  void *upage;
+  bool pinned;
   enum page_type type;
   bool writable;
   uint32_t swap_slot;
