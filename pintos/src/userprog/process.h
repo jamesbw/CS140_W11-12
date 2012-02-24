@@ -26,6 +26,7 @@ struct process
     struct semaphore sema_finished; //upped when terminated, downed when waiting
     int exit_code;
     struct file *executable; //pointer to file to keep open
+    struct hash supp_page_table;
     struct list_elem elem;
 };
 
