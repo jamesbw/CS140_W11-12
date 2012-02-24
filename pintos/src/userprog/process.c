@@ -23,6 +23,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include <user/syscall.h>
+#include "syscall.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp, struct file **executable);
@@ -243,7 +244,7 @@ process_exit (void)
   while (!list_empty (&cur->mmapped_files))
   {
     struct mmapped_file *mf = list_entry (list_begin (&cur->mmapped_files), struct mmapped_file, elem);
-    munmap (mf->mapid); // TODO: ok to use syscall?
+    syscall_munmap (NULL, mf->mapid); // TODO: ok to use syscall?
   }
 
   //Free swap
