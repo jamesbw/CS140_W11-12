@@ -186,7 +186,7 @@ page_fault (struct intr_frame *f)
         page_extend_stack (fault_addr);
         return;
       }
-      else{;}
+      else  {;}
         
         // terminate
     }

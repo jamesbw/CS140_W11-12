@@ -8,6 +8,9 @@ struct hash frame_table;
 void *clock_start;
 /* Returns a hash for frame f */
 
+
+void *run_clock(void);
+
 unsigned 
 frame_hash (const struct hash_elem *f_, void *aux UNUSED) {
     const struct frame *f = hash_entry(f_, struct frame, elem);
@@ -33,7 +36,7 @@ frame_allocate (void *upage)
     if (kpage == NULL)
     {
         //TODO: eviction
-        ASSERT(false);
+      kpage = run_clock();
     }
 
     // if (!install_page (upage, kpage, writable))
@@ -80,7 +83,7 @@ void *run_clock() {
   uint32_t *pd = t->pagedir; // Current Page Directory
   while (1) {
     p.paddr = hand;
-    e = hash_find(&frame_table, struct page, elem);
+    e = hash_find(&frame_table, &p.elem);
     if (e != NULL) {
       f = hash_entry(e, struct page, elem);
       if (!pagedir_is_accessed(pd, hand)) {
@@ -89,7 +92,7 @@ void *run_clock() {
 	  lock_release(&frame_table_lock);
 	  return hand;
 	} else { /* Is dirty */
-	  page_dir_set_dirty(pd, hand, false);
+	  //page_dir_set_dirty(pd, hand, false);
 	  /* Begin writing to disk */
 	}
       } else {
