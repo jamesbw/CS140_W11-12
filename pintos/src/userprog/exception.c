@@ -181,17 +181,17 @@ page_fault (struct intr_frame *f)
     }
     else
     {
-      if ( (uint32_t) fault_addr >= (uint32_t) (thread_current ()->stack - 32)) 
+      if ( (uint32_t) fault_addr == (uint32_t) (thread_current ()->stack - 32)) 
       {
         page_extend_stack (fault_addr);
         return;
       }
-      else  {;}
+      else if ( (uint32_t) fault_addr == (uint32_t) (thread_current
+						     ()->stack - 4))  
+	{;}
         
         // terminate
-    }
-
-      
+    }   
   }
   else{;}
     

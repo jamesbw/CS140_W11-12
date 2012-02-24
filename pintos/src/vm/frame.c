@@ -3,6 +3,7 @@
 #include "threads/thread.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
+#include "userprog/pagedir.h"
 
 struct hash frame_table;
 void *clock_start;
@@ -104,5 +105,9 @@ void *run_clock() {
       return hand;
     }
     hand = (uint32_t)hand + 4;
+    if (hand == clock_start) {
+      lock_release(&frame_table_lock);
+      return NULL;
+    }
   }
 }
