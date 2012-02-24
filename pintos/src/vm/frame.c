@@ -6,7 +6,7 @@
 #include "userprog/pagedir.h"
 
 struct hash frame_table;
-void *clock_start;
+void *clock_start;// = user_pool->base;
 /* Returns a hash for frame f */
 
 
@@ -62,15 +62,17 @@ frame_allocate (void *upage)
 void
 frame_free (void *kpage)
 {
-    struct frame f;
-    struct hash_elem *e;
-
-    f.paddr = kpage;
-    e = hash_delete (&frame_table, &f.elem);
-
-    ASSERT (e);
-
-    free (hash_entry (e, struct page, elem));
+  lock_acquire(&frame_table_lock);
+  struct frame f;
+  struct hash_elem *e;
+  
+  f.paddr = kpage;
+  e = hash_delete (&frame_table, &f.elem);
+  
+  ASSERT (e);
+  
+  free (hash_entry (e, struct page, elem));
+  lock_release(&frame_table);
 }
 
 
@@ -89,7 +91,7 @@ void *run_clock() {
       f = hash_entry(e, struct page, elem);
       if (!pagedir_is_accessed(pd, hand)) {
 	if (!pagedir_is_dirty(pd, hand)) {
-	  clock_start = (uint32_t)hand + 4;
+	  clock_start = ((uint32_t)hand + 4)% (uint32_t)(user_pool->base);
 	  lock_release(&frame_table_lock);
 	  return hand;
 	} else { /* Is dirty */
@@ -100,11 +102,11 @@ void *run_clock() {
 	pagedir_set_accessed(pd, hand, false);
       }
     } else {
-      clock_start = (uint32_t)hand + 4;
+      clock_start = ((uint32_t)hand + 4) % (uint32_t)(user_pool->base);
       lock_release(&frame_table_lock);
       return hand;
     }
-    hand = (uint32_t)hand + 4;
+    hand = ((uint32_t)hand + 4) % (uint32_t)(user_pool->base);
     if (hand == clock_start) {
       lock_release(&frame_table_lock);
       return NULL;
