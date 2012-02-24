@@ -316,21 +316,21 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
 
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if ((fw == NULL )
-    || (file_size (fw->file) == 0)
-    || (uint32_t) vaddr % PGSIZE != 0)
-    || vadrr == 0) {
+    || (file_length (fw->file) == 0)
+    || ((uint32_t) vaddr % PGSIZE != 0)
+    || (vadrr == 0)) {
     f->eax =  MAP_FAILED;
     return;
   }
 
   //check that no pages are mapped in the space needed for the file
-  int num_pages = (file_size (fw->file) -1 )/ PGSIZE + 1;
+  int num_pages = (file_length (fw->file) -1 )/ PGSIZE + 1;
   struct page p;
   off_t offset;
   for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
   {
     p.vaddr = vaddr + offset;
-    if (hash_find (&page_table, &p.hash_elem))
+    if (hash_find (&page_table, &p.elem))
     {
       f->eax =  MAP_FAILED;
       return;
@@ -339,26 +339,26 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
 
   mapid_t mapid = fd; //TOOD allocate?
 
-  int size_left = file_size (fw->file);
-  for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
-  {
-    int valid_bytes = size_left < PGSIZE ? size_left : PGSIZE;
-    page_insert_mmapped (page, mf->mapid, mf->file, offset, valid_bytes);
-  }
-
   struct mmapped_file *mf = malloc (sizeof (struct mmapped_file));
   mf->file = file_reopen (fw->file);
   ASSERT (mf->file);
-
   mf->base_page = vaddr;
   mf->mapid = mapid;
+
+  int size_left = file_length (fw->file);
+  for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
+  {
+    int valid_bytes = size_left < PGSIZE ? size_left : PGSIZE;
+    page_insert_mmapped (vaddr + offset, mapid, mf->file, offset, valid_bytes);
+  }
+
   list_push_back (&thread_current ()->mmapped_files, mf->elem);
 
   f->eax = mapid;
 
 }
 void 
-syscall_munmap (struct intr_frame *f, uint32_t mapid)
+syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
 {
   struct mmapped_file *mf = lookup_mmapped ( (mapid_t) mapid);
   if (mf == NULL)
@@ -367,15 +367,15 @@ syscall_munmap (struct intr_frame *f, uint32_t mapid)
   void *page;
   uint32_t *pd = thread_current ()->pagedir;
   void *kpage;
-  int size = file_size (mf->file);
+  int size = file_length (mf->file);
 
   for (page = mf->base_page; page - mf->base_page < size; page += PGSIZE)
   {
     if ( pagedir_is_dirty (pd, page))
     {
-      off_t offset = (off_t) page - mf->base_page;
+      off_t offset = (off_t) (page - mf->base_page);
       file_seek (mf->file, offset);
-      int bytes_to_write = size - offset > PGSIZE ? PGIZE : size - offset;
+      int bytes_to_write = size - offset > PGSIZE ? PGSIZE : size - offset;
       file_write (mf->file, page, bytes_to_write);
     }
     kpage = pagedir_get_page (pd, page);
@@ -396,7 +396,7 @@ syscall_munmap (struct intr_frame *f, uint32_t mapid)
        e = list_next (e))
   {
     struct mmapped_file *mf = list_entry (e, struct mmapped_file, elem);
-    if (mf->mapid == mapid){
+    if (mf->mapid == (mapid_t) mapid){
       list_remove (e);
       free (mf);
       break;

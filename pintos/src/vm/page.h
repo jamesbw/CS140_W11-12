@@ -36,7 +36,7 @@ struct page
 
 unsigned page_hash (const struct hash_elem *p_, void *aux);
 bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux);
-void page_insert_swap (void *vaddr, uint32_t swap_slot);
+// void page_insert_swap (void *vaddr, uint32_t swap_slot);
 void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t valid_bytes);
 void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t valid_bytes, bool writable);
 void page_insert_zero (void *vaddr);

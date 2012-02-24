@@ -16,7 +16,6 @@ struct lock process_lock;
 struct lock filesys_lock;
 
 typedef int fd_t;
-typedef int mapid_t;
 
 struct process
 {
@@ -39,6 +38,12 @@ struct file_wrapper
 
 struct file_wrapper * lookup_fd ( fd_t fd);
 struct file_wrapper *wrap_file (struct file *file);
+
+
+
+typedef int mapid_t;
+#define MAP_FAILED ((mapid_t) -1)
+
 
 
 struct mmapped_file
