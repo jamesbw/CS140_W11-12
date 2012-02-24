@@ -318,7 +318,7 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
   if ((fw == NULL )
     || (file_length (fw->file) == 0)
     || ((uint32_t) vaddr % PGSIZE != 0)
-    || (vadrr == 0)) {
+    || (vaddr == 0)) {
     f->eax =  MAP_FAILED;
     return;
   }
@@ -352,7 +352,7 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
     page_insert_mmapped (vaddr + offset, mapid, mf->file, offset, valid_bytes);
   }
 
-  list_push_back (&thread_current ()->mmapped_files, mf->elem);
+  list_push_back (&thread_current ()->mmapped_files, &mf->elem);
 
   f->eax = mapid;
 
