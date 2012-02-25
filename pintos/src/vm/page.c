@@ -9,7 +9,8 @@
 #include <string.h>
 #include <stdio.h>
 
-// struct hash page_table;
+void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED);
+
 
 /* Returns a hash for page p */
 unsigned 
@@ -181,16 +182,16 @@ void page_extend_stack (void *vaddr)
 
 
 
-// void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
-// {
-//   struct page *page = hash_entry (elem, struct page, elem);
-//   if (page->type == SWAP)
-//   {
-//     swap_free (page->swap_slot);
-//   }
+void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
+{
+  struct page *page = hash_entry (elem, struct page, elem);
+  if (page->type == SWAP)
+  {
+    swap_free (page->swap_slot);
+  }
 
-//   free (page);
-// }
+  free (page);
+}
 
 void page_free_supp_page_table (void)
 {
