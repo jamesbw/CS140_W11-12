@@ -56,33 +56,34 @@ frame_allocate (void *upage)
     new_frame->paddr = kpage; // TODO - PHYS_BASE?
     new_frame->upage = upage;
     new_frame->pinned = false;
-
-
+    
+    lock_acquire(&frame_table_lock);
     hash_insert (&frame_table, &new_frame->elem);
+    lock_release(&frame_table_lock);
     return kpage;
 }
 
 void
 frame_free (void *kpage)
 {
-  //lock_acquire(&frame_table_lock);
   struct frame f;
   struct hash_elem *e;
   
   f.paddr = kpage;
+  lock_acquire(&frame_table_lock);
   e = hash_delete (&frame_table, &f.elem);
   
   ASSERT (e);
 
   free (hash_entry (e, struct frame, elem));
-  //lock_release(&frame_table);
+  lock_release(&frame_table_lock);
 }
 
 /* Returns pointer to the physical frame that should be written to next.
    This algorithm approximates a LRU heuristic.  Only checks user pages,
    as kernal pages should never be evicted. */
 void *run_clock() {
-  //lock_acquire(&frame_table_lock);
+  lock_acquire(&frame_table_lock);
   void *hand = clock_start;
   uint32_t pool_size = (uint32_t)end - (uint32_t)base;
   struct frame p;  // Dummy page for hash_find comparison.
@@ -98,7 +99,7 @@ void *run_clock() {
       if (!pagedir_is_accessed(pd, hand)) {
 	if (!pagedir_is_dirty(pd, hand)) {
 	  clock_start = ((uint32_t)hand + 4)% pool_size + base;
-	  //lock_release(&frame_table_lock);
+	  lock_release(&frame_table_lock);
 	  return hand;
 	} else { /* Is dirty */
 	  //page_dir_set_dirty(pd, hand, false);
@@ -109,12 +110,12 @@ void *run_clock() {
       }
     } else {
       clock_start = ((uint32_t)hand + 4)% pool_size + base;
-      //lock_release(&frame_table_lock);
+      lock_release(&frame_table_lock);
       return hand;
     }
     hand = ((uint32_t)hand + 4)% pool_size + base;
     if (hand == clock_start) {
-      //lock_release(&frame_table_lock);
+      lock_release(&frame_table_lock);
       return NULL;
     }
   }
