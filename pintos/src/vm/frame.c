@@ -4,6 +4,7 @@
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "userprog/pagedir.h"
+#include "vm/swap.h"
 
 struct hash frame_table;
 void *clock_start;
@@ -102,7 +103,9 @@ void *run_clock() {
 	  lock_release(&frame_table_lock);
 	  return hand;
 	} else { /* Is dirty */
-	  //page_dir_set_dirty(pd, hand, false);
+	  uint32_t slot = swap_allocate_slot();
+	  pagedir_set_dirty(pd, hand, false);
+	  swap_write_page(slot, f->upage);
 	  /* Begin writing to disk */
 	}
       } else {
