@@ -8,6 +8,7 @@
 #include "threads/vaddr.h"
 #include "vm/page.h"
 #include "vm/frame.h"
+#include "vm/swap.h"
 #include "filesys/file.h"
 #include "pagedir.h"
 #include <string.h>

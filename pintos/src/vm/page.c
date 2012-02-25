@@ -4,6 +4,7 @@
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
 #include "frame.h"
+#include "swap.h"
 #include "userprog/pagedir.h"
 #include <string.h>
 #include <stdio.h>

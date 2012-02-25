@@ -16,7 +16,7 @@ enum page_type
   SWAP,
   MMAPPED,
   EXECUTABLE,
-  NONE,
+  ZERO,
 };
 
 

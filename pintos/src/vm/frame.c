@@ -5,6 +5,7 @@
 #include "threads/palloc.h"
 #include "userprog/pagedir.h"
 #include "page.h"
+#include "swap.h"
 #include <hash.h>
 
 struct hash frame_table;
