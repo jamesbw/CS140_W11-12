@@ -69,7 +69,7 @@ syscall_handler (struct intr_frame *f)
       arg3 = *(uint32_t *) (f->esp + 12);
     case SYS_CREATE:
     case SYS_SEEK:
-    case SYS_MUNMAP:
+    case SYS_MMAP:
       verify_uaddr (f->esp + 8);
       arg2 = *(uint32_t *) (f->esp + 8);
     case SYS_EXIT:
@@ -80,7 +80,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_FILESIZE:
     case SYS_TELL:
     case SYS_CLOSE:
-    case SYS_MMAP:
+    case SYS_MUNMAP:
       verify_uaddr (f->esp + 4);
       arg1 = *(uint32_t *) (f->esp + 4);
     case SYS_HALT:
