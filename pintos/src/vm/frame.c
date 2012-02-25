@@ -8,6 +8,7 @@
 #include "swap.h"
 #include <hash.h>
 #include "filesys/file.h"
+#include "threads/vaddr.h"
 
 struct hash frame_table;
 void *frame_evict (void);
@@ -122,3 +123,37 @@ frame_evict (void)
     return frame_to_evict->paddr;
 
 }
+
+struct frame *
+frame_lookup (void *paddr)
+{
+    struct frame f;
+    f.paddr = paddr;
+    struct hash_elem *e = hash_find (&frame_table, &f.elem);
+    return e!= NULL ? hash_entry (e, struct frame, elem) : NULL; 
+}
+
+void 
+frame_pin (void *vaddr)
+{
+    void *upage = pg_round_down (vaddr);
+    void *kpage = pagedir_get_page (thread_current ()->pagedir, upage);
+
+    if (kpage == NULL)
+        kpage = frame_evict();
+
+    frame_lookup (kpage)->pinned = true;
+}
+
+void 
+frame_unpin (void *vaddr)
+{
+    void *upage = pg_round_down (vaddr);
+    void *kpage = pagedir_get_page (thread_current ()->pagedir, upage);
+
+    ASSERT (kpage);
+
+    frame_lookup (kpage)->pinned = false;
+}
+
+

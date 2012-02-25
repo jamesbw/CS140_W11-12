@@ -191,6 +191,7 @@ void syscall_remove (struct intr_frame *f, uint32_t file_name)
 void syscall_open (struct intr_frame *f, uint32_t file_name) 
 {
   verify_uaddr ((char *) file_name);
+  frame_pin ((char *) file_name);
   lock_acquire (&filesys_lock);
   struct file *file = filesys_open ( (char *) file_name);
   if (file == NULL) {
@@ -201,6 +202,7 @@ void syscall_open (struct intr_frame *f, uint32_t file_name)
     f->eax = fw->fd;
   }
   lock_release (&filesys_lock);
+  frame_unpin ((char *) file_name);
 }
 
 void syscall_filesize (struct intr_frame *f, uint32_t fd) 
@@ -239,9 +241,11 @@ void syscall_read (struct intr_frame *f, uint32_t fd, uint32_t buffer,
     if (fw == NULL) {
       f->eax =  -1;
     } else {
+      frame_pin (buf);
       lock_acquire (&filesys_lock);
       f->eax = file_read (fw->file, buf, size);
       lock_release (&filesys_lock);
+      frame_unpin (buf);
     }
   }
 }
@@ -266,9 +270,11 @@ void syscall_write (struct intr_frame *f, uint32_t fd, uint32_t buffer,
     if (fw == NULL) {
       f->eax =  -1;
     } else {
+      frame_pin (buf);
       lock_acquire (&filesys_lock);
       f->eax = file_write (fw->file, buf, size);
       lock_release (&filesys_lock);
+      frame_unpin (buf);
     }
   }
 }
