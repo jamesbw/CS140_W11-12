@@ -163,10 +163,11 @@ void syscall_exit (struct intr_frame *f, uint32_t status)
   thread_exit ();
 }
 
-void syscall_exec (struct intr_frame *f, uint32_t file_name) 
+void syscall_exec (struct intr_frame *f, uint32_t file_name_) 
 {
-  verify_uaddr ((char *) file_name);
-  f->eax = process_execute ((char *) file_name);
+  char *file_name = (char *) file_name_;
+  check_buffer_uaddr (file_name, strlen (file_name));
+  f->eax = process_execute (file_name);
 }
 
 void syscall_wait (struct intr_frame *f, uint32_t tid) 
@@ -174,23 +175,26 @@ void syscall_wait (struct intr_frame *f, uint32_t tid)
   f->eax = process_wait ( (tid_t) tid);
 }
 
-void syscall_create (struct intr_frame *f, uint32_t file_name, uint32_t i_size)
+void syscall_create (struct intr_frame *f, uint32_t file_name_, uint32_t i_size)
 {
-  verify_uaddr ((char *) file_name);
-  f->eax = filesys_create ( (char *) file_name, i_size);
+  char *file_name = (char *) file_name_;
+  check_buffer_uaddr (file_name, strlen (file_name));
+  f->eax = filesys_create ( file_name, i_size);
 }
 
-void syscall_remove (struct intr_frame *f, uint32_t file_name) 
+void syscall_remove (struct intr_frame *f, uint32_t file_name_) 
 {
-  verify_uaddr ((char *) file_name);
-  f->eax = filesys_remove ( (char *) file_name);
+  char *file_name = (char *) file_name;
+  check_buffer_uaddr (file_name, strlen (file_name));
+  f->eax = filesys_remove ( file_name);
 }
 
-void syscall_open (struct intr_frame *f, uint32_t file_name) 
+void syscall_open (struct intr_frame *f, uint32_t file_name_) 
 {
-  verify_uaddr ((char *) file_name);
+  char *file_name = (char *) file_name;
+  check_buffer_uaddr (file_name, strlen (file_name));
   lock_acquire (&filesys_lock);
-  struct file *file = filesys_open ( (char *) file_name);
+  struct file *file = filesys_open ( file_name);
   if (file == NULL) {
     f->eax = -1;
   } else {
