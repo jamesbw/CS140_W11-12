@@ -160,7 +160,7 @@ page_fault (struct intr_frame *f)
   if (not_present)
   {
     void *page_addr = pg_round_down (fault_addr);
-    struct page *supp_page = page_lookup (page_addr);
+    struct page *supp_page = page_lookup (thread_current ()->supp_page_table, page_addr);
     if (supp_page)
     {
       void *kpage;

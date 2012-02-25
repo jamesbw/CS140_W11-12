@@ -18,6 +18,7 @@ struct frame
 {
     void *paddr;
     void *upage;
+    struct process *owner_thread;
     bool pinned;
     struct hash_elem elem;
 };

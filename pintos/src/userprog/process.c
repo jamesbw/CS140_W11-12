@@ -182,6 +182,8 @@ process_exit (void)
   uint32_t *pd;
 
 
+  page_free_supp_page_table (); 
+
   // Update the process list
   lock_acquire(&process_lock);
   struct list_elem *e = list_begin (&process_list);
@@ -477,7 +479,6 @@ load (const char *file_name, void (**eip) (void), void **esp, struct file **exec
     }
 
   /* Set up stack. */
-  //TODO pass filename in for stack setup
   if(first_space != NULL){
     *first_space = ' '; // restore original file_name
   } 
@@ -847,7 +848,7 @@ process_munmap (mapid_t mapid)
       frame_free (kpage);
       pagedir_clear_page (pd, page);
     }
-    page_free (page);
+    page_free ( thread_current (), page);
   }
 
 

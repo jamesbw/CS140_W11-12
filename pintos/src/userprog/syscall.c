@@ -328,7 +328,7 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
   off_t offset;
   for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
   {
-    if (page_lookup (vaddr + offset))
+    if (page_lookup (thread_current ()->supp_page_table, vaddr + offset))
     {
       f->eax =  MAP_FAILED;
       return;
@@ -411,7 +411,7 @@ verify_uaddr (void *uaddr)
 {
   if (!is_user_vaddr (uaddr))
     thread_exit (); // Not user address
-  if ( page_lookup (pg_round_down (uaddr)) == NULL)
+  if ( page_lookup (thread_current ()->supp_page_table, pg_round_down (uaddr)) == NULL)
   {
     if ( page_stack_access (uaddr, thread_current ()->esp) )
       page_extend_stack (uaddr);

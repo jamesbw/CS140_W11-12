@@ -4,6 +4,8 @@
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "userprog/pagedir.h"
+#include "page.h"
+#include <hash.h>
 
 struct hash frame_table;
 
@@ -34,7 +36,7 @@ frame_allocate (void *upage)
     if (kpage == NULL)
     {
         //TODO: eviction
-        ASSERT(false);
+        kpage = frame_evict_and_reallocate (upage);
     }
 
     // add frame to frame table
@@ -42,6 +44,7 @@ frame_allocate (void *upage)
     ASSERT (new_frame);
 
     new_frame->paddr = kpage; // TODO - PHYS_BASE?
+    new_frame->owner_thread = thread_current ();
     new_frame->upage = upage;
     new_frame->pinned = false;
 
@@ -64,4 +67,23 @@ frame_free (void *kpage)
     palloc_free_page (kpage);
 
     free (hash_entry (e, struct frame, elem));
+}
+
+void *
+frame_evict_and_reallocate (void *upage)
+{
+    struct hash_iterator it;
+    hash_first (&it, &frame_table);
+
+    do
+    {
+        struct frame *frame_to_evict = hash_entry (hash_next (&it), struct frame, elem);
+    }
+    while (frame_to_evict->pinned == true);
+
+    struct page *page_to_evict = page_lookup(); //TODO
+
+
+
+
 }

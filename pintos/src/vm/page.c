@@ -129,18 +129,16 @@ page_insert_zero (void *vaddr)
   return new_page;
 }
 
-/* Returns the page containing the given virtual address,
+/* Returns the struct page containing the given virtual address,
    or a null pointer if no such page exists. */
 struct page *
-page_lookup ( void *address)
+page_lookup (struct hash *supp_page_table, void *address)
 {
   struct page p;
   struct hash_elem *e;
 
-  struct thread *cur = thread_current ();
-
   p.vaddr = address;
-  e = hash_find (cur->supp_page_table, &p.elem);
+  e = hash_find (supp_page_table, &p.elem);
   return e != NULL ? hash_entry (e, struct page, elem) : NULL;
 }
 
@@ -180,8 +178,25 @@ void page_extend_stack (void *vaddr)
 //           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 // }
 
-void
-page_free (void *upage)
+
+
+void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
+{
+  struct page *page = hash_entry (elem, struct page, elem);
+  if (page->type == SWAP)
+  {
+    swap_free (page->swap_slot);
+  }
+
+  free (page);
+}
+
+void page_free_supp_page_table (void)
+{
+  hash_destroy (thread_current ()->supp_page_table, page_free_no_delete);
+}
+
+void page_free (struct thread *t, void *upage)
 {
     struct page p;
     struct hash_elem *e;
@@ -189,13 +204,46 @@ page_free (void *upage)
     p.vaddr = upage;
 
     // lock_acquire (&page_table_lock);
-    e = hash_delete (thread_current ()->supp_page_table, &p.elem);
+    e = hash_delete (t->supp_page_table, &p.elem);
     // lock_release (&page_table_lock);
 
     ASSERT (e);
 
-    free (hash_entry (e, struct page, elem));
+    struct page *page = hash_entry (e, struct page, elem);
+
+    if (page->type == SWAP)
+    {
+      swap_free (page->swap_slot);
+    }
+
+    free (page);
 }
+
+
+
+// void
+// page_free (void *upage)
+// {
+//     struct page p;
+//     struct hash_elem *e;
+
+//     p.vaddr = upage;
+
+//     // lock_acquire (&page_table_lock);
+//     e = hash_delete (thread_current ()->supp_page_table, &p.elem);
+//     // lock_release (&page_table_lock);
+
+//     ASSERT (e);
+
+//     struct page *page = hash_entry (e, struct page, elem);
+
+//     if (page->type == SWAP)
+//     {
+//       // free swap
+//     }
+
+//     free (page);
+// }
 
 void page_dump_page ( struct hash_elem *elem, void *aux UNUSED)
 {
