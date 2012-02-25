@@ -13,9 +13,13 @@
 #include "devices/input.h"
 #include "threads/malloc.h"
 
+#include "vm/page.h"
+#include "vm/frame.h"
+#include <hash.h>
+
 static void syscall_handler (struct intr_frame *);
-static void verify_uaddr (const void *uaddr);
-static void check_buffer_uaddr (const void *buf, int size);
+static void verify_uaddr ( void *uaddr);
+static void check_buffer_uaddr ( void *buf, int size);
 
 // Prototypes for each system call called by the handler.
 void syscall_halt (void);
@@ -33,6 +37,8 @@ void syscall_write(struct intr_frame *f, uint32_t fd, uint32_t buffer,
 void syscall_seek (struct intr_frame *f, uint32_t fd, uint32_t position);
 void syscall_tell (struct intr_frame *f, uint32_t fd);
 void syscall_close (struct intr_frame *f, uint32_t fd);
+void syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr);
+void syscall_munmap (struct intr_frame *f, uint32_t mapid);
 
 void
 syscall_init (void) 
@@ -46,6 +52,8 @@ syscall_handler (struct intr_frame *f)
   uint32_t * k_esp = (uint32_t *) (f->esp);
   verify_uaddr (k_esp);
   uint32_t syscall_number = (uint32_t) *(k_esp); 
+
+  thread_current ()->esp = k_esp;
 
   uint32_t arg1 = 0; //Initialized to prevent compiler warnings
   uint32_t arg2 = 0;
@@ -61,6 +69,7 @@ syscall_handler (struct intr_frame *f)
       arg3 = *(uint32_t *) (f->esp + 12);
     case SYS_CREATE:
     case SYS_SEEK:
+    case SYS_MMAP:
       verify_uaddr (f->esp + 8);
       arg2 = *(uint32_t *) (f->esp + 8);
     case SYS_EXIT:
@@ -71,6 +80,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_FILESIZE:
     case SYS_TELL:
     case SYS_CLOSE:
+    case SYS_MUNMAP:
       verify_uaddr (f->esp + 4);
       arg1 = *(uint32_t *) (f->esp + 4);
     case SYS_HALT:
@@ -118,6 +128,12 @@ syscall_handler (struct intr_frame *f)
       case SYS_CLOSE:
       	syscall_close (f, arg1);
       	break;
+      case SYS_MMAP:
+        syscall_mmap (f, arg1, arg2);
+        break;
+      case SYS_MUNMAP:
+        syscall_munmap (f, arg1);
+        break;
       default:
         printf ("system call!\n");
         thread_exit ();
@@ -291,20 +307,124 @@ void syscall_close (struct intr_frame *f UNUSED, uint32_t fd)
   }
 }
 
+void 
+syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
+{
+  void *vaddr = (void *)vaddr_;
+  if (!is_user_vaddr (vaddr))
+    thread_exit (); // Not user address
+
+  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+  if ((fw == NULL )
+    || (file_length (fw->file) == 0)
+    || ((uint32_t) vaddr % PGSIZE != 0)
+    || (vaddr == 0)) {
+    f->eax =  MAP_FAILED;
+    return;
+  }
+
+  //check that no pages are mapped in the space needed for the file
+  int num_pages = (file_length (fw->file) -1 )/ PGSIZE + 1;
+  off_t offset;
+  for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
+  {
+    if (page_lookup (vaddr + offset))
+    {
+      f->eax =  MAP_FAILED;
+      return;
+    }
+  }
+
+  mapid_t mapid = fd; //TOOD allocate?
+
+  struct mmapped_file *mf = malloc (sizeof (struct mmapped_file));
+  mf->file = file_reopen (fw->file);
+  ASSERT (mf->file);
+  mf->base_page = vaddr;
+  mf->mapid = mapid;
+
+  int size_left = file_length (fw->file);
+  for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
+  {
+    int valid_bytes = size_left < PGSIZE ? size_left : PGSIZE;
+    page_insert_mmapped (vaddr + offset, mapid, mf->file, offset, valid_bytes);
+  }
+
+  list_push_back (&thread_current ()->mmapped_files, &mf->elem);
+
+  f->eax = mapid;
+
+}
+void 
+syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
+{
+
+  process_munmap ( (mapid_t) mapid);
+
+  // struct mmapped_file *mf = lookup_mmapped ( (mapid_t) mapid);
+  // if (mf == NULL)
+  //   return;
+
+  // void *page;
+  // uint32_t *pd = thread_current ()->pagedir;
+  // void *kpage;
+  // int size = file_length (mf->file);
+
+  // for (page = mf->base_page; page - mf->base_page < size; page += PGSIZE)
+  // {
+  //   if ( pagedir_is_dirty (pd, page))
+  //   {
+  //     off_t offset = (off_t) (page - mf->base_page);
+  //     file_seek (mf->file, offset);
+  //     int bytes_to_write = size - offset > PGSIZE ? PGSIZE : size - offset;
+  //     file_write (mf->file, page, bytes_to_write);
+  //   }
+  //   kpage = pagedir_get_page (pd, page);
+  //   frame_free (kpage);
+  //   pagedir_clear_page (pd, page);
+  //   page_free (page);
+  // }
+
+
+  // //remove from list of mmapped files
+  // list_remove (&mf->elem);
+  // free (mf);
+
+  // struct list_elem *e;
+  // struct list *mmap_list = &thread_current ()->mmapped_files;
+
+  // for (e = list_begin (mmap_list); e != list_end (mmap_list);
+  //      e = list_next (e))
+  // {
+  //   struct mmapped_file *mf = list_entry (e, struct mmapped_file, elem);
+  //   if (mf->mapid == (mapid_t) mapid){
+  //     list_remove (e);
+  //     free (mf);
+  //     break;
+  //   }
+  // }
+}
+
+
 static void
-verify_uaddr (const void *uaddr)
+verify_uaddr (void *uaddr)
 {
   if (!is_user_vaddr (uaddr))
     thread_exit (); // Not user address
-  if ( pagedir_get_page (thread_current ()->pagedir, uaddr) == NULL)
-    thread_exit (); // Not mapped
+  if ( page_lookup (pg_round_down (uaddr)) == NULL)
+  {
+    if ( page_stack_access (uaddr, thread_current ()->esp) )
+      page_extend_stack (uaddr);
+    else
+      thread_exit (); // Not mapped
+  }
 }
 
 
 /*check the start and end of buffer, and one address every PGSIZE
 in between*/
 static void
-check_buffer_uaddr (const void *buf, int size)
+check_buffer_uaddr (void *buf, int size)
 {
   verify_uaddr (buf);
   int i;

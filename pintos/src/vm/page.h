@@ -6,12 +6,11 @@
 
 #include "filesys/off_t.h"
 #include "threads/synch.h"
+#include "userprog/process.h"
 
-typedef int mapid_t;
 
-
-struct hash page_table;
-struct lock page_table_lock;
+// struct hash page_table;
+// struct lock page_table_lock;
 
 enum page_type
 {
@@ -28,6 +27,7 @@ struct page
   void *paddr;
   void *upage;
   bool pinned;
+  uint32_t *pd;
   enum page_type type;
   bool writable;
   uint32_t swap_slot;
@@ -41,13 +41,19 @@ struct page
 
 unsigned page_hash (const struct hash_elem *p_, void *aux);
 bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux);
-void page_insert_swap (void *vaddr, uint32_t swap_slot);
-void page_insert_mmapped (void *vaddr, mapid_t mapid, off_t offset, uint32_t valid_bytes);
-void page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t valid_bytes, bool writable);
-void page_insert_zero (void *vaddr);
+// void page_insert_swap (void *vaddr, uint32_t swap_slot);
+struct page *page_insert_mmapped (void *vaddr, mapid_t mapid, struct file *file, off_t offset, uint32_t valid_bytes);
+struct page *page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t valid_bytes, bool writable);
+struct page *page_insert_zero (void *vaddr);
 struct page *page_lookup ( void *address);
 void page_extend_stack (void *vaddr);
-bool install_page (void *upage, void *kpage, bool writable);
+
+// bool install_page (void *upage, void *kpage, bool writable);
+void page_free (void *upage);
+
+void page_dump_page ( struct hash_elem *elem, void *aux UNUSED);
+void page_dump_table (void);
+bool page_stack_access (void *vaddr, void *esp);
 
 
 #endif

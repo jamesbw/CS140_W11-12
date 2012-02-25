@@ -26,6 +26,7 @@ struct process
     struct semaphore sema_finished; //upped when terminated, downed when waiting
     int exit_code;
     struct file *executable; //pointer to file to keep open
+    struct hash supp_page_table;
     struct list_elem elem;
 };
 
@@ -38,5 +39,23 @@ struct file_wrapper
 
 struct file_wrapper * lookup_fd ( fd_t fd);
 struct file_wrapper *wrap_file (struct file *file);
+
+
+
+typedef int mapid_t;
+#define MAP_FAILED ((mapid_t) -1)
+
+
+
+struct mmapped_file
+{
+    struct file *file;
+    void *base_page; //virtual page at which the frame starts
+    mapid_t mapid;
+    struct list_elem elem;
+};
+
+struct mmapped_file * lookup_mmapped ( mapid_t mapid);
+void process_munmap (mapid_t mapid);
 
 #endif /* userprog/process.h */

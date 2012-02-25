@@ -9,6 +9,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include "filesys/file.h"
+#include "pagedir.h"
 #include <string.h>
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -166,14 +167,14 @@ page_fault (struct intr_frame *f)
       switch (supp_page->type)
       {
         case EXECUTABLE:
+        case MMAPPED:
           kpage = frame_allocate (page_addr);
-          install_page (page_addr, kpage, supp_page->writable);
           file_seek (supp_page->file, supp_page->offset);
           file_read (supp_page->file, kpage, supp_page->valid_bytes);
           memset (kpage + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
+          pagedir_set_page (thread_current ()->pagedir, page_addr, kpage, supp_page->writable);
           break;
         case SWAP:
-        case MMAPPED:
         default:
           break;
       }
@@ -181,19 +182,16 @@ page_fault (struct intr_frame *f)
     }
     else
     {
-      if ( (uint32_t) fault_addr == (uint32_t) (thread_current ()->stack - 32)) 
+      if ( page_stack_access (fault_addr, f->esp)) 
       {
         page_extend_stack (fault_addr);
         return;
       }
-      else if ( (uint32_t) fault_addr == (uint32_t) (thread_current
-						     ()->stack - 4))  
-	{;}
-        
         // terminate
     }   
   }
-  else{;}
+  else
+    thread_exit ();
     
     // terminate // writing r/o page
 

@@ -23,6 +23,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp, struct file **executable);
 struct list process_list;
@@ -105,6 +106,10 @@ start_process (void *spf_)
     new_process->parent_finished = false;
     sema_init (&new_process->sema_finished, 0);
     new_process->exit_code = -1; 
+
+    hash_init (&(new_process->supp_page_table), page_hash, page_less, NULL);
+    thread_current ()->supp_page_table = &new_process->supp_page_table;
+
     lock_acquire(&process_lock);
     list_push_back ( &process_list, &new_process->elem);
     lock_release(&process_lock);
@@ -218,6 +223,18 @@ process_exit (void)
       e = list_next (e);
   }
   lock_release(&process_lock);
+
+
+  //Release all locks if some are still held
+  e = list_begin (&cur->locks_held);
+  while (!list_empty (&cur->locks_held))
+  {
+    struct lock *l = list_entry (e, struct lock, elem);
+    e = list_remove (e);
+    lock_release (l);
+  }
+
+  
   //Close all open files
   e = list_begin (&cur->open_files);
   while (!list_empty (&cur->open_files))
@@ -230,14 +247,19 @@ process_exit (void)
     free (fw);
   }
 
-  //Release all locks if some are still held
-  e = list_begin (&cur->locks_held);
-  while (!list_empty (&cur->locks_held))
+
+  //Remove all mmapped files
+  while (!list_empty (&cur->mmapped_files))
   {
-    struct lock *l = list_entry (e, struct lock, elem);
-    e = list_remove (e);
-    lock_release (l);
+    struct mmapped_file *mf = list_entry (list_begin (&cur->mmapped_files), struct mmapped_file, elem);
+    process_munmap ( mf->mapid); 
   }
+
+  //Free swap
+
+  //Free all frames
+
+  //Frre all supp
 
 
   /* Destroy the current process's page directory and switch back
@@ -475,7 +497,7 @@ load (const char *file_name, void (**eip) (void), void **esp, struct file **exec
 
 /* load() helpers. */
 
-// static bool install_page (void *upage, void *kpage, bool writable);
+static bool install_page (void *upage, void *kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
@@ -714,25 +736,25 @@ setup_stack (void **esp, const char *command_line)
   return success;
 }
 
-//  Adds a mapping from user virtual address UPAGE to kernel
-//    virtual address KPAGE to the page table.
-//    If WRITABLE is true, the user process may modify the page;
-//    otherwise, it is read-only.
-//    UPAGE must not already be mapped.
-//    KPAGE should probably be a page obtained from the user pool
-//    with palloc_get_page().
-//    Returns true on success, false if UPAGE is already mapped or
-//    if memory allocation fails. 
-// static bool
-// install_page (void *upage, void *kpage, bool writable)
-// {
-//   struct thread *t = thread_current ();
+ // Adds a mapping from user virtual address UPAGE to kernel
+ //   virtual address KPAGE to the page table.
+ //   If WRITABLE is true, the user process may modify the page;
+ //   otherwise, it is read-only.
+ //   UPAGE must not already be mapped.
+ //   KPAGE should probably be a page obtained from the user pool
+ //   with palloc_get_page().
+ //   Returns true on success, false if UPAGE is already mapped or
+ //   if memory allocation fails. 
+static bool
+install_page (void *upage, void *kpage, bool writable)
+{
+  struct thread *t = thread_current ();
 
-//   /* Verify that there's not already a page at that virtual
-//      address, then map our page there. */
-//   return (pagedir_get_page (t->pagedir, upage) == NULL
-//           && pagedir_set_page (t->pagedir, upage, kpage, writable));
-// }
+  /* Verify that there's not already a page at that virtual
+     address, then map our page there. */
+  return (pagedir_get_page (t->pagedir, upage) == NULL
+          && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
 
 
 // Wraps a struct file into a struct with a file descriptor
@@ -780,6 +802,58 @@ allocate_fd (void)
   fd = next_fd++;
 
   return fd;
+}
+
+struct mmapped_file * 
+lookup_mmapped ( mapid_t mapid)
+{
+  struct thread *cur = thread_current ();
+  struct mmapped_file *mf = NULL;
+  struct list_elem *e;
+
+  for (e = list_begin (&cur->mmapped_files); e != list_end (&cur->mmapped_files);e = list_next (e))
+  {
+    mf = list_entry (e, struct mmapped_file, elem);
+    if (mf->mapid == mapid)
+      break;
+  }
+  return mf;
+}
+
+void
+process_munmap (mapid_t mapid)
+{
+  struct mmapped_file *mf = lookup_mmapped ( (mapid_t) mapid);
+  if (mf == NULL)
+    return;
+
+  void *page;
+  uint32_t *pd = thread_current ()->pagedir;
+  void *kpage;
+  int size = file_length (mf->file);
+
+  for (page = mf->base_page; page - mf->base_page < size; page += PGSIZE)
+  {
+    if ( pagedir_is_dirty (pd, page))
+    {
+      off_t offset = (off_t) (page - mf->base_page);
+      file_seek (mf->file, offset);
+      int bytes_to_write = size - offset > PGSIZE ? PGSIZE : size - offset;
+      file_write (mf->file, page, bytes_to_write);
+    }
+    kpage = pagedir_get_page (pd, page);
+    if (kpage) // page may not be in physical memory
+    {
+      frame_free (kpage);
+      pagedir_clear_page (pd, page);
+    }
+    page_free (page);
+  }
+
+
+  //remove from list of mmapped files
+  list_remove (&mf->elem);
+  free (mf);
 }
 
 
