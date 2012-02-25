@@ -5,6 +5,7 @@
 #include "threads/palloc.h"
 #include "userprog/pagedir.h"
 #include "vm/swap.h"
+#include "filesys/filesys.h"
 
 struct hash frame_table;
 void *clock_start;
@@ -20,6 +21,8 @@ void frame_init_base(void *user_base, void *user_end) {
   base = user_base;
   end = user_end;
 }
+
+void *frame_evict(void *kpage);
 
 unsigned 
 frame_hash (const struct hash_elem *f_, void *aux UNUSED) {
@@ -48,6 +51,7 @@ frame_allocate (void *upage)
     {
         //TODO: eviction
       kpage = run_clock();
+      frame_evict(kpage);
     }
 
     // add frame to frame table
@@ -83,7 +87,8 @@ frame_free (void *kpage)
 
 /* Returns pointer to the physical frame that should be written to next.
    This algorithm approximates a LRU heuristic.  Only checks user pages,
-   as kernal pages should never be evicted. */
+   as kernal pages should never be evicted. This frame pointer is then
+   passed to the eviction function. */
 void *run_clock() {
   lock_acquire(&frame_table_lock);
   void *hand = clock_start;
@@ -99,16 +104,16 @@ void *run_clock() {
     if (e != NULL) {
       f = hash_entry(e, struct frame, elem);
       if (!pagedir_is_accessed(pd, hand)) {
-	if (!pagedir_is_dirty(pd, hand)) {
+	//if (!pagedir_is_dirty(pd, hand)) {
 	  clock_start = ((uint32_t)hand + 4)% pool_size + base;
 	  lock_release(&frame_table_lock);
 	  return hand;
-	} else { /* Is dirty */
-	  uint32_t slot = swap_allocate_slot();
-	  pagedir_set_dirty(pd, hand, false);
-	  swap_write_page(slot, f->upage);
+	  //} else { /* Is dirty */
+	  //uint32_t slot = swap_allocate_slot();
+	  //pagedir_set_dirty(pd, hand, false);
+	  //swap_write_page(slot, f->upage);
 	  /* Begin writing to disk */
-	}
+	  //}
       } else {
 	pagedir_set_accessed(pd, hand, false);
       }
@@ -126,18 +131,16 @@ void *run_clock() {
 }
 
 void *
-frame_evict (void)
+frame_evict (void *kpage)
 {
-    struct hash_iterator it;
-    hash_first (&it, &frame_table);
+    ASSERT(kpage);
+    struct frame p;
+    struct hash_elem *e;
     struct frame *frame_to_evict;
-
-    do
-    {
-        frame_to_evict = hash_entry (hash_next (&it), struct frame, elem);
-    }
-    while (frame_to_evict->pinned == true);
-
+    p.paddr = kpage;
+    e = hash_find(&frame_table, &p.elem);
+    ASSERT(e);
+    frame_to_evict = hash_entry(e, struct frame, elem);
     struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
 
     switch (page_to_evict->type)
