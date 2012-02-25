@@ -192,3 +192,14 @@ page_free (void *upage)
     free (hash_entry (e, struct page, elem));
 }
 
+void page_dump_page ( struct hash_elem *elem, void *aux UNUSED)
+{
+  struct page *page = hash_elem (elem, struct page, elem);
+  printf ("vaddr: %p\n", page->vaddr);
+}
+
+void page_dump_table ()
+{
+  hash_apply (thread_current ()->supp_page_table, page_dump_page);
+}
+

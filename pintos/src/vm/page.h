@@ -46,8 +46,8 @@ void page_extend_stack (void *vaddr);
 // bool install_page (void *upage, void *kpage, bool writable);
 void page_free (void *upage);
 
-
-
+void page_dump_page ( struct hash_elem *elem, void *aux UNUSED);
+void page_dump_table (void);
 
 
 #endif
