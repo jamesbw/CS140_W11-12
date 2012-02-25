@@ -831,16 +831,21 @@ process_munmap (mapid_t mapid)
   void *page;
   uint32_t *pd = thread_current ()->pagedir;
   void *kpage;
+
+  lock_acquire (&filesys_lock);
   int size = file_length (mf->file);
+  lock_release (&filesys_lock);
 
   for (page = mf->base_page; page - mf->base_page < size; page += PGSIZE)
   {
     if ( pagedir_is_dirty (pd, page))
     {
       off_t offset = (off_t) (page - mf->base_page);
-      file_seek (mf->file, offset);
       int bytes_to_write = size - offset > PGSIZE ? PGSIZE : size - offset;
+      lock_acquire (&filesys_lock);
+      file_seek (mf->file, offset);
       file_write (mf->file, page, bytes_to_write);
+      lock_release (&filesys_lock);
     }
     kpage = pagedir_get_page (pd, page);
     if (kpage) // page may not be in physical memory
