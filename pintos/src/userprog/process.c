@@ -182,6 +182,44 @@ process_exit (void)
   uint32_t *pd;
 
 
+
+
+
+  //Release all locks if some are still held
+  e = list_begin (&cur->locks_held);
+  while (!list_empty (&cur->locks_held))
+  {
+    struct lock *l = list_entry (e, struct lock, elem);
+    e = list_remove (e);
+    lock_release (l);
+  }
+
+  
+  //Close all open files
+  e = list_begin (&cur->open_files);
+  while (!list_empty (&cur->open_files))
+  {
+    struct file_wrapper *fw = list_entry (e, struct file_wrapper, elem);
+    e = list_remove (e);
+    lock_acquire (&filesys_lock);
+    file_close (fw->file);
+    lock_release (&filesys_lock);
+    free (fw);
+  }
+
+
+  //Remove all mmapped files
+  while (!list_empty (&cur->mmapped_files))
+  {
+    struct mmapped_file *mf = list_entry (list_begin (&cur->mmapped_files), struct mmapped_file, elem);
+    process_munmap ( mf->mapid); 
+  }
+
+  //Free swap
+
+  //Free all frames
+
+  //Frre all supp
   page_free_supp_page_table (); 
 
   // Update the process list
@@ -224,44 +262,6 @@ process_exit (void)
       e = list_next (e);
   }
   lock_release(&process_lock);
-
-
-  //Release all locks if some are still held
-  e = list_begin (&cur->locks_held);
-  while (!list_empty (&cur->locks_held))
-  {
-    struct lock *l = list_entry (e, struct lock, elem);
-    e = list_remove (e);
-    lock_release (l);
-  }
-
-  
-  //Close all open files
-  e = list_begin (&cur->open_files);
-  while (!list_empty (&cur->open_files))
-  {
-    struct file_wrapper *fw = list_entry (e, struct file_wrapper, elem);
-    e = list_remove (e);
-    lock_acquire (&filesys_lock);
-    file_close (fw->file);
-    lock_release (&filesys_lock);
-    free (fw);
-  }
-
-
-  //Remove all mmapped files
-  while (!list_empty (&cur->mmapped_files))
-  {
-    struct mmapped_file *mf = list_entry (list_begin (&cur->mmapped_files), struct mmapped_file, elem);
-    process_munmap ( mf->mapid); 
-  }
-
-  //Free swap
-
-  //Free all frames
-
-  //Frre all supp
-
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
