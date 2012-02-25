@@ -182,7 +182,7 @@ process_exit (void)
   uint32_t *pd;
 
 
-
+  struct list_elem *e;
 
 
   //Release all locks if some are still held
@@ -224,7 +224,7 @@ process_exit (void)
 
   // Update the process list
   lock_acquire(&process_lock);
-  struct list_elem *e = list_begin (&process_list);
+  e = list_begin (&process_list);
   struct process *p = NULL;
   while (e != list_end (&process_list))
   {
