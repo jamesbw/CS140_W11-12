@@ -7,7 +7,7 @@
 void swap_init (void)
 {
 	struct block *swap_block = block_get_role (BLOCK_SWAP);
-	&swap_bitmap = bitmap_create (swap_block->size * BLOCK_SECTOR_SIZE / PGSIZE);
+	swap_bitmap = *bitmap_create (swap_block->size * BLOCK_SECTOR_SIZE / PGSIZE);
 }
 
 void swap_free (uint32_t swap_slot)

@@ -6,7 +6,7 @@
 #include <kernel/bitmap.h>
 
 
-struct bitmap *swap_bitmap;
+struct bitmap swap_bitmap;
 void swap_init (void);
 void swap_free (uint32_t swap_slot);
 uint32_t swap_allocate_slot (void);
