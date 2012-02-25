@@ -148,7 +148,11 @@ page_lookup ( void *address)
 void page_extend_stack (void *vaddr)
 {
 
-//TODO: limit stack growth
+// limit stack growth
+  int MAX_STACK_SIZE = 8 * 1024 * 1024; // 8MB
+  if (PHYS_BASE - vaddr >= MAX_STACK_SIZE)
+    thread_exit ();
+
   void *page_addr = pg_round_down (vaddr);
   void *kpage = frame_allocate (page_addr);
   memset (kpage, 0, PGSIZE);
