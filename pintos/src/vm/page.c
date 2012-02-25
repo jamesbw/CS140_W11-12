@@ -115,7 +115,7 @@ page_insert_zero (void *vaddr)
 
   new_page->vaddr = vaddr;
   new_page->pd = cur->pagedir;
-  new_page->type = NONE;
+  new_page->type = ZERO;
   new_page->writable = true;
   new_page->swap_slot = -1;
   new_page->mapid = -1;
@@ -181,16 +181,16 @@ void page_extend_stack (void *vaddr)
 
 
 
-void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
-{
-  struct page *page = hash_entry (elem, struct page, elem);
-  if (page->type == SWAP)
-  {
-    swap_free (page->swap_slot);
-  }
+// void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
+// {
+//   struct page *page = hash_entry (elem, struct page, elem);
+//   if (page->type == SWAP)
+//   {
+//     swap_free (page->swap_slot);
+//   }
 
-  free (page);
-}
+//   free (page);
+// }
 
 void page_free_supp_page_table (void)
 {
