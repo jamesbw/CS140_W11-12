@@ -19,7 +19,7 @@ uint32_t swap_allocate_slot (void)
 	return bitmap_scan_and_flip (&swap_bitmap, 0, 1, false);
 }
 
-void swap_read_page (uint32_t swap_slot, void *buf)
+void swap_read_page (uint32_t swap_slot, void *upage)
 {
 	struct block *swap_block = block_get_role (BLOCK_SWAP);
 	int sector_count;
@@ -27,11 +27,11 @@ void swap_read_page (uint32_t swap_slot, void *buf)
 	for (sector_count = 0; sector_count < PGSIZE / BLOCK_SECTOR_SIZE; sector_count ++)
 	{
 		block_sector = swap_slot * PGSIZE / BLOCK_SECTOR_SIZE + sector_count;
-		block_read (swap_block, block_sector, buf + sector_count * BLOCK_SECTOR_SIZE);
+		block_read (swap_block, block_sector, upage + sector_count * BLOCK_SECTOR_SIZE);
 	}
 }
 
-void swap_write_page (uint32_t swap_slot, void *buf)
+void swap_write_page (uint32_t swap_slot, void *upage)
 {
 	struct block *swap_block = block_get_role (BLOCK_SWAP);
 	int sector_count;
@@ -39,6 +39,6 @@ void swap_write_page (uint32_t swap_slot, void *buf)
 	for (sector_count = 0; sector_count < PGSIZE / BLOCK_SECTOR_SIZE; sector_count ++)
 	{
 		block_sector = swap_slot * PGSIZE / BLOCK_SECTOR_SIZE + sector_count;
-		block_write (swap_block, block_sector, buf + sector_count * BLOCK_SECTOR_SIZE);
+		block_write (swap_block, block_sector, upage + sector_count * BLOCK_SECTOR_SIZE);
 	}
 }
