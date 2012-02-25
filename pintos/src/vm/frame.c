@@ -140,7 +140,20 @@ frame_pin (void *vaddr)
     void *kpage = pagedir_get_page (thread_current ()->pagedir, upage);
 
     if (kpage == NULL)
+    {
         kpage = frame_evict();
+        // add frame to frame table
+        struct frame *new_frame = malloc (sizeof (struct frame));
+        ASSERT (new_frame);
+
+        new_frame->paddr = kpage; // TODO - PHYS_BASE?
+        new_frame->owner_thread = thread_current ();
+        new_frame->upage = upage;
+        new_frame->pinned = false;
+
+
+        hash_insert (&frame_table, &new_frame->elem);
+    }
 
     frame_lookup (kpage)->pinned = true;
 }
