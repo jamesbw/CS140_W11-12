@@ -411,7 +411,7 @@ verify_uaddr (const void *uaddr)
 {
   if (!is_user_vaddr (uaddr))
     thread_exit (); // Not user address
-  if ( pagedir_get_page (thread_current ()->pagedir, uaddr) == NULL)
+  if ( page_lookup (uaddr) == NULL)
     thread_exit (); // Not mapped
 }
 
