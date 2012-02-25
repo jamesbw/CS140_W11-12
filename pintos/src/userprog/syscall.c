@@ -12,6 +12,7 @@
 #include "filesys/file.h"
 #include "devices/input.h"
 #include "threads/malloc.h"
+#include <string.h>
 
 #include "vm/page.h"
 #include "vm/frame.h"
@@ -184,14 +185,14 @@ void syscall_create (struct intr_frame *f, uint32_t file_name_, uint32_t i_size)
 
 void syscall_remove (struct intr_frame *f, uint32_t file_name_) 
 {
-  char *file_name = (char *) file_name;
+  char *file_name = (char *) file_name_;
   check_buffer_uaddr (file_name, strlen (file_name));
   f->eax = filesys_remove ( file_name);
 }
 
 void syscall_open (struct intr_frame *f, uint32_t file_name_) 
 {
-  char *file_name = (char *) file_name;
+  char *file_name = (char *) file_name_;
   check_buffer_uaddr (file_name, strlen (file_name));
   lock_acquire (&filesys_lock);
   struct file *file = filesys_open ( file_name);
