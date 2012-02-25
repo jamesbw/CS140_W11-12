@@ -118,7 +118,6 @@ main (void)
 #ifdef USERPROG
   exception_init ();
   syscall_init ();
-  swap_init ();
 #endif
 
   /* Start thread scheduler and enable interrupts. */
@@ -133,6 +132,7 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
+  swap_init ();
   printf ("Boot complete.\n");
   
   /* Run actions specified on kernel command line. */
