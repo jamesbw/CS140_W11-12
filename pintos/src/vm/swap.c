@@ -7,17 +7,17 @@
 void swap_init (void)
 {
 	struct block *swap_block = block_get_role (BLOCK_SWAP);
-	swap_bitmap = *bitmap_create (swap_block->size * BLOCK_SECTOR_SIZE / PGSIZE);
+	swap_bitmap = bitmap_create (swap_block->size * BLOCK_SECTOR_SIZE / PGSIZE);
 }
 
 void swap_free (uint32_t swap_slot)
 {
-	bitmap_reset (&swap_bitmap, swap_slot);
+	bitmap_reset (swap_bitmap, swap_slot);
 }
 
 uint32_t swap_allocate_slot (void)
 {
-	return bitmap_scan_and_flip (&swap_bitmap, 0, 1, false);
+	return bitmap_scan_and_flip (swap_bitmap, 0, 1, false);
 }
 
 void swap_read_page (uint32_t swap_slot, void *upage)
