@@ -6,6 +6,7 @@
 #include "frame.h"
 #include "userprog/pagedir.h"
 #include <string.h>
+#include <stdio.h>
 
 // struct hash page_table;
 
@@ -194,7 +195,7 @@ page_free (void *upage)
 
 void page_dump_page ( struct hash_elem *elem, void *aux UNUSED)
 {
-  struct page *page = hash_elem (elem, struct page, elem);
+  struct page *page = hash_entry (elem, struct page, elem);
   printf ("vaddr: %p\n", page->vaddr);
 }
 
