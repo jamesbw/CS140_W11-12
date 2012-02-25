@@ -41,6 +41,7 @@
 #include <hash.h>
 #include "vm/frame.h"
 #include "vm/page.h"
+#include "vm/swap.h"
 
 /* Page directory with kernel mappings only. */
 uint32_t *init_page_dir;
@@ -131,6 +132,7 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
+  swap_init ();
   printf ("Boot complete.\n");
   
   /* Run actions specified on kernel command line. */

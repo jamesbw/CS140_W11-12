@@ -183,46 +183,7 @@ process_exit (void)
   uint32_t *pd;
 
 
-  // Update the process list
-  lock_acquire(&process_lock);
-  struct list_elem *e = list_begin (&process_list);
-  struct process *p = NULL;
-  while (e != list_end (&process_list))
-  {
-    p = list_entry (e, struct process, elem);
-    if (p->parent_tid == cur->tid)
-    {
-      if (p->finished)
-      {
-        e = list_remove (e);
-        free (p);
-      }
-      else
-      {
-        p->parent_finished = true;
-        e = list_next (e);
-      }
-    }
-    else if (p->tid == cur->tid)
-    {
-      if (p->parent_finished)
-      {
-        e = list_remove (e);
-        free (p);
-      }
-      else
-      {
-        p->finished = true;
-        file_close(p->executable);
-        printf ("%s: exit(%d)\n", cur->name, p->exit_code);
-        sema_up (&p->sema_finished);
-        e = list_next (e);
-      }
-    }
-    else
-      e = list_next (e);
-  }
-  lock_release(&process_lock);
+  struct list_elem *e;
 
 
   //Release all locks if some are still held
@@ -260,7 +221,48 @@ process_exit (void)
   //Free all frames
 
   //Frre all supp
+  page_free_supp_page_table (); 
 
+  // Update the process list
+  lock_acquire(&process_lock);
+  e = list_begin (&process_list);
+  struct process *p = NULL;
+  while (e != list_end (&process_list))
+  {
+    p = list_entry (e, struct process, elem);
+    if (p->parent_tid == cur->tid)
+    {
+      if (p->finished)
+      {
+        e = list_remove (e);
+        free (p);
+      }
+      else
+      {
+        p->parent_finished = true;
+        e = list_next (e);
+      }
+    }
+    else if (p->tid == cur->tid)
+    {
+      if (p->parent_finished)
+      {
+        e = list_remove (e);
+        free (p);
+      }
+      else
+      {
+        p->finished = true;
+        file_close(p->executable);
+        printf ("%s: exit(%d)\n", cur->name, p->exit_code);
+        sema_up (&p->sema_finished);
+        e = list_next (e);
+      }
+    }
+    else
+      e = list_next (e);
+  }
+  lock_release(&process_lock);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -478,7 +480,6 @@ load (const char *file_name, void (**eip) (void), void **esp, struct file **exec
     }
 
   /* Set up stack. */
-  //TODO pass filename in for stack setup
   if(first_space != NULL){
     *first_space = ' '; // restore original file_name
   } 
@@ -847,7 +848,7 @@ process_munmap (mapid_t mapid)
       frame_free (kpage);
       pagedir_clear_page (pd, page);
     }
-    page_free (page);
+    page_free ( thread_current (), page);
   }
 
 

@@ -8,6 +8,7 @@
 #include "threads/vaddr.h"
 #include "vm/page.h"
 #include "vm/frame.h"
+#include "vm/swap.h"
 #include "filesys/file.h"
 #include "pagedir.h"
 #include <string.h>
@@ -160,24 +161,29 @@ page_fault (struct intr_frame *f)
   if (not_present)
   {
     void *page_addr = pg_round_down (fault_addr);
-    struct page *supp_page = page_lookup (page_addr);
+    struct page *supp_page = page_lookup (thread_current ()->supp_page_table, page_addr);
     if (supp_page)
     {
       void *kpage;
+      kpage = frame_allocate (page_addr);
       switch (supp_page->type)
       {
         case EXECUTABLE:
         case MMAPPED:
-          kpage = frame_allocate (page_addr);
           file_seek (supp_page->file, supp_page->offset);
           file_read (supp_page->file, kpage, supp_page->valid_bytes);
           memset (kpage + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
-          pagedir_set_page (thread_current ()->pagedir, page_addr, kpage, supp_page->writable);
           break;
         case SWAP:
+          swap_read_page (supp_page->swap_slot, kpage);
+          swap_free (supp_page->swap_slot);
+        case ZERO:
+          memset (kpage, 0, PGSIZE);
+          break;
         default:
           break;
       }
+      pagedir_set_page (supp_page->pd, page_addr, kpage, supp_page->writable);
       return;
     }
     else

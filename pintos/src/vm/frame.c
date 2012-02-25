@@ -10,7 +10,7 @@ struct hash frame_table;
 void *clock_start;
 void *base;
 void *end;
-/* Returns a hash for frame f */
+
 
 
 void *run_clock(void);
@@ -55,6 +55,7 @@ frame_allocate (void *upage)
     ASSERT (new_frame);
 
     new_frame->paddr = kpage; // TODO - PHYS_BASE?
+    new_frame->owner_thread = thread_current ();
     new_frame->upage = upage;
     new_frame->pinned = false;
     
@@ -122,4 +123,50 @@ void *run_clock() {
       return NULL;
     }
   }
+}
+
+void *
+frame_evict (void)
+{
+    struct hash_iterator it;
+    hash_first (&it, &frame_table);
+    struct frame *frame_to_evict;
+
+    do
+    {
+        frame_to_evict = hash_entry (hash_next (&it), struct frame, elem);
+    }
+    while (frame_to_evict->pinned == true);
+
+    struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
+
+    switch (page_to_evict->type)
+    {
+        case EXECUTABLE:
+        case ZERO:
+            if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr))
+            {
+                //move to swap
+                page_to_evict->type = SWAP;
+                page_to_evict->swap_slot = swap_allocate_slot ();
+                swap_write_page ( page_to_evict->swap_slot, page_to_evict->vaddr);
+            }
+            break;
+        case SWAP:
+            page_to_evict->swap_slot = swap_allocate_slot ();
+            swap_write_page ( page_to_evict->swap_slot, page_to_evict->vaddr);
+            break;
+        case MMAPPED:
+            if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr))
+            {
+                //copy back to disk
+                file_seek (page_to_evict->file, page_to_evict->offset);
+                file_write (page_to_evict->file, page_to_evict->vaddr, page_to_evict->valid_bytes);
+            }
+            break;            
+    }
+
+    pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
+    return frame_to_evict->paddr;
+
 }
