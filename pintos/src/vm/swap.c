@@ -3,6 +3,8 @@
 #include <kernel/bitmap.h>
 #include "threads/vaddr.h"
 
+struct bitmap swap_bitmap;
+
 void swap_init (void)
 {
 	struct block *swap_block = block_get_role (BLOCK_SWAP);
@@ -42,3 +44,4 @@ void swap_write_page (uint32_t swap_slot, void *upage)
 		block_write (swap_block, block_sector, upage + sector_count * BLOCK_SECTOR_SIZE);
 	}
 }
+
