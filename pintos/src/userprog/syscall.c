@@ -411,7 +411,7 @@ verify_uaddr (void *uaddr)
 {
   if (!is_user_vaddr (uaddr))
     thread_exit (); // Not user address
-  if ( page_lookup (uaddr) == NULL)
+  if ( page_lookup (pg_round_down (uaddr)) == NULL)
     thread_exit (); // Not mapped
 }
 
