@@ -35,7 +35,6 @@ frame_allocate (void *upage)
     ASSERT (pagedir_get_page (thread_current ()->pagedir, upage) == NULL );
 
     void *kpage = palloc_get_page (PAL_USER);
-    ASSERT (kpage);
     if (kpage == NULL)
     {
         //TODO: eviction

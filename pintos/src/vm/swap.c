@@ -17,7 +17,9 @@ void swap_free (uint32_t swap_slot)
 
 uint32_t swap_allocate_slot (void)
 {
-	return bitmap_scan_and_flip (swap_bitmap, 0, 1, false);
+	uint32_t swap_slot = bitmap_scan_and_flip (swap_bitmap, 0, 1, false);
+	ASSERT (swap_slot != BITMAP_ERROR);
+	return swap_slot;
 }
 
 void swap_read_page (uint32_t swap_slot, void *upage)
