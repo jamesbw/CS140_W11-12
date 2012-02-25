@@ -407,7 +407,7 @@ syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
 
 
 static void
-verify_uaddr (const void *uaddr)
+verify_uaddr (void *uaddr)
 {
   if (!is_user_vaddr (uaddr))
     thread_exit (); // Not user address
@@ -419,7 +419,7 @@ verify_uaddr (const void *uaddr)
 /*check the start and end of buffer, and one address every PGSIZE
 in between*/
 static void
-check_buffer_uaddr (const void *buf, int size)
+check_buffer_uaddr (void *buf, int size)
 {
   verify_uaddr (buf);
   int i;
