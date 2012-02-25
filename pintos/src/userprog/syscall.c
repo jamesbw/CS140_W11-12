@@ -314,8 +314,6 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
   if (!is_user_vaddr (vaddr))
     thread_exit (); // Not user address
 
-  ASSERT ((uint32_t) vaddr % PGSIZE == 0); 
-
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if ((fw == NULL )
     || (file_length (fw->file) == 0)

@@ -842,8 +842,11 @@ process_munmap (mapid_t mapid)
       file_write (mf->file, page, bytes_to_write);
     }
     kpage = pagedir_get_page (pd, page);
-    frame_free (kpage);
-    pagedir_clear_page (pd, page);
+    if (kpage) // page may not be in physical memory
+    {
+      frame_free (kpage);
+      pagedir_clear_page (pd, page);
+    }
     page_free (page);
   }
 
