@@ -18,8 +18,8 @@
 #include <hash.h>
 
 static void syscall_handler (struct intr_frame *);
-static void verify_uaddr (const void *uaddr);
-static void check_buffer_uaddr (const void *buf, int size);
+static void verify_uaddr ( void *uaddr);
+static void check_buffer_uaddr ( void *buf, int size);
 
 // Prototypes for each system call called by the handler.
 void syscall_halt (void);

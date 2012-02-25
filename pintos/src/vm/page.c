@@ -198,7 +198,7 @@ void page_dump_page ( struct hash_elem *elem, void *aux UNUSED)
   printf ("vaddr: %p\n", page->vaddr);
 }
 
-void page_dump_table ()
+void page_dump_table (void)
 {
   hash_apply (thread_current ()->supp_page_table, page_dump_page);
 }
