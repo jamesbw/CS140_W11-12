@@ -53,6 +53,8 @@ syscall_handler (struct intr_frame *f)
   verify_uaddr (k_esp);
   uint32_t syscall_number = (uint32_t) *(k_esp); 
 
+  thread_current ()->esp = k_esp;
+
   uint32_t arg1 = 0; //Initialized to prevent compiler warnings
   uint32_t arg2 = 0;
   uint32_t arg3 = 0;
@@ -411,6 +413,8 @@ verify_uaddr (void *uaddr)
 {
   if (!is_user_vaddr (uaddr))
     thread_exit (); // Not user address
+  if ( page_stack_access (uaddr, thread_current ()->esp) )
+    page_extend_stack (uaddr);
   if ( page_lookup (pg_round_down (uaddr)) == NULL)
     thread_exit (); // Not mapped
 }

@@ -48,6 +48,7 @@ void page_free (void *upage);
 
 void page_dump_page ( struct hash_elem *elem, void *aux UNUSED);
 void page_dump_table (void);
+bool page_stack_access (void *vaddr, void *esp);
 
 
 #endif

@@ -204,3 +204,9 @@ void page_dump_table (void)
   hash_apply (thread_current ()->supp_page_table, page_dump_page);
 }
 
+bool page_stack_access (void *vaddr, void *esp)
+{
+  return ( ((uint32_t) vaddr >= (uint32_t) esp )
+          || ((uint32_t) vaddr == (uint32_t) esp - 4)
+          || ((uint32_t) vaddr == (uint32_t) esp - 32)) ;
+}

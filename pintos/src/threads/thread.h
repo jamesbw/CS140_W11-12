@@ -108,6 +108,7 @@ struct thread
     struct list open_files;
     struct list mmapped_files;
     struct hash *supp_page_table;
+    void *esp;
 #endif
 
     /* Owned by thread.c. */

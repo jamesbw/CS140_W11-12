@@ -182,9 +182,7 @@ page_fault (struct intr_frame *f)
     }
     else
     {
-      if ( ((uint32_t) fault_addr >= (uint32_t) f->esp )
-          || ((uint32_t) fault_addr == (uint32_t) f->esp - 4)
-          || ((uint32_t) fault_addr == (uint32_t) f->esp - 32)) 
+      if ( page_stack_access (fault_addr, f->esp)) 
       {
         page_extend_stack (fault_addr);
         return;
