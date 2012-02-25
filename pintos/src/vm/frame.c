@@ -7,6 +7,7 @@
 #include "page.h"
 #include "swap.h"
 #include <hash.h>
+#include "filesys/file.h"
 
 struct hash frame_table;
 void *frame_evict (void);
@@ -76,10 +77,11 @@ frame_evict (void)
 {
     struct hash_iterator it;
     hash_first (&it, &frame_table);
+    struct frame *frame_to_evict;
 
     do
     {
-        struct frame *frame_to_evict = hash_entry (hash_next (&it), struct frame, elem);
+        frame_to_evict = hash_entry (hash_next (&it), struct frame, elem);
     }
     while (frame_to_evict->pinned == true);
 
