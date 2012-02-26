@@ -148,6 +148,28 @@ frame_pin (void *vaddr)
     if (kpage == NULL)
     {
         kpage = frame_allocate (upage);
+        switch (supp_page->type)
+        {
+          case EXECUTABLE:
+          case MMAPPED:
+            lock_acquire (&filesys_lock);
+            file_seek (supp_page->file, supp_page->offset);
+            file_read (supp_page->file, kpage, supp_page->valid_bytes);
+            lock_release (&filesys_lock);
+            memset (kpage + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
+            break;
+          case SWAP:
+            lock_acquire (&filesys_lock);
+            swap_read_page (supp_page->swap_slot, kpage);
+            lock_release (&filesys_lock);
+            swap_free (supp_page->swap_slot);
+            break;
+          case ZERO:
+            memset (kpage, 0, PGSIZE);
+            break;
+          default:
+            break;
+        }
         pagedir_set_page (supp_page->pd, upage, kpage, supp_page->writable);
     }
 
