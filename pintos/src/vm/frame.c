@@ -137,7 +137,8 @@ void
 frame_pin (void *vaddr)
 {
     void *upage = pg_round_down (vaddr);
-    void *kpage = pagedir_get_page (thread_current ()->pagedir, upage);
+    struct page *supp_page = page_lookup (thread_current ()->supp_page_table, upage);
+    void *kpage = pagedir_get_page (supp_page->pd, upage);
 
     if (kpage == NULL)
     {
@@ -153,6 +154,7 @@ frame_pin (void *vaddr)
 
 
         hash_insert (&frame_table, &new_frame->elem);
+        pagedir_set_page (supp_page->pd, upage, kpage, supp_page->writable);
     }
 
     frame_lookup (kpage)->pinned = true;
