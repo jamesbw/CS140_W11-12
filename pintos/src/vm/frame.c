@@ -7,6 +7,7 @@
 #include "page.h"
 #include "swap.h"
 #include <hash.h>
+#include <string.h>
 #include "filesys/file.h"
 #include "threads/vaddr.h"
 
