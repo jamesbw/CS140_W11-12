@@ -618,11 +618,11 @@ setup_stack (void **esp, const char *command_line)
   bool success = false;
   uint32_t offset = 0;
   // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  kpage = frame_allocate (*esp);
+  uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
+  kpage = frame_allocate (upage);
   if (kpage != NULL) 
     {
       memset (kpage, 0, PGSIZE);
-      uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
       success = install_page (upage, kpage, true);
       frame_lookup (kpage)->pinned = false;
       // success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
