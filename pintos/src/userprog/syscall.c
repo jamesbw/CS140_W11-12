@@ -436,7 +436,7 @@ check_buffer_uaddr (void *buf, int size)
 {
   verify_uaddr (buf);
   int i;
-  for(i = 1; i < (size -2 )/ PGSIZE; i++)
+  for(i = 1; i <= (size -2 )/ PGSIZE; i++)
     verify_uaddr (buf + i*PGSIZE);
   verify_uaddr (buf + size - 1);
 }
@@ -446,7 +446,7 @@ pin_buffer (void *buf, int size)
 {
   frame_pin (buf);
   int i;
-  for(i = 1; i < (size -2 )/ PGSIZE; i++)
+  for(i = 1; i <= (size -2 )/ PGSIZE; i++)
     frame_pin (buf + i*PGSIZE);
   frame_pin (buf + size - 1);
 }
@@ -456,7 +456,7 @@ unpin_buffer (void *buf, int size)
 {
   frame_unpin (buf);
   int i;
-  for(i = 1; i < (size -2 )/ PGSIZE; i++)
+  for(i = 1; i <= (size -2 )/ PGSIZE; i++)
     frame_unpin (buf + i*PGSIZE);
   frame_unpin (buf + size - 1);
 }
