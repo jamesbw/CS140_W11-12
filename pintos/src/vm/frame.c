@@ -99,14 +99,14 @@ frame_evict (void)
                 page_to_evict->type = SWAP;
                 page_to_evict->swap_slot = swap_allocate_slot ();
                 lock_acquire (&filesys_lock);
-                swap_write_page ( page_to_evict->swap_slot, page_to_evict->vaddr);
+                swap_write_page ( page_to_evict->swap_slot, frame_to_evict->paddr);
                 lock_release (&filesys_lock);
             }
             break;
         case SWAP:
             page_to_evict->swap_slot = swap_allocate_slot ();
             lock_acquire (&filesys_lock);
-            swap_write_page ( page_to_evict->swap_slot, page_to_evict->vaddr);
+            swap_write_page ( page_to_evict->swap_slot, frame_to_evict->paddr);
             lock_release (&filesys_lock);
             break;
         case MMAPPED:
@@ -115,7 +115,7 @@ frame_evict (void)
                 //copy back to disk
                 lock_acquire (&filesys_lock);
                 file_seek (page_to_evict->file, page_to_evict->offset);
-                file_write (page_to_evict->file, page_to_evict->vaddr, page_to_evict->valid_bytes);
+                file_write (page_to_evict->file, frame_to_evict->paddr, page_to_evict->valid_bytes);
                 lock_release (&filesys_lock);
             }
             break;            
