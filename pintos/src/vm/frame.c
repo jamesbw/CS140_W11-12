@@ -87,6 +87,8 @@ frame_evict (void)
 
     struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
 
+    ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
+
     switch (page_to_evict->type)
     {
         case EXECUTABLE:
@@ -120,7 +122,10 @@ frame_evict (void)
     }
 
     pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
-    return frame_to_evict->paddr;
+
+    void *result_kpage = frame_to_evict->paddr;
+    frame_free (result_kpage);
+    return result_kpage;
 
 }
 
@@ -142,18 +147,7 @@ frame_pin (void *vaddr)
 
     if (kpage == NULL)
     {
-        kpage = frame_evict();
-        // add frame to frame table
-        struct frame *new_frame = malloc (sizeof (struct frame));
-        ASSERT (new_frame);
-
-        new_frame->paddr = kpage; // TODO - PHYS_BASE?
-        new_frame->owner_thread = thread_current ();
-        new_frame->upage = upage;
-        new_frame->pinned = false;
-
-
-        hash_insert (&frame_table, &new_frame->elem);
+        kpage = frame_allocate (upage);
         pagedir_set_page (supp_page->pd, upage, kpage, supp_page->writable);
     }
 
