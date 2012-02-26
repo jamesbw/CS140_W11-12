@@ -189,6 +189,7 @@ page_fault (struct intr_frame *f)
           break;
       }
       pagedir_set_page (supp_page->pd, page_addr, kpage, supp_page->writable);
+      frame_lookup (kpage)->pinned = false;
       return;
     }
     else

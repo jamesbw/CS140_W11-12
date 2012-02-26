@@ -158,6 +158,7 @@ void page_extend_stack (void *vaddr)
   memset (kpage, 0, PGSIZE);
   pagedir_set_page (thread_current ()->pagedir, page_addr, kpage, true);
   page_insert_zero (page_addr);
+  frame_lookup (kpage)->pinned = false;
 }
 
 //  Adds a mapping from user virtual address UPAGE to kernel

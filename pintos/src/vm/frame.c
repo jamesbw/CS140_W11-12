@@ -49,7 +49,7 @@ frame_allocate (void *upage)
     new_frame->paddr = kpage; // TODO - PHYS_BASE?
     new_frame->owner_thread = thread_current ();
     new_frame->upage = upage;
-    new_frame->pinned = false;
+    new_frame->pinned = true;
 
 
     hash_insert (&frame_table, &new_frame->elem);
