@@ -20,6 +20,8 @@
 static void syscall_handler (struct intr_frame *);
 static void verify_uaddr ( void *uaddr);
 static void check_buffer_uaddr ( void *buf, int size);
+static void pin_buffer (void *buf, int size);
+static void unpin_buffer (void *buf, int size);
 
 // Prototypes for each system call called by the handler.
 void syscall_halt (void);
@@ -437,4 +439,24 @@ check_buffer_uaddr (void *buf, int size)
   for(i = 1; i < (size -2 )/ PGSIZE; i++)
     verify_uaddr (buf + i*PGSIZE);
   verify_uaddr (buf + size - 1);
+}
+
+static void 
+pin_buffer (void *buf, int size)
+{
+  frame_pin (buf);
+  int i;
+  for(i = 1; i < (size -2 )/ PGSIZE; i++)
+    frame_pin (buf + i*PGSIZE);
+  frame_pin (buf + size - 1);
+}
+
+static void
+unpin_buffer (void *buf, int size)
+{
+  frame_unpin (buf);
+  int i;
+  for(i = 1; i < (size -2 )/ PGSIZE; i++)
+    frame_unpin (buf + i*PGSIZE);
+  frame_unpin (buf + size - 1);
 }
