@@ -243,11 +243,11 @@ void syscall_read (struct intr_frame *f, uint32_t fd, uint32_t buffer,
     if (fw == NULL) {
       f->eax =  -1;
     } else {
-      frame_pin (buf);
+      pin_buffer (buf, size);
       lock_acquire (&filesys_lock);
       f->eax = file_read (fw->file, buf, size);
       lock_release (&filesys_lock);
-      frame_unpin (buf);
+      unpin_buffer (buf, size);
     }
   }
 }
@@ -272,11 +272,11 @@ void syscall_write (struct intr_frame *f, uint32_t fd, uint32_t buffer,
     if (fw == NULL) {
       f->eax =  -1;
     } else {
-      frame_pin (buf);
+      pin_buffer (buf, size);
       lock_acquire (&filesys_lock);
       f->eax = file_write (fw->file, buf, size);
       lock_release (&filesys_lock);
-      frame_unpin (buf);
+      unpin_buffer (buf, size);
     }
   }
 }
