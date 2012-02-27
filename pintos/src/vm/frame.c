@@ -92,11 +92,12 @@ frame_evict (void)
     }
     while (frame_to_evict->pinned == true);
     frame_to_evict->pinned = true;
+    struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
+    ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
+    pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
     lock_release (&frame_table_lock);
 
-    struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
 
-    ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
 
     switch (page_to_evict->type)
     {
@@ -130,7 +131,6 @@ frame_evict (void)
             break;            
     }
 
-    pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
 
     void *result_kpage = frame_to_evict->paddr;
     frame_free (result_kpage);
@@ -143,21 +143,30 @@ frame_lookup (void *paddr)
 {
     struct frame f;
     f.paddr = paddr;
-    lock_acquire (&frame_table_lock);
-    struct hash_elem *e = hash_find (&frame_table, &f.elem);
-    lock_release (&frame_table_lock);
+    if (!lock_held_by_current_thread (&frame_table_lock))
+    {
+        lock_acquire (&frame_table_lock);
+        struct hash_elem *e = hash_find (&frame_table, &f.elem);
+        lock_release (&frame_table_lock);
+    }
+    else
+        struct hash_elem *e = hash_find (&frame_table, &f.elem);
+    
     return e!= NULL ? hash_entry (e, struct frame, elem) : NULL; 
 }
 
 void 
 frame_pin (void *vaddr)
 {
+    lock_acquire (&frame_table_lock);
     void *upage = pg_round_down (vaddr);
     struct page *supp_page = page_lookup (thread_current ()->supp_page_table, upage);
+
     void *kpage = pagedir_get_page (supp_page->pd, upage);
 
     if (kpage == NULL)
     {
+        lock_release (&frame_table_lock);
         kpage = frame_allocate (upage);
         switch (supp_page->type)
         {
@@ -183,8 +192,11 @@ frame_pin (void *vaddr)
         }
         pagedir_set_page (supp_page->pd, upage, kpage, supp_page->writable);
     }
-
-    frame_lookup (kpage)->pinned = true;
+    else
+    {
+        frame_lookup (kpage)->pinned = true;
+        lock_release (&frame_table_lock);
+    }
 }
 
 void 
