@@ -143,14 +143,15 @@ frame_lookup (void *paddr)
 {
     struct frame f;
     f.paddr = paddr;
+    struct hash_elem *e;
     if (!lock_held_by_current_thread (&frame_table_lock))
     {
         lock_acquire (&frame_table_lock);
-        struct hash_elem *e = hash_find (&frame_table, &f.elem);
+        e = hash_find (&frame_table, &f.elem);
         lock_release (&frame_table_lock);
     }
     else
-        struct hash_elem *e = hash_find (&frame_table, &f.elem);
+        e = hash_find (&frame_table, &f.elem);
     
     return e!= NULL ? hash_entry (e, struct frame, elem) : NULL; 
 }
