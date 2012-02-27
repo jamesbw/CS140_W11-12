@@ -10,8 +10,10 @@
 #include <string.h>
 #include "filesys/file.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 
 struct hash frame_table;
+struct lock frame_table_lock;
 void *frame_evict (void);
 
 /* Returns a hash for frame f */
@@ -52,8 +54,9 @@ frame_allocate (void *upage)
     new_frame->upage = upage;
     new_frame->pinned = true;
 
-
+    lock_acquire (&hash_table_lock);
     hash_insert (&frame_table, &new_frame->elem);
+    lock_release (&hash_table_lock);
     return kpage;
 }
 
@@ -64,7 +67,9 @@ frame_free (void *kpage)
     struct hash_elem *e;
 
     f.paddr = kpage;
+    lock_acquire (&hash_table_lock);
     e = hash_delete (&frame_table, &f.elem);
+    lock_release (&hash_table_lock);
 
     ASSERT (e);
 
@@ -77,6 +82,7 @@ void *
 frame_evict (void)
 {
     struct hash_iterator it;
+    lock_acquire (&hash_table_lock);
     hash_first (&it, &frame_table);
     struct frame *frame_to_evict;
 
@@ -85,6 +91,8 @@ frame_evict (void)
         frame_to_evict = hash_entry (hash_next (&it), struct frame, elem);
     }
     while (frame_to_evict->pinned == true);
+    frame_to_evict->pinned = true;
+    lock_release (&hash_table_lock);
 
     struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
 
@@ -135,7 +143,9 @@ frame_lookup (void *paddr)
 {
     struct frame f;
     f.paddr = paddr;
+    lock_acquire (&hash_table_lock);
     struct hash_elem *e = hash_find (&frame_table, &f.elem);
+    lock_release (&hash_table_lock);
     return e!= NULL ? hash_entry (e, struct frame, elem) : NULL; 
 }
 
