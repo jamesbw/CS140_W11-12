@@ -732,8 +732,8 @@ setup_stack (void **esp, const char *command_line)
         palloc_free_page (cl_copy);
       }
       else
-        // palloc_free_page (kpage);
         frame_free (kpage);
+        palloc_free_page (kpage);
     }
   return success;
 }
@@ -854,6 +854,7 @@ process_munmap (mapid_t mapid)
     if (kpage) // page may not be in physical memory
     {
       frame_free (kpage);
+      palloc_free_page (kpage);
       pagedir_clear_page (pd, page);
     }
     page_free ( thread_current (), page);
