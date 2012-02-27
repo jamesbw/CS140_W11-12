@@ -24,6 +24,7 @@ uint32_t swap_allocate_slot (void)
 
 void swap_read_page (uint32_t swap_slot, void *upage)
 {
+	ASSERT (bitmap_all (swap_bitmap, swap_slot, 1));
 	struct block *swap_block = block_get_role (BLOCK_SWAP);
 	int sector_count;
 	block_sector_t block_sector;
@@ -36,6 +37,7 @@ void swap_read_page (uint32_t swap_slot, void *upage)
 
 void swap_write_page (uint32_t swap_slot, void *upage)
 {
+	ASSERT (bitmap_all (swap_bitmap, swap_slot, 1));
 	struct block *swap_block = block_get_role (BLOCK_SWAP);
 	int sector_count;
 	block_sector_t block_sector;
