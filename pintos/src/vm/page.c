@@ -185,14 +185,15 @@ void page_extend_stack (void *vaddr)
 
 void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
 {
-  void *kpage = pagedir_get_page (thread_current ()->pagedir, upage);
+  struct page *page = hash_entry (elem, struct page, elem);
+
+  void *kpage = pagedir_get_page (thread_current ()->pagedir, page->vaddr);
   if (kpage)
   {
     frame_free (kpage);
   }
-  pagedir_clear_page (t->pagedir, upage);
+  pagedir_clear_page (thread_current ()->pagedir, page->vaddr);
 
-  struct page *page = hash_entry (elem, struct page, elem);
   if (page->type == SWAP)
   {
     swap_free (page->swap_slot);
