@@ -112,9 +112,9 @@ start_process (void *spf_)
     lock_acquire(&process_lock);
     list_push_back ( &process_list, &new_process->elem);
     lock_release(&process_lock);
-    lock_acquire ( &filesys_lock);
+    // lock_acquire ( &filesys_lock);
     success = load (file_name, &if_.eip, &if_.esp, &new_process->executable);
-    lock_release ( &filesys_lock);
+    // lock_release ( &filesys_lock);
 
   }
   spf->success = success;
@@ -397,7 +397,9 @@ load (const char *file_name, void (**eip) (void), void **esp, struct file **exec
   } 
 
   /* Open executable file. */
+  lock_acquire (&filesys_lock);
   file = filesys_open (file_name);
+  lock_release (&filesys_lock);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -617,7 +619,6 @@ setup_stack (void **esp, const char *command_line)
   uint8_t *kpage;
   bool success = false;
   uint32_t offset = 0;
-  // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
   kpage = frame_allocate (upage);
   if (kpage != NULL) 
@@ -732,8 +733,10 @@ setup_stack (void **esp, const char *command_line)
         palloc_free_page (cl_copy);
       }
       else
+      {
         frame_free (kpage);
         palloc_free_page (kpage);
+      }
     }
   return success;
 }
