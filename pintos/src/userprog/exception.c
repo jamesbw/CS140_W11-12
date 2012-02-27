@@ -12,6 +12,7 @@
 #include "filesys/file.h"
 #include "pagedir.h"
 #include <string.h>
+#include "threads/synch.h"
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
@@ -166,6 +167,7 @@ page_fault (struct intr_frame *f)
     {
       void *kpage;
       kpage = frame_allocate (page_addr);
+      lock_acquire (&supp_page->busy);
       switch (supp_page->type)
       {
         case EXECUTABLE:
@@ -188,6 +190,7 @@ page_fault (struct intr_frame *f)
         default:
           break;
       }
+      lock_release (&supp_page->busy);
       pagedir_set_page (supp_page->pd, page_addr, kpage, supp_page->writable);
       frame_lookup (kpage)->pinned = false;
       return;

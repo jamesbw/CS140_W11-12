@@ -6,6 +6,7 @@
 #include "filesys/off_t.h"
 #include "threads/synch.h"
 #include "userprog/process.h"
+#include "threads/synch.h"
 
 
 // struct hash page_table;
@@ -32,6 +33,7 @@ struct page
   off_t offset;
   uint32_t valid_bytes; // mmapped pages might be incomplete and must be filled with zeros.
   struct hash_elem elem;
+  struct lock busy; // busy when page is being paged out
 };
 
 

@@ -8,6 +8,7 @@
 #include "userprog/pagedir.h"
 #include <string.h>
 #include <stdio.h>
+#include "threads/synch.h"
 
 void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED);
 
@@ -68,6 +69,7 @@ page_insert_mmapped (void *vaddr, mapid_t mapid, struct file *file, off_t offset
   new_page->file = file;
   new_page->offset = offset;
   new_page->valid_bytes = valid_bytes;
+  lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
   hash_insert (cur->supp_page_table, &new_page->elem);
@@ -95,6 +97,7 @@ page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t v
   new_page->file = file;
   new_page->offset = offset;
   new_page->valid_bytes = valid_bytes;
+  lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
   hash_insert (cur->supp_page_table, &new_page->elem);
@@ -123,6 +126,7 @@ page_insert_zero (void *vaddr)
   new_page->file = NULL;
   new_page->offset = -1;
   new_page->valid_bytes = 0;
+  lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
   hash_insert (cur->supp_page_table, &new_page->elem);
