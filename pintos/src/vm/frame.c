@@ -222,4 +222,14 @@ frame_unpin (void *vaddr)
     frame_lookup (kpage)->pinned = false;
 }
 
+void frame_dump_frame ( struct hash_elem *elem, void *aux UNUSED)
+{
+  struct frame *frame = hash_entry (elem, struct frame, elem);
+  printf ("paddr: %p\n", frame->paddr);
+}
+
+void frame_dump_table (void)
+{
+  hash_apply (&frame_table, frame_dump_frame);
+}
 
