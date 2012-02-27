@@ -73,7 +73,7 @@ frame_free (void *kpage)
 
     f.paddr = kpage;
     lock_acquire (&frame_table_lock);
-    frame_to_delete = hash_find (&frame_table, &f.elem);
+    frame_to_delete = hash_entry (hash_find (&frame_table, &f.elem), struct frame, elem);
     if (frame_to_delete->owner_thread == thread_current ())
     {
         hash_delete (&frame_table, &f.elem);
