@@ -79,13 +79,13 @@ frame_free (void *kpage)
     {
         hash_delete (&frame_table, &f.elem);
         free (frame_to_delete);
+        palloc_free_page (kpage);
     }
 
     lock_release (&frame_table_lock);
 
     // ASSERT (e);
 
-    //palloc_free_page (kpage);
 
     // free (hash_entry (e, struct frame, elem));
 }
