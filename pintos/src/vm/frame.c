@@ -8,6 +8,7 @@
 #include "swap.h"
 #include <hash.h>
 #include <string.h>
+#include <stdio.h>
 #include "filesys/file.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
