@@ -53,21 +53,21 @@ frame_allocate (void *upage)
         lock_acquire (&frame_table_lock);
         hash_insert (&frame_table, &new_frame->elem);
         lock_release (&frame_table_lock);
+        new_frame->paddr = kpage; // TODO - PHYS_BASE?
     }
     // add frame to frame table
 
-    new_frame->paddr = kpage; // TODO - PHYS_BASE?
     new_frame->owner_thread = thread_current ();
     new_frame->upage = upage;
 
-    return kpage;
+    return new_frame->paddr;
 }
 
 void
 frame_free (void *kpage)
 {
     struct frame f;
-    struct hash_elem *e;
+    // struct hash_elem *e;
 
     struct frame *frame_to_delete;
 
