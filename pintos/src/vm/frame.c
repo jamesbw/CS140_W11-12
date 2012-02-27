@@ -14,7 +14,7 @@
 
 struct hash frame_table;
 struct lock frame_table_lock;
-void *frame_evict (void);
+struct frame *frame_evict (void);
 
 /* Returns a hash for frame f */
 unsigned 
@@ -39,24 +39,27 @@ frame_allocate (void *upage)
     ASSERT (pagedir_get_page (thread_current ()->pagedir, upage) == NULL );
 
     void *kpage = palloc_get_page (PAL_USER);
+    struct frame *new_frame;
     if (kpage == NULL)
     {
         //TODO: eviction
-        kpage = frame_evict();
+        new_frame = frame_evict();
     }
-
+    else{
+        
+        new_frame = malloc (sizeof (struct frame));
+        ASSERT (new_frame);
+        new_frame->pinned = true;
+        lock_acquire (&frame_table_lock);
+        hash_insert (&frame_table, &new_frame->elem);
+        lock_release (&frame_table_lock);
+    }
     // add frame to frame table
-    struct frame *new_frame = malloc (sizeof (struct frame));
-    ASSERT (new_frame);
 
     new_frame->paddr = kpage; // TODO - PHYS_BASE?
     new_frame->owner_thread = thread_current ();
     new_frame->upage = upage;
-    new_frame->pinned = true;
 
-    lock_acquire (&frame_table_lock);
-    hash_insert (&frame_table, &new_frame->elem);
-    lock_release (&frame_table_lock);
     return kpage;
 }
 
@@ -66,19 +69,27 @@ frame_free (void *kpage)
     struct frame f;
     struct hash_elem *e;
 
+    struct frame *frame_to_delete;
+
     f.paddr = kpage;
     lock_acquire (&frame_table_lock);
-    e = hash_delete (&frame_table, &f.elem);
+    frame_to_delete = hash_find (&frame_table, &f.elem);
+    if (frame_to_delete->owner_thread == thread_current ())
+    {
+        hash_delete (&frame_table, &f.elem);
+        free (frame_to_delete);
+    }
+
     lock_release (&frame_table_lock);
 
-    ASSERT (e);
+    // ASSERT (e);
 
     //palloc_free_page (kpage);
 
-    free (hash_entry (e, struct frame, elem));
+    // free (hash_entry (e, struct frame, elem));
 }
 
-void *
+struct frame*
 frame_evict (void)
 {
     struct hash_iterator it;
@@ -131,10 +142,10 @@ frame_evict (void)
     }
 
 
-    void *result_kpage = frame_to_evict->paddr;
+    // void *result_kpage = frame_to_evict->paddr;
     pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
-    frame_free (result_kpage);
-    return result_kpage;
+    // frame_free (result_kpage);
+    return frame_to_evict;
 
 }
 
