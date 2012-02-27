@@ -230,7 +230,7 @@ frame_unpin (void *vaddr)
 void frame_dump_frame ( struct hash_elem *elem, void *aux UNUSED)
 {
   struct frame *frame = hash_entry (elem, struct frame, elem);
-  printf ("paddr: %p\n", frame->paddr);
+  printf ("paddr: %p , upage: %p\n", frame->paddr, frame->upage);
 }
 
 void frame_dump_table (void)
