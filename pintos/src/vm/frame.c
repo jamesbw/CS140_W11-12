@@ -183,6 +183,7 @@ frame_pin (void *vaddr)
     {
         lock_release (&frame_table_lock);
         kpage = frame_allocate (upage);
+        lock_acquire (&supp_page->busy);
         switch (supp_page->type)
         {
           case EXECUTABLE:
@@ -205,6 +206,7 @@ frame_pin (void *vaddr)
           default:
             break;
         }
+        lock_release (&supp_page->busy);
         pagedir_set_page (supp_page->pd, upage, kpage, supp_page->writable);
     }
     else
