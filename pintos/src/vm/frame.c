@@ -51,10 +51,10 @@ frame_allocate (void *upage)
         new_frame = malloc (sizeof (struct frame));
         ASSERT (new_frame);
         new_frame->pinned = true;
+        new_frame->paddr = kpage; // TODO - PHYS_BASE?
         lock_acquire (&frame_table_lock);
         hash_insert (&frame_table, &new_frame->elem);
         lock_release (&frame_table_lock);
-        new_frame->paddr = kpage; // TODO - PHYS_BASE?
     }
     // add frame to frame table
 
