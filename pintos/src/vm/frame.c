@@ -105,15 +105,14 @@ frame_free (void *kpage)
 struct frame*
 frame_evict (void)
 {
-    struct hash_iterator it;
     lock_acquire (&frame_table_lock);
-    struct frame *frame_to_evict = run_clock();
-
-    do
-    {
-        frame_to_evict = hash_entry (hash_next (&it), struct frame, elem);
-    }
-    while (frame_to_evict->pinned == true);
+    struct frame p;
+    struct hash_elem *e;
+    struct frame *frame_to_evict;
+    p.paddr = run_clock();
+    ASSERT(p.paddr);
+    e = hash_find(&frame_table, &p.elem);
+    frame_to_evict = hash_entry(e, struct frame, elem);
     frame_to_evict->pinned = true;
     struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
     ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
