@@ -162,9 +162,9 @@ frame_evict (void)
 
 
     hash_delete (&frame_table, &page_to_evict->frame_elem);
+    page_to_evict->paddr = NULL;
     lock_release (&page_to_evict->busy);
 
-    page_to_evict->paddr = NULL;
 
     // void *result_kpage = frame_to_evict->paddr;
     lock_release (&frame_table_lock);
