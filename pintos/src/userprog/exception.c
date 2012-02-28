@@ -12,6 +12,7 @@
 #include "filesys/file.h"
 #include "pagedir.h"
 #include <string.h>
+#include "threads/synch.h"
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
@@ -166,24 +167,32 @@ page_fault (struct intr_frame *f)
     {
       void *kpage;
       kpage = frame_allocate (page_addr);
+      lock_acquire (&supp_page->busy);
       switch (supp_page->type)
       {
         case EXECUTABLE:
         case MMAPPED:
+          lock_acquire (&filesys_lock);
           file_seek (supp_page->file, supp_page->offset);
           file_read (supp_page->file, kpage, supp_page->valid_bytes);
+          lock_release (&filesys_lock);
           memset (kpage + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
           break;
         case SWAP:
+          lock_acquire (&filesys_lock);
           swap_read_page (supp_page->swap_slot, kpage);
+          lock_release (&filesys_lock);
           swap_free (supp_page->swap_slot);
+          break;
         case ZERO:
           memset (kpage, 0, PGSIZE);
           break;
         default:
           break;
       }
+      lock_release (&supp_page->busy);
       pagedir_set_page (supp_page->pd, page_addr, kpage, supp_page->writable);
+      frame_lookup (kpage)->pinned = false;
       return;
     }
     else

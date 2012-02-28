@@ -20,6 +20,8 @@
 static void syscall_handler (struct intr_frame *);
 static void verify_uaddr ( void *uaddr);
 static void check_buffer_uaddr ( void *buf, int size);
+static void pin_buffer (void *buf, int size);
+static void unpin_buffer (void *buf, int size);
 
 // Prototypes for each system call called by the handler.
 void syscall_halt (void);
@@ -191,6 +193,7 @@ void syscall_remove (struct intr_frame *f, uint32_t file_name)
 void syscall_open (struct intr_frame *f, uint32_t file_name) 
 {
   verify_uaddr ((char *) file_name);
+  frame_pin ((char *) file_name);
   lock_acquire (&filesys_lock);
   struct file *file = filesys_open ( (char *) file_name);
   if (file == NULL) {
@@ -201,6 +204,7 @@ void syscall_open (struct intr_frame *f, uint32_t file_name)
     f->eax = fw->fd;
   }
   lock_release (&filesys_lock);
+  frame_unpin ((char *) file_name);
 }
 
 void syscall_filesize (struct intr_frame *f, uint32_t fd) 
@@ -239,9 +243,11 @@ void syscall_read (struct intr_frame *f, uint32_t fd, uint32_t buffer,
     if (fw == NULL) {
       f->eax =  -1;
     } else {
+      pin_buffer (buf, size);
       lock_acquire (&filesys_lock);
       f->eax = file_read (fw->file, buf, size);
       lock_release (&filesys_lock);
+      unpin_buffer (buf, size);
     }
   }
 }
@@ -266,9 +272,11 @@ void syscall_write (struct intr_frame *f, uint32_t fd, uint32_t buffer,
     if (fw == NULL) {
       f->eax =  -1;
     } else {
+      pin_buffer (buf, size);
       lock_acquire (&filesys_lock);
       f->eax = file_write (fw->file, buf, size);
       lock_release (&filesys_lock);
+      unpin_buffer (buf, size);
     }
   }
 }
@@ -428,7 +436,27 @@ check_buffer_uaddr (void *buf, int size)
 {
   verify_uaddr (buf);
   int i;
-  for(i = 1; i < (size -2 )/ PGSIZE; i++)
+  for(i = 1; i <= (size -2 )/ PGSIZE; i++)
     verify_uaddr (buf + i*PGSIZE);
   verify_uaddr (buf + size - 1);
+}
+
+static void 
+pin_buffer (void *buf, int size)
+{
+  frame_pin (buf);
+  int i;
+  for(i = 1; i <= (size -2 )/ PGSIZE; i++)
+    frame_pin (buf + i*PGSIZE);
+  frame_pin (buf + size - 1);
+}
+
+static void
+unpin_buffer (void *buf, int size)
+{
+  frame_unpin (buf);
+  int i;
+  for(i = 1; i <= (size -2 )/ PGSIZE; i++)
+    frame_unpin (buf + i*PGSIZE);
+  frame_unpin (buf + size - 1);
 }

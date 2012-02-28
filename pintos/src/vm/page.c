@@ -9,6 +9,7 @@
 #include "userprog/pagedir.h"
 #include <string.h>
 #include <stdio.h>
+#include "threads/synch.h"
 
 void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED);
 
@@ -71,6 +72,7 @@ page_insert_mmapped (void *vaddr, mapid_t mapid, struct file *file, off_t offset
   new_page->file = file;
   new_page->offset = offset;
   new_page->valid_bytes = valid_bytes;
+  lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
   hash_insert (cur->supp_page_table, &new_page->elem);
@@ -98,6 +100,7 @@ page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t v
   new_page->file = file;
   new_page->offset = offset;
   new_page->valid_bytes = valid_bytes;
+  lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
   hash_insert (cur->supp_page_table, &new_page->elem);
@@ -126,6 +129,7 @@ page_insert_zero (void *vaddr)
   new_page->file = NULL;
   new_page->offset = -1;
   new_page->valid_bytes = 0;
+  lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
   hash_insert (cur->supp_page_table, &new_page->elem);
@@ -161,6 +165,7 @@ void page_extend_stack (void *vaddr)
   memset (kpage, 0, PGSIZE);
   pagedir_set_page (thread_current ()->pagedir, page_addr, kpage, true);
   page_insert_zero (page_addr);
+  frame_lookup (kpage)->pinned = false;
 }
 
 //  Adds a mapping from user virtual address UPAGE to kernel
@@ -188,6 +193,14 @@ void page_extend_stack (void *vaddr)
 void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
 {
   struct page *page = hash_entry (elem, struct page, elem);
+
+  void *kpage = pagedir_get_page (thread_current ()->pagedir, page->vaddr);
+  if (kpage)
+  {
+    frame_free (kpage);
+  }
+  pagedir_clear_page (thread_current ()->pagedir, page->vaddr);
+
   if (page->type == SWAP)
   {
     swap_free (page->swap_slot);
@@ -203,6 +216,14 @@ void page_free_supp_page_table (void)
 
 void page_free (struct thread *t, void *upage)
 {
+    void *kpage = pagedir_get_page (t->pagedir, upage);
+    if (kpage)
+    {
+      frame_free (kpage);
+    }
+    pagedir_clear_page (t->pagedir, upage);
+
+
     struct page p;
     struct hash_elem *e;
 

@@ -113,9 +113,9 @@ start_process (void *spf_)
     lock_acquire(&process_lock);
     list_push_back ( &process_list, &new_process->elem);
     lock_release(&process_lock);
-    lock_acquire ( &filesys_lock);
+    // lock_acquire ( &filesys_lock);
     success = load (file_name, &if_.eip, &if_.esp, &new_process->executable);
-    lock_release ( &filesys_lock);
+    // lock_release ( &filesys_lock);
 
   }
   spf->success = success;
@@ -398,7 +398,9 @@ load (const char *file_name, void (**eip) (void), void **esp, struct file **exec
   } 
 
   /* Open executable file. */
+  lock_acquire (&filesys_lock);
   file = filesys_open (file_name);
+  lock_release (&filesys_lock);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -567,7 +569,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
-  file_seek (file, ofs);
+  // file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
       /* Calculate how to fill this page.
@@ -618,13 +620,13 @@ setup_stack (void **esp, const char *command_line)
   uint8_t *kpage;
   bool success = false;
   uint32_t offset = 0;
-  // kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  kpage = frame_allocate (*esp);
+  uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
+  kpage = frame_allocate (upage);
   if (kpage != NULL) 
     {
       memset (kpage, 0, PGSIZE);
-      uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
       success = install_page (upage, kpage, true);
+      frame_lookup (kpage)->pinned = false;
       // success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success){
         page_insert_zero (upage);
@@ -731,8 +733,10 @@ setup_stack (void **esp, const char *command_line)
         palloc_free_page (cl_copy);
       }
       else
-        // palloc_free_page (kpage);
+      {
         frame_free (kpage);
+        // palloc_free_page (kpage);
+      }
     }
   return success;
 }
@@ -831,21 +835,29 @@ process_munmap (mapid_t mapid)
   void *page;
   uint32_t *pd = thread_current ()->pagedir;
   void *kpage;
+
+  lock_acquire (&filesys_lock);
   int size = file_length (mf->file);
+  lock_release (&filesys_lock);
 
   for (page = mf->base_page; page - mf->base_page < size; page += PGSIZE)
   {
     if ( pagedir_is_dirty (pd, page))
     {
       off_t offset = (off_t) (page - mf->base_page);
-      file_seek (mf->file, offset);
       int bytes_to_write = size - offset > PGSIZE ? PGSIZE : size - offset;
+      frame_pin (page);
+      lock_acquire (&filesys_lock);
+      file_seek (mf->file, offset);
       file_write (mf->file, page, bytes_to_write);
+      lock_release (&filesys_lock);
+      frame_unpin (page);
     }
     kpage = pagedir_get_page (pd, page);
     if (kpage) // page may not be in physical memory
     {
       frame_free (kpage);
+      // palloc_free_page (kpage);
       pagedir_clear_page (pd, page);
     }
     page_free ( thread_current (), page);
