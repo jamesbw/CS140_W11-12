@@ -280,7 +280,7 @@ void page_free_supp_page_table (void)
 void
 page_in (struct page *supp_page)
 {
-  frame_allocate (supp_page->vaddr);
+  frame_allocate (supp_page);
   lock_acquire (&supp_page->busy);
   switch (supp_page->type)
   {
