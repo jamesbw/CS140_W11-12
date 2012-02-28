@@ -17,8 +17,8 @@ struct hash frame_table;
 struct lock frame_table_lock;
 void *frame_evict (void);
 struct page *run_clock (void);
-uint32_t *hand;
-uint32_t *base;
+void *hand;
+void *base;
 uint32_t user_pool_size;
 
 
@@ -173,9 +173,9 @@ frame_dump_table (void)
 void 
 frame_init_base (void *user_base, void *user_end) 
 {
-  base = (uint32_t *) user_base;
+  base = user_base;
   user_pool_size = (uint32_t)(user_end - user_base);
-  hand = (uint32_t *) user_base;
+  hand = user_base;
   // clock_start = user_base;
   // end = user_end;
 }
@@ -197,7 +197,7 @@ run_clock (void)
   while (true) {
     //advance hand:
     hand = (uint32_t) (hand + PGSIZE - base) % user_pool_size + base;
-    p.paddr = (void *) hand;
+    p.paddr = hand;
     e = hash_find(&frame_table, &p.frame_elem);
     if (e != NULL) 
     {
