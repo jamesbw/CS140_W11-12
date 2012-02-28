@@ -196,7 +196,7 @@ run_clock (void)
   // uint32_t *pd = t->pagedir; // Current Page Directory
   while (true) {
     //advance hand:
-    hand = (uint32_t) (hand + PGSIZE) % user_pool_size + base;
+    hand = (uint32_t) (hand + PGSIZE - base) % user_pool_size + base;
     p.paddr = (void *) hand;
     e = hash_find(&frame_table, &p.frame_elem);
     if (e != NULL) 
