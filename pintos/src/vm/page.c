@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "threads/synch.h"
+#include "threads/palloc.h"
+#include "filesys/file.h"
 
 // void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED);
 
@@ -150,8 +152,8 @@ page_lookup (struct hash *supp_page_table, void *address)
   struct hash_elem *e;
 
   p.vaddr = address;
-  e = hash_find (supp_page_table, &p.elem);
-  return e != NULL ? hash_entry (e, struct page, elem) : NULL;
+  e = hash_find (supp_page_table, &p.page_elem);
+  return e != NULL ? hash_entry (e, struct page, page_elem) : NULL;
 }
 
 /* Add a zero page to the stack that contains VADDR*/

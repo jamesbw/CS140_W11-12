@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <hash.h>
 #include "threads/synch.h"
+#include "page.h"
 
 
 struct hash frame_table;

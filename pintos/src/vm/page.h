@@ -69,5 +69,6 @@ void page_dump_page ( struct hash_elem *elem, void *aux UNUSED);
 void page_dump_table (void);
 bool page_stack_access (void *vaddr, void *esp);
 void page_free_supp_page_table (void);
+void page_in (struct page *supp_page);
 
 #endif
