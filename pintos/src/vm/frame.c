@@ -112,7 +112,8 @@ frame_evict (void)
     struct frame *frame_to_evict;
     p.paddr = run_clock();
     ASSERT(p.paddr);
-    e = hash_find(&frame_table, &p.elem);
+    e = hash_find(&frame_table, &(p.elem));
+    ASSERT(e);
     frame_to_evict = hash_entry(e, struct frame, elem);
     frame_to_evict->pinned = true;
     struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
@@ -182,11 +183,11 @@ void *run_clock() {
     e = hash_find(&frame_table, &p.elem);
     if (e != NULL) {
       f = hash_entry(e, struct frame, elem);
-      if (!pagedir_is_accessed(pd, hand)) {
+      if (!pagedir_is_accessed(f->owner_thread->pagedir, f->upage)) {
 	  clock_start = ((uint32_t)hand + 4)% pool_size + base;
 	  return hand;
       } else {
-	pagedir_set_accessed(pd, hand, false);
+	pagedir_set_accessed(f->owner_thread->pagedir, f->upage, false);
       }
     } else {
       clock_start = ((uint32_t)hand + 4)% pool_size + base;
