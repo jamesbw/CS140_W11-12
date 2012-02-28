@@ -72,14 +72,15 @@ frame_evict (void)
     struct hash_iterator it;
     lock_acquire (&frame_table_lock);
     hash_first (&it, &frame_table);
+    struct page p;
+    struct hash_elem *e;
     struct page *page_to_evict;
-
-    do
-    {
-        page_to_evict = hash_entry (hash_next (&it), struct page, frame_elem);
-    }
-    while (page_to_evict->pinned == true);
-
+    void *faddr = run_clock();
+    ASSERT(faddr);
+    p.paddr = faddr;
+    e = hash_find(&frame_table, &p.frame_elem);
+    ASSERT(e);
+    page_to_evict = hash_entry(e, struct page, page_elem);
     ASSERT (page_to_evict->paddr);
     ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
 
@@ -142,16 +143,16 @@ void *run_clock() {
     if (e != NULL) {
       f = hash_entry(e, struct page, frame_elem);
       if (!pagedir_is_accessed(f->pd, f->vaddr)) {
-	  clock_start = ((uint32_t)hand + 4)% pool_size + base;
+	  clock_start = ((uint32_t)hand + PGSIZE)% pool_size + base;
 	  return hand;
       } else {
 	pagedir_set_accessed(f->pd, f->vaddr, false);
       }
     } else {
-      clock_start = ((uint32_t)hand + 4)% pool_size + base;
+      clock_start = ((uint32_t)hand + PGSIZE)% pool_size + base;
       return hand;
     }
-    hand = ((uint32_t)hand + 4)% pool_size + base;
+    hand = ((uint32_t)hand + PGSIZE)% pool_size + base;
     if (hand == clock_start) {
       return NULL;
     }
