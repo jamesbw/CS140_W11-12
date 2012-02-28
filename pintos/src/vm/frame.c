@@ -20,13 +20,13 @@ void *base, *end;
 
 
 void *frame_evict (void);
-void *run_clock(void);
 
-void frame_init_base(void *user_base, void *user_end) {
-  clock_start = user_base;
-  base = user_base;
-  end = user_end;
-}
+
+struct page *run_clock (void);
+void *hand;
+void *base;
+uint32_t user_pool_size;
+
 
 /* Returns a hash for frame f */
 unsigned 
@@ -69,18 +69,12 @@ frame_allocate (struct page *page)
 void *
 frame_evict (void)
 {
-    struct hash_iterator it;
     lock_acquire (&frame_table_lock);
-    hash_first (&it, &frame_table);
-    struct page p;
-    struct hash_elem *e;
+
     struct page *page_to_evict;
-    void *faddr = run_clock();
-    ASSERT(faddr);
-    p.paddr = faddr;
-    e = hash_find(&frame_table, &p.frame_elem);
-    ASSERT(e);
-    page_to_evict = hash_entry(e, struct page, page_elem);
+
+    page_to_evict = run_clock ();
+
     ASSERT (page_to_evict->paddr);
     ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
 
@@ -117,6 +111,7 @@ frame_evict (void)
                 file_write (page_to_evict->file, page_to_evict->paddr, page_to_evict->valid_bytes);
                 lock_release (&filesys_lock);
             }
+            pagedir_set_dirty (page_to_evict->pd, page_to_evict->vaddr, false); 
             break;            
     }
 
@@ -124,39 +119,6 @@ frame_evict (void)
     hash_delete (&frame_table, &page_to_evict->frame_elem);
     page_to_evict->paddr = NULL;
     lock_release (&page_to_evict->busy);
-}
-
-
-/* Returns pointer to the physical frame that should be written to next.
-   This algorithm approximates a LRU heuristic.  Only checks user pages,
-   as kernal pages should never be evicted. This frame pointer is then
-   passed to the eviction function. */
-void *run_clock() {
-  void *hand = clock_start;
-  uint32_t pool_size = (uint32_t)end - (uint32_t)base;
-  struct page p;  // Dummy page for hash_find comparison.
-  struct page *f; // Pointer to the actual frame.
-  struct hash_elem *e;
-  while (1) {
-    p.paddr = hand;
-    e = hash_find(&frame_table, &p.frame_elem);
-    if (e != NULL) {
-      f = hash_entry(e, struct page, frame_elem);
-      if (!pagedir_is_accessed(f->pd, f->vaddr)) {
-	  clock_start = ((uint32_t)hand + PGSIZE)% pool_size + base;
-	  return hand;
-      } else {
-	pagedir_set_accessed(f->pd, f->vaddr, false);
-      }
-    } else {
-      clock_start = ((uint32_t)hand + PGSIZE)% pool_size + base;
-      return hand;
-    }
-    hand = ((uint32_t)hand + PGSIZE)% pool_size + base;
-    if (hand == clock_start) {
-      return NULL;
-    }
-  }
 }
 
 
@@ -203,3 +165,38 @@ frame_dump_table (void)
   lock_release (&frame_table_lock);
 }
 
+
+void 
+frame_init_base (void *user_base, void *user_end) 
+{
+  base = user_base;
+  user_pool_size = (uint32_t)(user_end - user_base);
+  hand = user_base;
+}
+
+/* Returns pointer to the physical frame that should be written to next.
+   This algorithm approximates a LRU heuristic.  Only checks user pages,
+   as kernal pages should never be evicted. This frame pointer is then
+   passed to the eviction function. */
+struct page *
+run_clock (void) 
+{
+  struct page p;  // Dummy page for hash_find comparison.
+  struct page *page_to_evict; // Pointer to the actual page.
+  struct hash_elem *e;
+  while (true) {
+    //advance hand:
+    hand = (uint32_t) (hand + PGSIZE - base) % user_pool_size + base;
+    p.paddr = hand;
+    e = hash_find(&frame_table, &p.frame_elem);
+    if (e != NULL) 
+    {
+      page_to_evict = hash_entry(e, struct page, frame_elem);
+      if (!pagedir_is_accessed(page_to_evict->pd, page_to_evict->vaddr)) 
+        if (page_to_evict->pinned == false)
+          return page_to_evict;
+      else 
+        pagedir_set_accessed(page_to_evict->pd, page_to_evict->vaddr, false);
+    }
+  }
+}
