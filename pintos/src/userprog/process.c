@@ -220,9 +220,7 @@ process_exit (void)
   //Free all frames
 
   //Frre all supp
-  lock_acquire (&frame_table_lock);
   page_free_supp_page_table (); 
-  lock_release (&frame_table_lock);
 
   // Update the process list
   lock_acquire(&process_lock);
