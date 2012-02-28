@@ -18,6 +18,7 @@ struct lock frame_table_lock;
 void *frame_evict (void);
 struct page *run_clock (void);
 void *hand;
+void *base;
 uint32_t user_pool_size;
 
 
@@ -166,6 +167,17 @@ frame_dump_table (void)
   lock_acquire (&frame_table_lock);
   hash_apply (&frame_table, frame_dump_frame);
   lock_release (&frame_table_lock);
+}
+
+
+void 
+frame_init_base (void *user_base, void *user_end) 
+{
+  base = user_base;
+  pool_size = (uint32_t)end - (uint32_t)base;
+  hand = user_base;
+  // clock_start = user_base;
+  // end = user_end;
 }
 
 /* Returns pointer to the physical frame that should be written to next.
