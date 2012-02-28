@@ -22,7 +22,7 @@ void *frame_evict (void);
 
 
 struct page *run_clock (void);
-void *clock_start;
+void *hand;
 void *base;
 uint32_t user_pool_size;
 
@@ -170,7 +170,7 @@ frame_dump_table (void)
 void 
 frame_init_base (void *user_base, void *user_end) 
 {
-  clock_start = user_base;
+  hand = user_base;
   base = user_base;
   user_pool_size = (uint32_t)(user_end) - (uint32_t)user_base;
 }
@@ -182,7 +182,6 @@ frame_init_base (void *user_base, void *user_end)
 struct page *
 run_clock (void) 
 {
-  void *hand = clock_start;
   struct page p;  // Dummy page for hash_find comparison.
   struct page *page_to_evict; // Pointer to the actual page.
   struct hash_elem *e;
@@ -198,7 +197,6 @@ run_clock (void)
       {
         if (page_to_evict->pinned == false)
 	{
-	  clock_start = hand;
           return page_to_evict;
 	}
       } else 
