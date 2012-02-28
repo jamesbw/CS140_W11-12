@@ -200,7 +200,7 @@ void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
 
   if (page->type == SWAP)
   {
-    if (page->swap_slot != -1)
+    if ( (int) page->swap_slot != -1)
         swap_free (page->swap_slot);
   }
 
@@ -237,7 +237,7 @@ void page_free (struct thread *t, void *upage)
 
     if (page->type == SWAP)
     {
-      if (page->swap_slot != -1)
+      if ( (int) page->swap_slot != -1)
         swap_free (page->swap_slot);
     }
 
