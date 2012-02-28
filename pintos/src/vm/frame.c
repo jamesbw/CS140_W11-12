@@ -105,6 +105,7 @@ frame_evict (void)
     while (frame_to_evict->pinned == true);
     frame_to_evict->pinned = true;
     struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
+    frame_to_evict->owner_thread = NULL;
     ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
     lock_acquire (&page_to_evict->busy);
     pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
