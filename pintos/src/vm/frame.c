@@ -16,7 +16,7 @@
 struct hash frame_table;
 struct lock frame_table_lock;
 void *clock_start;
-void *base, end;
+void *base, *end;
 
 
 void *frame_evict (void);
@@ -123,7 +123,7 @@ frame_evict (void)
     hash_delete (&frame_table, &page_to_evict->frame_elem);
     page_to_evict->paddr = NULL;
     lock_release (&page_to_evict->busy);
-
+}
 
 
 /* Returns pointer to the physical frame that should be written to next.
@@ -138,14 +138,14 @@ void *run_clock() {
   struct hash_elem *e;
   while (1) {
     p.paddr = hand;
-    e = hash_find(&frame_table, &p.elem);
+    e = hash_find(&frame_table, &p.frame_elem);
     if (e != NULL) {
-      f = hash_entry(e, struct frame, elem);
+      f = hash_entry(e, struct page, frame_elem);
       if (!pagedir_is_accessed(f->pd, f->vaddr)) {
 	  clock_start = ((uint32_t)hand + 4)% pool_size + base;
 	  return hand;
       } else {
-	pagedir_set_accessed(f->owner_thread->pagedir, f->upage, false);
+	pagedir_set_accessed(f->pd, f->vaddr, false);
       }
     } else {
       clock_start = ((uint32_t)hand + 4)% pool_size + base;
