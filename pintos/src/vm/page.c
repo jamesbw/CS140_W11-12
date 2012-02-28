@@ -201,7 +201,7 @@ void page_extend_stack (void *vaddr)
 
 void page_free ( struct hash_elem *elem, void *aux UNUSED)
 {
-  struct page *page = hash_entry (elem, struct page, elem);
+  struct page *page = hash_entry (elem, struct page, page_elem);
 
   if (page->paddr){
     lock_acquire (&frame_table_lock);
@@ -306,7 +306,7 @@ page_in (struct page *supp_page)
       break;
   }
   lock_release (&supp_page->busy);
-  pagedir_set_page (supp_page->pd, page_addr, supp_page->paddr, supp_page->writable);
+  pagedir_set_page (supp_page->pd, supp_page->vaddr, supp_page->paddr, supp_page->writable);
 }
 
 
