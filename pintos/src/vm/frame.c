@@ -172,7 +172,7 @@ frame_init_base (void *user_base, void *user_end)
 {
   hand = user_base;
   base = user_base;
-  user_pool_size = (uint32_t)(user_end - user_base);
+  user_pool_size = (uint32_t)(user_end) - (uint32_t)(user_base);
 }
 
 /* Returns pointer to the physical frame that should be written to next.
