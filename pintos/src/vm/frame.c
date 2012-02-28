@@ -200,6 +200,7 @@ frame_pin (void *vaddr)
             swap_read_page (supp_page->swap_slot, kpage);
             lock_release (&filesys_lock);
             swap_free (supp_page->swap_slot);
+            supp_page->swap_slot = -1;
             break;
           case ZERO:
             memset (kpage, 0, PGSIZE);

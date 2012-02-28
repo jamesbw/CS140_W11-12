@@ -198,16 +198,13 @@ void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
   }
   pagedir_clear_page (thread_current ()->pagedir, page->vaddr);
 
-  lock_acquire (&frame_table_lock);
-
   if (page->type == SWAP)
   {
-    swap_free (page->swap_slot);
+    if (page->swap_slot != -1)
+        swap_free (page->swap_slot);
   }
 
   free (page);
-
-  lock_release (&frame_table_lock);
 }
 
 void page_free_supp_page_table (void)
@@ -238,15 +235,13 @@ void page_free (struct thread *t, void *upage)
 
     struct page *page = hash_entry (e, struct page, elem);
 
-    lock_acquire (&frame_table_lock);
-
     if (page->type == SWAP)
     {
-      swap_free (page->swap_slot);
+      if (page->swap_slot != -1)
+        swap_free (page->swap_slot);
     }
 
     free (page);
-    lock_release (&frame_table_lock);
 }
 
 
