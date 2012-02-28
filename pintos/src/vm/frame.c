@@ -105,6 +105,7 @@ frame_evict (void)
                 file_write (page_to_evict->file, page_to_evict->paddr, page_to_evict->valid_bytes);
                 lock_release (&filesys_lock);
             }
+            pagedir_set_dirty (page_to_evict->pd, page_to_evict->vaddr, false); 
             break;            
     }
 
