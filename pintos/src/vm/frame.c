@@ -16,6 +16,10 @@
 struct hash frame_table;
 struct lock frame_table_lock;
 void *frame_evict (void);
+struct page *run_clock (void);
+void *hand;
+uint32_t user_pool_size;
+
 
 /* Returns a hash for frame f */
 unsigned 
@@ -58,16 +62,18 @@ frame_allocate (struct page *page)
 void *
 frame_evict (void)
 {
-    struct hash_iterator it;
     lock_acquire (&frame_table_lock);
-    hash_first (&it, &frame_table);
     struct page *page_to_evict;
+    // struct hash_iterator it;
+    // hash_first (&it, &frame_table);
 
-    do
-    {
-        page_to_evict = hash_entry (hash_next (&it), struct page, frame_elem);
-    }
-    while (page_to_evict->pinned == true);
+    // do
+    // {
+    //     page_to_evict = hash_entry (hash_next (&it), struct page, frame_elem);
+    // }
+    // while (page_to_evict->pinned == true);
+
+    page_to_evict = run_clock ();
 
     ASSERT (page_to_evict->paddr);
     ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
@@ -162,3 +168,37 @@ frame_dump_table (void)
   lock_release (&frame_table_lock);
 }
 
+/* Returns pointer to the physical frame that should be written to next.
+   This algorithm approximates a LRU heuristic.  Only checks user pages,
+   as kernal pages should never be evicted. This frame pointer is then
+   passed to the eviction function. */
+struct page *
+run_clock (void) 
+{
+  // void *hand = clock_start;
+  // uint32_t pool_size = (uint32_t)end - (uint32_t)base;
+  struct page p;  // Dummy page for hash_find comparison.
+  struct page *page_to_evict; // Pointer to the actual frame.
+  struct hash_elem *e;
+  // struct thread *t = thread_current();
+  // uint32_t *pd = t->pagedir; // Current Page Directory
+  while (true) {
+    //advance hand:
+    hand = (hand + PGSIZE) % user_pool_size + base;
+    p.paddr = hand;
+    e = hash_find(&frame_table, &p.frame_elem);
+    if (e != NULL) 
+    {
+      page_to_evict = hash_entry(e, struct page, frame_elem);
+      if (!pagedir_is_accessed(page_to_evict->pd, page_to_evict->vaddr)) 
+      {
+        if (page_to_evict->pinned == false)
+            return page_to_evict;
+      } 
+      else 
+      {
+        pagedir_set_accessed(page_to_evict->pd, page_to_evict->vaddr, false);
+      }
+    }
+  }
+}
