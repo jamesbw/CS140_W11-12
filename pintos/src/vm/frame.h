@@ -21,6 +21,7 @@ void frame_pin (void *vaddr);
 void frame_unpin (void *vaddr);
 void frame_dump_frame ( struct hash_elem *elem, void *aux UNUSED);
 void frame_dump_table (void);
+void frame_init_base(void *user_base, void *user_end);
 
 
 struct frame
