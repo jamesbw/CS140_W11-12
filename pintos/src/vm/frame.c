@@ -55,6 +55,7 @@ frame_allocate (void *upage)
     if (kpage == NULL)
     {
         //TODO: eviction
+      printf("PAGEFAULT\n");
         new_frame = frame_evict();
     }
     else{
