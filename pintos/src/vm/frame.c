@@ -15,15 +15,14 @@
 
 struct hash frame_table;
 struct lock frame_table_lock;
-void *clock_start;
-void *base, *end;
+
 
 
 void *frame_evict (void);
 
 
 struct page *run_clock (void);
-void *hand;
+void *clock_start;
 void *base;
 uint32_t user_pool_size;
 
@@ -169,9 +168,8 @@ frame_dump_table (void)
 void 
 frame_init_base (void *user_base, void *user_end) 
 {
-  base = user_base;
-  user_pool_size = (uint32_t)(user_end - user_base);
-  hand = user_base;
+  clock_start = base;
+  user_pool_size = (uint32_t)(user_end) - (uint32_t)user_base;
 }
 
 /* Returns pointer to the physical frame that should be written to next.
@@ -181,6 +179,7 @@ frame_init_base (void *user_base, void *user_end)
 struct page *
 run_clock (void) 
 {
+  void *hand = clock_start;
   struct page p;  // Dummy page for hash_find comparison.
   struct page *page_to_evict; // Pointer to the actual page.
   struct hash_elem *e;
@@ -194,9 +193,12 @@ run_clock (void)
       page_to_evict = hash_entry(e, struct page, frame_elem);
       if (!pagedir_is_accessed(page_to_evict->pd, page_to_evict->vaddr)) 
         if (page_to_evict->pinned == false)
+	{
+	  clock_start = hand;
           return page_to_evict;
-      else 
-        pagedir_set_accessed(page_to_evict->pd, page_to_evict->vaddr, false);
+	}
+        else 
+	  pagedir_set_accessed(page_to_evict->pd, page_to_evict->vaddr, false);
     }
   }
 }
