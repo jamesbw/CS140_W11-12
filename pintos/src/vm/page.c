@@ -238,12 +238,15 @@ void page_free (struct thread *t, void *upage)
 
     struct page *page = hash_entry (e, struct page, elem);
 
+    lock_acquire (&frame_table_lock);
+
     if (page->type == SWAP)
     {
       swap_free (page->swap_slot);
     }
 
     free (page);
+    lock_release (&frame_table_lock);
 }
 
 
