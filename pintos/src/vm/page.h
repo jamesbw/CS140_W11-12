@@ -21,9 +21,10 @@ enum page_type
 };
 
 
-struct page 
-{
+struct page{
   void *vaddr;
+  void *paddr;
+  bool pinned;
   uint32_t *pd;
   enum page_type type;
   bool writable;
@@ -32,9 +33,25 @@ struct page
   struct file *file;
   off_t offset;
   uint32_t valid_bytes; // mmapped pages might be incomplete and must be filled with zeros.
-  struct hash_elem elem;
+  struct hash_elem page_elem;
+  struct hash_elem frame_elem;
   struct lock busy; // busy when page is being paged out
 };
+
+// struct page 
+// {
+//   void *vaddr;
+//   uint32_t *pd;
+//   enum page_type type;
+//   bool writable;
+//   uint32_t swap_slot;
+//   mapid_t mapid;
+//   struct file *file;
+//   off_t offset;
+//   uint32_t valid_bytes; // mmapped pages might be incomplete and must be filled with zeros.
+//   struct hash_elem elem;
+//   struct lock busy; // busy when page is being paged out
+// };
 
 
 unsigned page_hash (const struct hash_elem *p_, void *aux);
@@ -46,7 +63,7 @@ struct page *page_insert_zero (void *vaddr);
 struct page *page_lookup (struct hash *supp_page_table, void *address);
 void page_extend_stack (void *vaddr);
 // bool install_page (void *upage, void *kpage, bool writable);
-void page_free (struct thread *t, void *upage);
+void page_free ( struct hash_elem *elem, void *aux UNUSED);
 
 void page_dump_page ( struct hash_elem *elem, void *aux UNUSED);
 void page_dump_table (void);

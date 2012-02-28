@@ -343,7 +343,7 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
     }
   }
 
-  mapid_t mapid = fd; //TOOD allocate?
+  mapid_t mapid = fd; 
 
   struct mmapped_file *mf = malloc (sizeof (struct mmapped_file));
   mf->file = file_reopen (fw->file);

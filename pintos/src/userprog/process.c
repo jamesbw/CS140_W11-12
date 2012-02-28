@@ -620,16 +620,17 @@ setup_stack (void **esp, const char *command_line)
   bool success = false;
   uint32_t offset = 0;
   uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
-  kpage = frame_allocate (upage);
-  if (kpage != NULL) 
+  struct *supp_page = page_insert_zero (upage);
+  frame_allocate (supp_page);
+  // kpage = frame_allocate (upage);
+  if (supp_page->paddr != NULL) 
     {
-      memset (kpage, 0, PGSIZE);
-      success = install_page (upage, kpage, true);
-      frame_lookup (kpage)->pinned = false;
+      memset (supp_page->paddr, 0, PGSIZE);
+      success = install_page (upage, supp_page->paddr, true);
+      supp_page->pinned = false;
       // success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success){
 
-        page_insert_zero (upage);
         char *cl_copy = palloc_get_page (0);
         if (cl_copy == NULL)
           return false;
@@ -734,9 +735,14 @@ setup_stack (void **esp, const char *command_line)
       }
       else
       {
-        frame_free (kpage);
+        hash_delete (thread_current ()->supp_page_table, &supp_page->page_elem);
+        page_free (supp_page);
         // palloc_free_page (kpage);
       }
+    }
+    else{
+      hash_delete (thread_current ()->supp_page_table, &supp_page->page_elem);
+      free (supp_page);
     }
   return success;
 }
@@ -833,8 +839,8 @@ process_munmap (mapid_t mapid)
     return;
 
   void *page;
+  struct page *supp_page;
   uint32_t *pd = thread_current ()->pagedir;
-  void *kpage;
 
   lock_acquire (&filesys_lock);
   int size = file_length (mf->file);
@@ -853,14 +859,19 @@ process_munmap (mapid_t mapid)
       lock_release (&filesys_lock);
       frame_unpin (page);
     }
-    kpage = pagedir_get_page (pd, page);
-    if (kpage) // page may not be in physical memory
-    {
-      frame_free (kpage);
-      // palloc_free_page (kpage);
-      pagedir_clear_page (pd, page);
-    }
-    page_free ( thread_current (), page);
+
+    struct hash_elem *elem= &page_lookup (thread_current ()->supp_page_table, page)->page_elem;
+    hash_delete (thread_current ()->supp_page_table, elem);
+    page_free (elem, NULL);
+
+    // kpage = pagedir_get_page (pd, page);
+    // if (kpage) // page may not be in physical memory
+    // {
+    //   frame_free (kpage);
+    //   // palloc_free_page (kpage);
+    //   pagedir_clear_page (pd, page);
+    // }
+    // page_free ( thread_current (), page);
   }
 
 
