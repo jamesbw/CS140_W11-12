@@ -119,6 +119,7 @@ frame_evict (void)
     page_to_evict->paddr = NULL;
     lock_release (&page_to_evict->busy);
     lock_release (&frame_table_lock);
+    return kpage;
 }
 
 
