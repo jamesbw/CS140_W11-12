@@ -616,11 +616,10 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp, const char *command_line)
 {
-  uint8_t *kpage;
   bool success = false;
   uint32_t offset = 0;
   uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
-  struct *supp_page = page_insert_zero (upage);
+  struct page *supp_page = page_insert_zero (upage);
   frame_allocate (supp_page);
   // kpage = frame_allocate (upage);
   if (supp_page->paddr != NULL) 
@@ -839,7 +838,6 @@ process_munmap (mapid_t mapid)
     return;
 
   void *page;
-  struct page *supp_page;
   uint32_t *pd = thread_current ()->pagedir;
 
   lock_acquire (&filesys_lock);

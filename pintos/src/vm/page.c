@@ -10,13 +10,13 @@
 #include <stdio.h>
 #include "threads/synch.h"
 
-void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED);
+// void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED);
 
 
 /* Returns a hash for page p */
 unsigned 
 page_hash(const struct hash_elem *p_, void *aux UNUSED) {
-  const struct page *p = hash_entry(p_, struct page, elem);
+  const struct page *p = hash_entry(p_, struct page, page_elem);
   return hash_bytes(&p->vaddr, sizeof(p->vaddr));
 }
 
@@ -24,8 +24,8 @@ page_hash(const struct hash_elem *p_, void *aux UNUSED) {
 bool 
 page_less(const struct hash_elem *a_, const struct hash_elem *b_,
 void *aux UNUSED) {
-  const struct page *a = hash_entry(a_, struct page, elem);
-  const struct page *b = hash_entry(b_, struct page, elem);
+  const struct page *a = hash_entry(a_, struct page, page_elem);
+  const struct page *b = hash_entry(b_, struct page, page_elem);
   return a->vaddr < b->vaddr;
 }
 
@@ -61,6 +61,8 @@ page_insert_mmapped (void *vaddr, mapid_t mapid, struct file *file, off_t offset
   struct thread *cur = thread_current ();
 
   new_page->vaddr = vaddr;
+  new_page->paddr = NULL;
+  new_page->pinned = false;
   new_page->pd = cur->pagedir;
   new_page->type = MMAPPED;
   new_page->writable = true;
@@ -72,7 +74,7 @@ page_insert_mmapped (void *vaddr, mapid_t mapid, struct file *file, off_t offset
   lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
-  hash_insert (cur->supp_page_table, &new_page->elem);
+  hash_insert (cur->supp_page_table, &new_page->page_elem);
   // lock_release (&page_table_lock);
   return new_page;
 }
@@ -89,6 +91,8 @@ page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t v
   struct thread *cur = thread_current ();
 
   new_page->vaddr = vaddr;
+  new_page->paddr = NULL;
+  new_page->pinned = false;
   new_page->pd = cur->pagedir;
   new_page->type = EXECUTABLE;
   new_page->writable = writable;
@@ -100,7 +104,7 @@ page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t v
   lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
-  hash_insert (cur->supp_page_table, &new_page->elem);
+  hash_insert (cur->supp_page_table, &new_page->page_elem);
   // lock_release (&page_table_lock);
 
   return new_page;
@@ -118,6 +122,8 @@ page_insert_zero (void *vaddr)
   struct thread *cur = thread_current ();
 
   new_page->vaddr = vaddr;
+  new_page->paddr = NULL;
+  new_page->pinned = false;
   new_page->pd = cur->pagedir;
   new_page->type = ZERO;
   new_page->writable = true;
@@ -129,7 +135,7 @@ page_insert_zero (void *vaddr)
   lock_init(&new_page->busy);
 
   // lock_acquire (&page_table_lock);
-  hash_insert (cur->supp_page_table, &new_page->elem);
+  hash_insert (cur->supp_page_table, &new_page->page_elem);
   // lock_release (&page_table_lock);
 
   return new_page;
@@ -158,11 +164,15 @@ void page_extend_stack (void *vaddr)
     thread_exit ();
 
   void *page_addr = pg_round_down (vaddr);
-  void *kpage = frame_allocate (page_addr);
-  memset (kpage, 0, PGSIZE);
-  pagedir_set_page (thread_current ()->pagedir, page_addr, kpage, true);
-  page_insert_zero (page_addr);
-  frame_lookup (kpage)->pinned = false;
+  struct page *new_page = page_insert_zero (page_addr);
+
+  page_in (new_page);
+  new_page->pinned = false;
+
+  // void *kpage = frame_allocate (page_addr);
+  // memset (kpage, 0, PGSIZE);
+  // pagedir_set_page (thread_current ()->pagedir, page_addr, kpage, true);
+  // frame_lookup (kpage)->pinned = false;
 }
 
 //  Adds a mapping from user virtual address UPAGE to kernel
@@ -187,16 +197,21 @@ void page_extend_stack (void *vaddr)
 
 
 
-void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
+void page_free ( struct hash_elem *elem, void *aux UNUSED)
 {
   struct page *page = hash_entry (elem, struct page, elem);
 
-  void *kpage = pagedir_get_page (thread_current ()->pagedir, page->vaddr);
-  if (kpage)
-  {
-    frame_free (kpage);
+  if (page->paddr){
+    lock_acquire (&frame_table_lock);
+    if (page->paddr)
+    {
+      hash_delete (&frame_table, &page->frame_elem);
+      palloc_free_page (page->paddr);
+    }
+    lock_release (&frame_table_lock);
   }
-  pagedir_clear_page (thread_current ()->pagedir, page->vaddr);
+
+  pagedir_clear_page (page->pd, page->vaddr);
 
   if (page->type == SWAP)
   {
@@ -204,46 +219,93 @@ void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED)
         swap_free (page->swap_slot);
   }
 
-  free (page);
+  free(page);
+
+  // void *kpage = pagedir_get_page (thread_current ()->pagedir, page->vaddr);
+  // if (kpage)
+  // {
+  //   frame_free (kpage);
+  // }
+  // pagedir_clear_page (thread_current ()->pagedir, page->vaddr);
+
+  // if (page->type == SWAP)
+  // {
+  //   if ( (int) page->swap_slot != -1)
+  //       swap_free (page->swap_slot);
+  // }
+
+  // free (page);
 }
 
 void page_free_supp_page_table (void)
 {
-  hash_destroy (thread_current ()->supp_page_table, page_free_no_delete);
+  hash_destroy (thread_current ()->supp_page_table, page_free);
 }
 
-void page_free (struct thread *t, void *upage)
+// void page_free (struct thread *t, void *upage)
+// {
+//     void *kpage = pagedir_get_page (t->pagedir, upage);
+//     if (kpage)
+//     {
+//       frame_free (kpage);
+//     }
+//     pagedir_clear_page (t->pagedir, upage);
+
+
+//     struct page p;
+//     struct hash_elem *e;
+
+//     p.vaddr = upage;
+
+//     // lock_acquire (&page_table_lock);
+//     e = hash_delete (t->supp_page_table, &p.elem);
+//     // lock_release (&page_table_lock);
+
+//     ASSERT (e);
+
+//     struct page *page = hash_entry (e, struct page, elem);
+
+//     if (page->type == SWAP)
+//     {
+//       if ( (int) page->swap_slot != -1)
+//         swap_free (page->swap_slot);
+//     }
+
+//     free (page);
+// }
+
+
+void
+page_in (struct page *supp_page)
 {
-    void *kpage = pagedir_get_page (t->pagedir, upage);
-    if (kpage)
-    {
-      frame_free (kpage);
-    }
-    pagedir_clear_page (t->pagedir, upage);
-
-
-    struct page p;
-    struct hash_elem *e;
-
-    p.vaddr = upage;
-
-    // lock_acquire (&page_table_lock);
-    e = hash_delete (t->supp_page_table, &p.elem);
-    // lock_release (&page_table_lock);
-
-    ASSERT (e);
-
-    struct page *page = hash_entry (e, struct page, elem);
-
-    if (page->type == SWAP)
-    {
-      if ( (int) page->swap_slot != -1)
-        swap_free (page->swap_slot);
-    }
-
-    free (page);
+  frame_allocate (supp_page->vaddr);
+  lock_acquire (&supp_page->busy);
+  switch (supp_page->type)
+  {
+    case EXECUTABLE:
+    case MMAPPED:
+      lock_acquire (&filesys_lock);
+      file_seek (supp_page->file, supp_page->offset);
+      file_read (supp_page->file, supp_page->paddr, supp_page->valid_bytes);
+      lock_release (&filesys_lock);
+      memset (supp_page->paddr + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
+      break;
+    case SWAP:
+      lock_acquire (&filesys_lock);
+      swap_read_page (supp_page->swap_slot, supp_page->paddr);
+      lock_release (&filesys_lock);
+      swap_free (supp_page->swap_slot);
+      supp_page->swap_slot = -1;
+      break;
+    case ZERO:
+      memset (supp_page->paddr, 0, PGSIZE);
+      break;
+    default:
+      break;
+  }
+  lock_release (&supp_page->busy);
+  pagedir_set_page (supp_page->pd, page_addr, supp_page->paddr, supp_page->writable);
 }
-
 
 
 // void
@@ -272,7 +334,7 @@ void page_free (struct thread *t, void *upage)
 
 void page_dump_page ( struct hash_elem *elem, void *aux UNUSED)
 {
-  struct page *page = hash_entry (elem, struct page, elem);
+  struct page *page = hash_entry (elem, struct page, page_elem);
   printf ("vaddr: %p\n", page->vaddr);
 }
 
