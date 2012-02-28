@@ -112,9 +112,7 @@ start_process (void *spf_)
     lock_acquire(&process_lock);
     list_push_back ( &process_list, &new_process->elem);
     lock_release(&process_lock);
-    // lock_acquire ( &filesys_lock);
     success = load (file_name, &if_.eip, &if_.esp, &new_process->executable);
-    // lock_release ( &filesys_lock);
 
   }
   spf->success = success;
@@ -142,9 +140,7 @@ start_process (void *spf_)
    child of the calling process, or if process_wait() has already
    been successfully called for the given TID, returns -1
    immediately, without waiting.
-
-   This function will be implemented in problem 2-2.  For now, it
-   does nothing. */
+ */
 int
 process_wait (tid_t child_tid UNUSED) 
 {
@@ -215,11 +211,9 @@ process_exit (void)
     process_munmap ( mf->mapid); 
   }
 
-  //Free swap
 
-  //Free all frames
-
-  //Frre all supp
+  //Free all supplemental pages
+  //Frees physical memory and swap slots if needed
   page_free_supp_page_table (); 
 
   // Update the process list
@@ -568,7 +562,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
-  // file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
       /* Calculate how to fill this page.
@@ -581,27 +574,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       // create new page in supp table
       page_insert_executable (upage, file, ofs, page_read_bytes, writable);
       ofs += PGSIZE;
-
-
-      /* Get a page of memory. */
-      // uint8_t *kpage = palloc_get_page (PAL_USER);
-      // if (kpage == NULL)
-      //   return false;
-
-      // /* Load this page. */
-      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-      //   {
-      //     palloc_free_page (kpage);
-      //     return false; 
-      //   }
-      // memset (kpage + page_read_bytes, 0, page_zero_bytes);
-
-      // /* Add the page to the process's address space. */
-      // if (!install_page (upage, kpage, writable)) 
-      //   {
-      //     palloc_free_page (kpage);
-      //     return false; 
-      //   }
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -621,13 +593,11 @@ setup_stack (void **esp, const char *command_line)
   uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
   struct page *supp_page = page_insert_zero (upage);
   frame_allocate (supp_page);
-  // kpage = frame_allocate (upage);
   if (supp_page->paddr != NULL) 
     {
       memset (supp_page->paddr, 0, PGSIZE);
       success = install_page (upage, supp_page->paddr, true);
       supp_page->pinned = false;
-      // success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success){
 
         char *cl_copy = palloc_get_page (0);
@@ -646,12 +616,7 @@ setup_stack (void **esp, const char *command_line)
           argc ++ ;
           *esp -= strlen(token) + 1;
       	  offset += strlen(token) + 1;
-      	  // if (offset >= 4096) 
-         //  {
-      	  //   palloc_free_page(cl_copy);
-      	  //   palloc_free_page(kpage);
-      	  //   return false;
-      	  // }
+
           memcpy(*esp, token, strlen(token) + 1);          
         }
         char *end_of_args = *esp;
@@ -660,23 +625,13 @@ setup_stack (void **esp, const char *command_line)
         int word_align_length = (uint32_t) *esp % 4;
         *esp -= word_align_length;
       	offset += word_align_length;
-      	// if (offset >= 4096) 
-       //  {
-      	//   palloc_free_page(cl_copy);
-      	//   palloc_free_page(kpage);
-      	//   return false;
-      	// }
+
       	memset(*esp, 0, word_align_length);
 
         //push sentinel
         *esp -= 4;
       	offset += 4;
-      	// if (offset >= 4096) 
-       //  {
-      	//   palloc_free_page(cl_copy);
-      	//   palloc_free_page(kpage);
-      	//   return false;
-      	// }
+
         *((uint32_t *) *esp) = 0;
 
         //pushing argv elements
@@ -687,12 +642,7 @@ setup_stack (void **esp, const char *command_line)
           count ++;
           *esp -=4;
       	  offset += 4;
-      	  // if (offset >= 4096) 
-         //  {
-      	  //   palloc_free_page(cl_copy);
-      	  //   palloc_free_page(kpage);
-      	  //   return false;
-      	  // }
+
           *((char **) *esp) = token;
           token = strchr(token,'\0') + 1;
         }
@@ -700,34 +650,19 @@ setup_stack (void **esp, const char *command_line)
         //pushing &argv
         *esp -=4;
       	offset += 4;
-      	// if (offset >= 4096) 
-       //  {
-      	//   palloc_free_page(cl_copy);
-      	//   palloc_free_page(kpage);
-      	//   return false;
-      	// }
+
         *((char ***) *esp )=  *esp + 4;
 
         //pusing argc
         *esp -= 4;
       	offset += 4;
-      	// if (offset >= 4096) 
-       //  {
-      	//   palloc_free_page(cl_copy);
-      	//   palloc_free_page(kpage);
-      	//   return false;
-      	// }
+
         *((uint32_t *) *esp) = argc;
 
         //pushing fake return address
         *esp -=4;
       	offset += 4;
-      	// if (offset >= 4096) 
-       //  {
-      	//   palloc_free_page(cl_copy);
-      	//   palloc_free_page(kpage);
-      	//   return false;
-      	// }
+
         memset(*esp, 0, 4);
 
         palloc_free_page (cl_copy);
@@ -736,7 +671,6 @@ setup_stack (void **esp, const char *command_line)
       {
         hash_delete (thread_current ()->supp_page_table, &supp_page->page_elem);
         page_free (&supp_page->page_elem, NULL);
-        // palloc_free_page (kpage);
       }
     }
     else{
@@ -862,17 +796,8 @@ process_munmap (mapid_t mapid)
     hash_delete (thread_current ()->supp_page_table, elem);
     page_free (elem, NULL);
 
-    // kpage = pagedir_get_page (pd, page);
-    // if (kpage) // page may not be in physical memory
-    // {
-    //   frame_free (kpage);
-    //   // palloc_free_page (kpage);
-    //   pagedir_clear_page (pd, page);
-    // }
-    // page_free ( thread_current (), page);
   }
-
-
+  
   //remove from list of mmapped files
   list_remove (&mf->elem);
   free (mf);

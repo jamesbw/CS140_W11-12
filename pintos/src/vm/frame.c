@@ -41,7 +41,6 @@ frame_allocate (struct page *page)
     ASSERT (page->paddr == NULL);
 
     void *kpage = palloc_get_page (PAL_USER);
-    // struct frame *new_frame;
     if (kpage == NULL)
     {
         //TODO: eviction
@@ -53,51 +52,8 @@ frame_allocate (struct page *page)
     lock_acquire (&frame_table_lock);
     hash_insert (&frame_table, &page->frame_elem);
     lock_release (&frame_table_lock);
-
-
-    // else{
-        
-    //     new_frame = malloc (sizeof (struct frame));
-    //     ASSERT (new_frame);
-    //     new_frame->pinned = true;
-    //     new_frame->paddr = kpage; // TODO - PHYS_BASE?
-    //     lock_acquire (&frame_table_lock);
-    //     hash_insert (&frame_table, &new_frame->elem);
-    //     lock_release (&frame_table_lock);
-    // }
-    // // add frame to frame table
-
-    // new_frame->owner_thread = thread_current ();
-    // new_frame->upage = upage;
-
-    // return new_frame->paddr;
 }
 
-// void
-// frame_free (void *kpage)
-// {
-//     struct frame f;
-//     // struct hash_elem *e;
-
-//     struct frame *frame_to_delete;
-
-//     f.paddr = kpage;
-//     lock_acquire (&frame_table_lock);
-//     frame_to_delete = hash_entry (hash_find (&frame_table, &f.elem), struct frame, elem);
-//     if (frame_to_delete->owner_thread == thread_current ())
-//     {
-//         hash_delete (&frame_table, &f.elem);
-//         free (frame_to_delete);
-//         palloc_free_page (kpage);
-//     }
-
-//     lock_release (&frame_table_lock);
-
-//     // ASSERT (e);
-
-
-//     // free (hash_entry (e, struct frame, elem));
-// }
 
 void *
 frame_evict (void)
@@ -119,14 +75,6 @@ frame_evict (void)
     void *kpage = page_to_evict->paddr;
     lock_acquire (&page_to_evict->busy);
     pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
-    
-
-    // frame_to_evict->pinned = true;
-    // struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
-    // frame_to_evict->owner_thread = NULL;
-    // ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
-
-
 
     switch (page_to_evict->type)
     {
@@ -166,30 +114,10 @@ frame_evict (void)
     lock_release (&page_to_evict->busy);
 
 
-    // void *result_kpage = frame_to_evict->paddr;
     lock_release (&frame_table_lock);
-    // frame_free (result_kpage);
     return kpage;
 
 }
-
-// struct frame *
-// frame_lookup (void *paddr)
-// {
-//     struct frame f;
-//     f.paddr = paddr;
-//     struct hash_elem *e;
-//     if (!lock_held_by_current_thread (&frame_table_lock))
-//     {
-//         lock_acquire (&frame_table_lock);
-//         e = hash_find (&frame_table, &f.elem);
-//         lock_release (&frame_table_lock);
-//     }
-//     else
-//         e = hash_find (&frame_table, &f.elem);
-    
-//     return e!= NULL ? hash_entry (e, struct frame, elem) : NULL; 
-// }
 
 void 
 frame_pin (void *vaddr)
@@ -218,13 +146,15 @@ frame_unpin (void *vaddr)
     supp_page->pinned = false;
 }
 
-void frame_dump_frame ( struct hash_elem *elem, void *aux UNUSED)
+void 
+frame_dump_frame ( struct hash_elem *elem, void *aux UNUSED)
 {
   struct page *page = hash_entry (elem, struct page, frame_elem);
   printf ("paddr: %p , vaddr: %p\n", page->paddr, page->vaddr);
 }
 
-void frame_dump_table (void)
+void 
+frame_dump_table (void)
 {
   lock_acquire (&frame_table_lock);
   hash_apply (&frame_table, frame_dump_frame);
