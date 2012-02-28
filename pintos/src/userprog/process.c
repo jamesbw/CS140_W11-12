@@ -735,7 +735,7 @@ setup_stack (void **esp, const char *command_line)
       else
       {
         hash_delete (thread_current ()->supp_page_table, &supp_page->page_elem);
-        page_free (supp_page);
+        page_free (&supp_page->page_elem, NULL);
         // palloc_free_page (kpage);
       }
     }
