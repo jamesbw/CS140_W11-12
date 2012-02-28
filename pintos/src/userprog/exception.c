@@ -165,35 +165,8 @@ page_fault (struct intr_frame *f)
     struct page *supp_page = page_lookup (thread_current ()->supp_page_table, page_addr);
     if (supp_page)
     {
-      void *kpage;
-      kpage = frame_allocate (page_addr);
-      lock_acquire (&supp_page->busy);
-      switch (supp_page->type)
-      {
-        case EXECUTABLE:
-        case MMAPPED:
-          lock_acquire (&filesys_lock);
-          file_seek (supp_page->file, supp_page->offset);
-          file_read (supp_page->file, kpage, supp_page->valid_bytes);
-          lock_release (&filesys_lock);
-          memset (kpage + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
-          break;
-        case SWAP:
-          lock_acquire (&filesys_lock);
-          swap_read_page (supp_page->swap_slot, kpage);
-          lock_release (&filesys_lock);
-          swap_free (supp_page->swap_slot);
-          supp_page->swap_slot = -1;
-          break;
-        case ZERO:
-          memset (kpage, 0, PGSIZE);
-          break;
-        default:
-          break;
-      }
-      lock_release (&supp_page->busy);
-      pagedir_set_page (supp_page->pd, page_addr, kpage, supp_page->writable);
-      frame_lookup (kpage)->pinned = false;
+      page_in (supp_page);
+      supp_page->pinned = false;
       return;
     }
     else
@@ -203,27 +176,14 @@ page_fault (struct intr_frame *f)
         page_extend_stack (fault_addr);
         return;
       }
-        // terminate
-    }   
+      else
+        thread_exit ();
+    }
+
   }
   else
+    // writing r/o page
     thread_exit ();
     
-    // terminate // writing r/o page
-
-
-
-
-
-
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  kill (f);
 }
 

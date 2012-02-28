@@ -15,7 +15,18 @@
 
 struct hash frame_table;
 struct lock frame_table_lock;
+void *clock_start;
+void *base, end;
+
+
 void *frame_evict (void);
+void *run_clock(void);
+
+void frame_init_base(void *user_base, void *user_end) {
+  clock_start = user_base;
+  base = user_base;
+  end = user_end;
+}
 
 /* Returns a hash for frame f */
 unsigned 
@@ -75,7 +86,7 @@ frame_evict (void)
     void *kpage = page_to_evict->paddr;
     lock_acquire (&page_to_evict->busy);
     pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
- 
+
     switch (page_to_evict->type)
     {
         case EXECUTABLE:
@@ -112,13 +123,6 @@ frame_evict (void)
     hash_delete (&frame_table, &page_to_evict->frame_elem);
     page_to_evict->paddr = NULL;
     lock_release (&page_to_evict->busy);
-
-
-    lock_release (&frame_table_lock);
-    return kpage;
-
-}
-
 
 
 

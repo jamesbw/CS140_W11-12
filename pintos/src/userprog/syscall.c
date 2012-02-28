@@ -343,7 +343,7 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
     }
   }
 
-  mapid_t mapid = fd; //TOOD allocate?
+  mapid_t mapid = fd; 
 
   struct mmapped_file *mf = malloc (sizeof (struct mmapped_file));
   mf->file = file_reopen (fw->file);
@@ -369,48 +369,6 @@ syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
 
   process_munmap ( (mapid_t) mapid);
 
-  // struct mmapped_file *mf = lookup_mmapped ( (mapid_t) mapid);
-  // if (mf == NULL)
-  //   return;
-
-  // void *page;
-  // uint32_t *pd = thread_current ()->pagedir;
-  // void *kpage;
-  // int size = file_length (mf->file);
-
-  // for (page = mf->base_page; page - mf->base_page < size; page += PGSIZE)
-  // {
-  //   if ( pagedir_is_dirty (pd, page))
-  //   {
-  //     off_t offset = (off_t) (page - mf->base_page);
-  //     file_seek (mf->file, offset);
-  //     int bytes_to_write = size - offset > PGSIZE ? PGSIZE : size - offset;
-  //     file_write (mf->file, page, bytes_to_write);
-  //   }
-  //   kpage = pagedir_get_page (pd, page);
-  //   frame_free (kpage);
-  //   pagedir_clear_page (pd, page);
-  //   page_free (page);
-  // }
-
-
-  // //remove from list of mmapped files
-  // list_remove (&mf->elem);
-  // free (mf);
-
-  // struct list_elem *e;
-  // struct list *mmap_list = &thread_current ()->mmapped_files;
-
-  // for (e = list_begin (mmap_list); e != list_end (mmap_list);
-  //      e = list_next (e))
-  // {
-  //   struct mmapped_file *mf = list_entry (e, struct mmapped_file, elem);
-  //   if (mf->mapid == (mapid_t) mapid){
-  //     list_remove (e);
-  //     free (mf);
-  //     break;
-  //   }
-  // }
 }
 
 
