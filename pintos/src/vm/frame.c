@@ -115,6 +115,7 @@ frame_evict (void)
     frame_to_evict = hash_entry(e, struct frame, elem);
     frame_to_evict->pinned = true;
     struct page *page_to_evict = page_lookup(frame_to_evict->owner_thread->supp_page_table, frame_to_evict->upage);
+    frame_to_evict->owner_thread = NULL;
     ASSERT (pagedir_get_page (page_to_evict->pd, page_to_evict->vaddr));
     lock_acquire (&page_to_evict->busy);
     pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
@@ -245,6 +246,7 @@ frame_pin (void *vaddr)
             swap_read_page (supp_page->swap_slot, kpage);
             lock_release (&filesys_lock);
             swap_free (supp_page->swap_slot);
+            supp_page->swap_slot = -1;
             break;
           case ZERO:
             memset (kpage, 0, PGSIZE);
