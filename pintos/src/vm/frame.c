@@ -196,11 +196,10 @@ run_clock (void)
       if (!pagedir_is_accessed(page_to_evict->pd, page_to_evict->vaddr)) 
       {
         if (page_to_evict->pinned == false)
-	{
           return page_to_evict;
-	}
-      } else 
-	  pagedir_set_accessed(page_to_evict->pd, page_to_evict->vaddr, false);
+      } 
+      else 
+	pagedir_set_accessed(page_to_evict->pd, page_to_evict->vaddr, false);
     }
   }
 }
