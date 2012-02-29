@@ -151,25 +151,25 @@ void
 page_free ( struct hash_elem *elem, void *aux UNUSED)
 {
   struct page *page = hash_entry (elem, struct page, page_elem);
-
   if (page->paddr){
     lock_acquire (&frame_table_lock);
     if (page->paddr)
     {
       hash_delete (&frame_table, &page->frame_elem);
       palloc_free_page (page->paddr);
+      pagedir_clear_page (page->pd, page->vaddr);
     }
     lock_release (&frame_table_lock);
   }
 
-  pagedir_clear_page (page->pd, page->vaddr);
 
+  lock_acquire (&page->busy);
   if (page->type == SWAP)
   {
     if ( (int) page->swap_slot != -1)
         swap_free (page->swap_slot);
   }
-
+  lock_release (&page->busy);
   free(page);
 }
 
