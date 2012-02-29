@@ -188,13 +188,16 @@ run_clock (void)
     if (e != NULL) 
     {
       page_to_evict = hash_entry(e, struct page, frame_elem);
-      if (!pagedir_is_accessed(page_to_evict->pd, page_to_evict->vaddr))
+      if (!pagedir_is_accessed(page_to_evict->pd, page_to_evict->vaddr) && !pagedir_is_accessed (init_page_dir, page_to_evict->paddr))
       { 
         if (page_to_evict->pinned == false)
           return page_to_evict;
       }
       else 
+      {
         pagedir_set_accessed(page_to_evict->pd, page_to_evict->vaddr, false);
+        pagedir_set_accessed (init_page_dir, page_to_evict->paddr, false);
+      }
     }
   }
 }
