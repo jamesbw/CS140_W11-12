@@ -2,12 +2,14 @@
 #include "devices/block.h"
 #include <kernel/bitmap.h>
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 
 
 void swap_init (void)
 {
 	struct block *swap_block = block_get_role (BLOCK_SWAP);
 	swap_bitmap = bitmap_create (block_size (swap_block) * BLOCK_SECTOR_SIZE / PGSIZE);
+	lock_init (&swap_lock);
 }
 
 void swap_free (uint32_t swap_slot)
@@ -16,8 +18,10 @@ void swap_free (uint32_t swap_slot)
 }
 
 uint32_t swap_allocate_slot (void)
-{
+{	
+	lock_acquire (&swap_lock);
 	uint32_t swap_slot = bitmap_scan_and_flip (swap_bitmap, 0, 1, false);
+	lock_release (&swap_lock);
 	ASSERT (swap_slot != BITMAP_ERROR);
 	return swap_slot;
 }

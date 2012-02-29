@@ -4,9 +4,11 @@
 #include <stdint.h>
 #include <hash.h>
 #include <kernel/bitmap.h>
+#include "threads/synch.h"
 
 
 struct bitmap *swap_bitmap;
+struct lock swap_lock;
 
 void swap_init (void);
 void swap_free (uint32_t swap_slot);
