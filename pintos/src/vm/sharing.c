@@ -79,6 +79,7 @@ void sharing_unregister_page (struct page *page)
 		lock_acquire (&frame_table_lock);
 		if (hash_find (&frame_table, &page->frame_elem) == &page->frame_elem)
 		{
+			lock_release (&frame_table_lock);
 			ASSERT (page->paddr);
 			list_remove (&page->exec_elem);
 			struct list_elem *e = list_begin (&shared_exec->user_pages);
@@ -89,6 +90,7 @@ void sharing_unregister_page (struct page *page)
 				sharing_page->paddr = page->paddr;
 				pagedir_set_page (sharing_page->pd, sharing_page->vaddr, sharing_page->paddr, false);
 			}
+			lock_acquire (&frame_table_lock);
 			hash_insert (&frame_table, &sharing_page->frame_elem);
 			lock_release (&sharing_page->busy);
 			hash_delete (&frame_table, &page->frame_elem);
