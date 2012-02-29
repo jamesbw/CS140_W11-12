@@ -83,8 +83,11 @@ void sharing_unregister_page (struct page *page)
 			list_remove (&page->exec_elem);
 			struct list_elem *e = list_begin (&shared_exec->user_pages);
 			struct page *sharing_page = list_entry (e, struct page, exec_elem);
-			sharing_page->paddr = page->paddr;
-			pagedir_set_page (sharing_page->pd, sharing_page->vaddr, sharing_page->paddr, false);
+			if (pagedir_get_page (sharing_page->pd, sharing_page->vaddr) == NULL)
+			{
+				sharing_page->paddr = page->paddr;
+				pagedir_set_page (sharing_page->pd, sharing_page->vaddr, sharing_page->paddr, false);
+			}
 			hash_delete (&frame_table, &page->frame_elem);
 			hash_insert (&frame_table, &sharing_page->frame_elem);
 		}
