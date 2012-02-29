@@ -16,6 +16,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include <hash.h>
+#include <string.h>
 
 static void syscall_handler (struct intr_frame *);
 static void verify_uaddr ( void *uaddr);
@@ -193,7 +194,7 @@ void syscall_remove (struct intr_frame *f, uint32_t file_name)
 void syscall_open (struct intr_frame *f, uint32_t file_name) 
 {
   verify_uaddr ((char *) file_name);
-  frame_pin ((char *) file_name);
+  pin_buffer ((char *) file_name, strlen ((char *) file_name));
   lock_acquire (&filesys_lock);
   struct file *file = filesys_open ( (char *) file_name);
   if (file == NULL) {
@@ -204,7 +205,7 @@ void syscall_open (struct intr_frame *f, uint32_t file_name)
     f->eax = fw->fd;
   }
   lock_release (&filesys_lock);
-  frame_unpin ((char *) file_name);
+  unpin_buffer ((char *) file_name, strlen ((char *) file_name));
 }
 
 void syscall_filesize (struct intr_frame *f, uint32_t fd) 
