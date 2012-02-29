@@ -75,6 +75,9 @@ frame_evict (void)
 
     void *kpage = page_to_evict->paddr;
     lock_acquire (&page_to_evict->busy);
+    hash_delete (&frame_table, &page_to_evict->frame_elem);
+    page_to_evict->paddr = NULL;
+    lock_release (&frame_table_lock);
     pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
 
     switch (page_to_evict->type)
@@ -91,14 +94,14 @@ frame_evict (void)
                 page_to_evict->type = SWAP;
                 page_to_evict->swap_slot = swap_allocate_slot ();
                 lock_acquire (&filesys_lock);
-                swap_write_page ( page_to_evict->swap_slot, page_to_evict->paddr);
+                swap_write_page ( page_to_evict->swap_slot, kpage);
                 lock_release (&filesys_lock);
             }
             break;
         case SWAP:
             page_to_evict->swap_slot = swap_allocate_slot ();
             lock_acquire (&filesys_lock);
-            swap_write_page ( page_to_evict->swap_slot, page_to_evict->paddr);
+            swap_write_page ( page_to_evict->swap_slot, kpage);
             lock_release (&filesys_lock);
             break;
         case MMAPPED:
@@ -107,7 +110,7 @@ frame_evict (void)
                 //copy back to disk
                 lock_acquire (&filesys_lock);
                 file_seek (page_to_evict->file, page_to_evict->offset);
-                file_write (page_to_evict->file, page_to_evict->paddr, page_to_evict->valid_bytes);
+                file_write (page_to_evict->file, kpage, page_to_evict->valid_bytes);
                 lock_release (&filesys_lock);
             }
             pagedir_set_dirty (page_to_evict->pd, page_to_evict->vaddr, false); 
@@ -115,12 +118,9 @@ frame_evict (void)
     }
 
 
-    hash_delete (&frame_table, &page_to_evict->frame_elem);
-    page_to_evict->paddr = NULL;
     lock_release (&page_to_evict->busy);
 
 
-    lock_release (&frame_table_lock);
     return kpage;
 
 }

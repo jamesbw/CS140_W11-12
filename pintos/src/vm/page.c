@@ -173,13 +173,13 @@ page_free ( struct hash_elem *elem, void *aux UNUSED)
     lock_release (&frame_table_lock);
   }
 
-
+  lock_acquire (&page_to_evict->busy);
   if (page->type == SWAP)
   {
     if ( (int) page->swap_slot != -1)
         swap_free (page->swap_slot);
   }
-
+  lock_release (&page_to_evict->busy);
   free(page);
 }
 
