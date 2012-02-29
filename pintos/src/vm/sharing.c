@@ -14,9 +14,9 @@
 unsigned 
 exec_hash (const struct hash_elem *se_, void *aux UNUSED) {
     const struct shared_executable *se = hash_entry(se_, struct shared_executable, elem);
-    char buf[sizeof (off_t) + sizeof (block_sector_t)];
+    char buf[sizeof (off_t) + sizeof (struct inode *)];
     memcpy (buf, &se->offset, sizeof (off_t));
-    memcpy (buf + sizeof (off_t), &se->sector, sizeof (block_sector_t));
+    memcpy (buf + sizeof (off_t), &se->inode, sizeof (struct inode *));
     return hash_bytes(buf, sizeof(buf));
 }
 
@@ -25,7 +25,7 @@ exec_less (const struct hash_elem *a_, const struct hash_elem *b_,
 void *aux UNUSED) {
     const struct shared_executable *a = hash_entry(a_, struct shared_executable, elem);
     const struct shared_executable *b = hash_entry(b_, struct shared_executable, elem);
-    return a->sector < b->sector || a->offset < b->offset;
+    return a->inode < b->inode || a->offset < b->offset;
 }
 
 
@@ -46,7 +46,7 @@ sharing_register_page (struct page *page)
 	{
 		shared_exec = malloc (sizeof (struct shared_executable));
 		ASSERT (shared_exec);
-		shared_exec->sector = page->file->inode->sector;
+		shared_exec->inode = file_get_inode (page->file);
 		shared_exec->offset = page->offset;
 		// shared_exec->kpage = NULL;
 		list_init (&shared_exec->user_pages);
@@ -104,7 +104,7 @@ sharing_lookup (struct page *page)
 	ASSERT (page->offset != (off_t) -1);
 
 	struct  shared_executable se;
-	se.sector = page->file->inode->sector;
+	se.inode = file_get_inode (page->file);
 	se.offset = page->offset;
 
 	struct hash_elem *e = hash_find (&executable_table, se.elem);

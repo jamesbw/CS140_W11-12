@@ -7,13 +7,14 @@
 #include "devices/block.h"
 #include "threads/synch.h"
 #include "page.h"
+#include "filesys/inode.h"
 
 struct hash executable_table;
 struct lock executable_table_lock;
 
 struct shared_executable
 {
-	block_sector_t sector;
+	struct inode *inode;
 	off_t offset;
 	// void *kpage;
 	struct lock busy;
