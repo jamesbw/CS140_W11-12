@@ -107,7 +107,7 @@ sharing_lookup (struct page *page)
 	se.inode = file_get_inode (page->file);
 	se.offset = page->offset;
 
-	struct hash_elem *e = hash_find (&executable_table, se.elem);
+	struct hash_elem *e = hash_find (&executable_table, &se.elem);
 
 	if (e)
 		return hash_entry (e, struct shared_executable, elem);
