@@ -90,9 +90,9 @@ void sharing_unregister_page (struct page *page)
 				sharing_page->paddr = page->paddr;
 				pagedir_set_page (sharing_page->pd, sharing_page->vaddr, sharing_page->paddr, false);
 			}
+			lock_release (&sharing_page->busy);
 			lock_acquire (&frame_table_lock);
 			hash_insert (&frame_table, &sharing_page->frame_elem);
-			lock_release (&sharing_page->busy);
 			hash_delete (&frame_table, &page->frame_elem);
 		}
 		page->paddr = NULL;
