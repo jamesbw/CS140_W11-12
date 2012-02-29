@@ -194,6 +194,7 @@ void
 page_in (struct page *supp_page)
 {
 
+  lock_acquire (&supp_page->busy);
   if (supp_page->type == EXECUTABLE && supp_page->writable == false)
   {
     void *shared_paddr = sharing_find_shared_frame (supp_page);
@@ -207,7 +208,6 @@ page_in (struct page *supp_page)
   }
 
 
-  lock_acquire (&supp_page->busy);
   frame_allocate (supp_page);
   switch (supp_page->type)
   {
@@ -232,8 +232,8 @@ page_in (struct page *supp_page)
     default:
       break;
   }
-  lock_release (&supp_page->busy);
   pagedir_set_page (supp_page->pd, supp_page->vaddr, supp_page->paddr, supp_page->writable);
+  lock_release (&supp_page->busy);
 }
 
 
