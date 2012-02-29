@@ -137,7 +137,7 @@ sharing_scan_and_clear_accessed_bit (struct page *page)
       accessed = pagedir_is_accessed (sharing_page->pd, sharing_page->vaddr);
       pagedir_set_accessed (sharing_page->pd, sharing_page->vaddr, false);
     }
-
+    lock_release (&executable_table_lock);
     return accessed;
 }
 
