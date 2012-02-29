@@ -75,8 +75,8 @@ frame_evict (void)
     void *kpage = page_to_evict->paddr;
     lock_acquire (&page_to_evict->busy);
     pagedir_clear_page (page_to_evict->pd, page_to_evict->vaddr);
-    page_to_evict->paddr = NULL;
     hash_delete (&frame_table, &page_to_evict->frame_elem);
+    page_to_evict->paddr = NULL;
     lock_release (&frame_table_lock);
 
     switch (page_to_evict->type)
