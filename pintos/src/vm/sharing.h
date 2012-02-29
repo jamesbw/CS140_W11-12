@@ -13,7 +13,7 @@ struct lock executable_table_lock;
 
 struct shared_executable
 {
-	block_sector_t block;
+	block_sector_t sector;
 	off_t offset;
 	// void *kpage;
 	struct lock busy;

@@ -2,18 +2,21 @@
 #include <hash.h>
 #include "filesys/off_t.h"
 #include "devices/block.h"
+#include "filesys/file.h"
+#include "filesys/inode.h"
 #include "userprog/pagedir.h"
 #include <string.h>
 #include "frame.h"
 #include "page.h"
+#include "threads/malloc.h"
 
 
 unsigned 
 exec_hash (const struct hash_elem *se_, void *aux UNUSED) {
     const struct shared_executable *se = hash_entry(se_, struct shared_executable, elem);
     char buf[sizeof (off_t) + sizeof (block_sector_t)];
-    memset (buf, &se->offset, sizeof (off_t));
-    memset (buf + sizeof (off_t), &se->sector, sizeof (block_sector_t));
+    memcpy (buf, &se->offset, sizeof (off_t));
+    memcpy (buf + sizeof (off_t), &se->sector, sizeof (block_sector_t));
     return hash_bytes(buf, sizeof(buf));
 }
 
@@ -22,7 +25,7 @@ exec_less (const struct hash_elem *a_, const struct hash_elem *b_,
 void *aux UNUSED) {
     const struct shared_executable *a = hash_entry(a_, struct shared_executable, elem);
     const struct shared_executable *b = hash_entry(b_, struct shared_executable, elem);
-    return a->block < b->block || a->offset < b->offset;
+    return a->sector < b->sector || a->offset < b->offset;
 }
 
 
@@ -36,7 +39,7 @@ sharing_register_page (struct page *page)
 	if (shared_exec)
 	{
 		// lock_acquire (&shared_exec->busy);
-		list_push_front (&shared_exec->user_pages, page->exec_elem);
+		list_push_front (&shared_exec->user_pages, &page->exec_elem);
 		// lock_release (&shared_exec->busy);
 	}
 	else
@@ -49,9 +52,9 @@ sharing_register_page (struct page *page)
 		list_init (&shared_exec->user_pages);
 		// lock_init (&shared_exec->busy);
 
-		list_push_front (&shared_exec->user_pages, page->exec_elem);
+		list_push_front (&shared_exec->user_pages, &page->exec_elem);
 
-		hash_insert (&executable_table, shared_exec->elem);
+		hash_insert (&executable_table, &shared_exec->elem);
 	}
 	lock_release (&executable_table_lock);
 }
@@ -64,7 +67,7 @@ void sharing_unregister_page (struct page *page)
 	ASSERT (shared_exec);
 
 	// lock_acquire (&shared_exec->busy);
-	list_remove (&shared_exec->user_pages, page->exec_elem);
+	list_remove (&page->exec_elem);
 	// lock_release (&shared_exec->busy);
 	if (list_empty (&shared_exec->user_pages))
 	{
@@ -152,7 +155,7 @@ sharing_find_shared_frame (struct page *page)
       if (sharing_page->paddr)
       {
       	lock_release (&executable_table_lock);
-      	return paddr;
+      	return sharing_page->paddr;
       }
     }
     lock_release (&executable_table_lock);
