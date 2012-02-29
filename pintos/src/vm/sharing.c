@@ -9,19 +9,19 @@
 
 
 unsigned 
-exec_hash (const struct hash_elem *p_, void *aux UNUSED) {
-    const struct shared_exec *p = hash_entry(f_, struct shared_exec, elem);
-    char buf[sizeof (off_t) + size (block_sector_t)];
-    memset (buf, &shared_exec->offset, sizeof (off_t));
-    memset (buf + sizeof (off_t), &shared_exec->sector, sizeof (block_sector_t));
+exec_hash (const struct hash_elem *se_, void *aux UNUSED) {
+    const struct shared_executable *se = hash_entry(se_, struct shared_executable, elem);
+    char buf[sizeof (off_t) + sizeof (block_sector_t)];
+    memset (buf, &se->offset, sizeof (off_t));
+    memset (buf + sizeof (off_t), &se->sector, sizeof (block_sector_t));
     return hash_bytes(buf, sizeof(buf));
 }
 
 bool 
 exec_less (const struct hash_elem *a_, const struct hash_elem *b_,
 void *aux UNUSED) {
-    const struct shared_exec *a = hash_entry(a_, struct shared_exec, elem);
-    const struct shared_exec *b = hash_entry(b_, struct shared_exec, elem);
+    const struct shared_executable *a = hash_entry(a_, struct shared_executable, elem);
+    const struct shared_executable *b = hash_entry(b_, struct shared_executable, elem);
     return a->block < b->block || a->offset < b->offset;
 }
 
@@ -104,7 +104,7 @@ sharing_lookup (struct page *page)
 	se.sector = page->file->inode->sector;
 	se.offset = page->offset;
 
-	hash_elem *e = hash_find (&executable_table, se.elem);
+	struct hash_elem *e = hash_find (&executable_table, se.elem);
 
 	if (e)
 		return hash_entry (e, struct shared_executable, elem);
@@ -122,7 +122,7 @@ sharing_scan_and_clear_accessed_bit (struct page *page)
 
 	ASSERT (shared_exec);
 
-	struc list_elem *e;
+	struct list_elem *e;
 	struct page *sharing_page;
 
 	for (e = list_begin (&shared_exec->user_pages); e != list_end (&shared_exec->user_pages); e = list_next (e))
@@ -143,7 +143,7 @@ sharing_find_shared_frame (struct page *page)
 
     ASSERT (shared_exec);
 
-	struc list_elem *e;
+	struct list_elem *e;
 	struct page *sharing_page;
 
 	for (e = list_begin (&shared_exec->user_pages); e != list_end (&shared_exec->user_pages); e = list_next (e))
@@ -167,7 +167,7 @@ sharing_invalidate (struct page *page)
 
     ASSERT (shared_exec);
 
-	struc list_elem *e;
+	struct list_elem *e;
 	struct page *sharing_page;
 
 	for (e = list_begin (&shared_exec->user_pages); e != list_end (&shared_exec->user_pages); e = list_next (e))
@@ -187,7 +187,7 @@ sharing_pinned (struct page *page)
 
     ASSERT (shared_exec);
 
-	struc list_elem *e;
+	struct list_elem *e;
 	struct page *sharing_page;
 
 	for (e = list_begin (&shared_exec->user_pages); e != list_end (&shared_exec->user_pages); e = list_next (e))

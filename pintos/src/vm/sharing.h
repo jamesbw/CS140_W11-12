@@ -6,6 +6,7 @@
 #include "filesys/off_t.h"
 #include "devices/block.h"
 #include "threads/synch.h"
+#include "page.h"
 
 struct hash executable_table;
 struct lock executable_table_lock;
@@ -21,8 +22,8 @@ struct shared_executable
 };
 
 bool sharing_scan_and_clear_accessed_bit (struct page *page);
-unsigned exec_hash (const struct hash_elem *p_, void *aux UNUSED);
-bool exec_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
+unsigned exec_hash (const struct hash_elem *p_, void *aux );
+bool exec_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux );
 void sharing_register_page (struct page *page);
 void sharing_unregister_page (struct page *page);
 struct shared_executable *sharing_lookup (struct page *page);
