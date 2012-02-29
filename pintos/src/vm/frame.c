@@ -12,6 +12,7 @@
 #include "filesys/file.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include "threads/init.h"
 
 struct hash frame_table;
 struct lock frame_table_lock;
