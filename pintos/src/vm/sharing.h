@@ -14,7 +14,7 @@ struct shared_executable
 {
 	block_sector_t block;
 	off_t offset;
-	void *kpage;
+	// void *kpage;
 	struct lock busy;
 	struct list user_pages;
 	struct hash_elem elem;
@@ -27,6 +27,9 @@ void sharing_register_page (struct page *page);
 void sharing_unregister_page (struct page *page);
 struct shared_executable *sharing_lookup (struct page *page);
 bool sharing_scan_and_clear_accessed_bit (struct page *page);
+void *sharing_find_shared_frame (struct page *page);
+void sharing_invalidate (struct page *page);
+bool sharing_pinned (struct page *page);
 
 
 #endif

@@ -32,6 +32,7 @@ struct page{
   uint32_t valid_bytes; // mmapped pages might be incomplete and must be filled with zeros.
   struct hash_elem page_elem;
   struct hash_elem frame_elem;
+  struct list_elem exec_elem;
   struct lock busy; // busy when page is being paged out
 };
 

@@ -42,6 +42,7 @@
 #include "vm/frame.h"
 #include "vm/page.h"
 #include "vm/swap.h"
+#include "vm/sharing.h"
 
 /* Page directory with kernel mappings only. */
 uint32_t *init_page_dir;
@@ -196,6 +197,9 @@ paging_init (void)
 
   hash_init(&frame_table, frame_hash, frame_less, NULL);
   lock_init (&frame_table_lock);
+
+  hash_init(&executable_table, exec_hash, exec_less, NULL);
+  lock_init (&executable_table_lock);
 }
 
 /* Breaks the kernel command line into words and returns them as

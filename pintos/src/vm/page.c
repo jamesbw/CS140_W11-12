@@ -11,6 +11,7 @@
 #include "threads/synch.h"
 #include "threads/palloc.h"
 #include "filesys/file.h"
+#include "sharing.h"
 
 // void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED);
 
@@ -83,6 +84,9 @@ page_insert_executable (void *vaddr, struct file *file, off_t offset, uint32_t v
   new_page->valid_bytes = valid_bytes;
   lock_init(&new_page->busy);
 
+  if (writable == false)
+    sharing_register_page (new_page);
+
   hash_insert (cur->supp_page_table, &new_page->page_elem);
 
   return new_page;
@@ -152,17 +156,23 @@ page_free ( struct hash_elem *elem, void *aux UNUSED)
 {
   struct page *page = hash_entry (elem, struct page, page_elem);
 
+  if (page->type == EXECUTABLE && page->writable == false)
+  {
+    sharing_unregister_page (page);
+  }
+
   if (page->paddr){
     lock_acquire (&frame_table_lock);
     if (page->paddr)
     {
       hash_delete (&frame_table, &page->frame_elem);
+      pagedir_clear_page (page->pd, page->vaddr);
       palloc_free_page (page->paddr);
+      page->paddr = NULL;
     }
     lock_release (&frame_table_lock);
   }
 
-  pagedir_clear_page (page->pd, page->vaddr);
 
   if (page->type == SWAP)
   {
@@ -183,6 +193,20 @@ page_free_supp_page_table (void)
 void
 page_in (struct page *supp_page)
 {
+
+  if (supp_page->type == EXECUTABLE && supp_page->writable == false)
+  {
+    void *shared_paddr = sharing_find_shared_frame (supp_page);
+    if (shared_paddr)
+    {
+      supp_page->paddr = shared_paddr;
+      // lock_release (&supp_page->busy);
+      pagedir_set_page (supp_page->pd, supp_page->vaddr, supp_page->paddr, supp_page->writable);
+      return;
+    }
+  }
+
+
   lock_acquire (&supp_page->busy);
   frame_allocate (supp_page);
   switch (supp_page->type)

@@ -13,6 +13,7 @@
 #include "threads/vaddr.h"
 #include "threads/synch.h"
 #include "threads/init.h"
+#include "sharing.h"
 
 struct hash frame_table;
 struct lock frame_table_lock;
@@ -79,6 +80,10 @@ frame_evict (void)
     switch (page_to_evict->type)
     {
         case EXECUTABLE:
+            if (page_to_evict->writable == false)
+            {
+                sharing_invalidate (page_to_evict);
+            }
         case ZERO:
             if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr))
             {
@@ -185,19 +190,32 @@ run_clock (void)
     //advance hand:
     hand = (uint32_t) (hand + PGSIZE - base) % user_pool_size + base;
     p.paddr = hand;
-    e = hash_find(&frame_table, &p.frame_elem);
+    e = hash_find (&frame_table, &p.frame_elem);
     if (e != NULL) 
     {
-      page_to_evict = hash_entry(e, struct page, frame_elem);
-      if (!pagedir_is_accessed(page_to_evict->pd, page_to_evict->vaddr) && !pagedir_is_accessed (init_page_dir, page_to_evict->paddr))
-      { 
-        if (page_to_evict->pinned == false)
-          return page_to_evict;
-      }
-      else 
+      page_to_evict = hash_entry (e, struct page, frame_elem);
+      if (page_to_evict->type == EXECUTABLE && page_to_evict->writable == false)
       {
-        pagedir_set_accessed(page_to_evict->pd, page_to_evict->vaddr, false);
-        pagedir_set_accessed (init_page_dir, page_to_evict->paddr, false);
+        if (!sharing_scan_and_clear_accessed_bit (page_to_evict) && !pagedir_is_accessed (init_page_dir, page_to_evict->paddr))
+        {
+          if (sharing_pinned (page_to_evict) == false)
+            return page_to_evict;
+        }
+        else
+          pagedir_set_accessed (init_page_dir, page_to_evict->paddr, false);
+      }
+      else
+      {
+        if (!pagedir_is_accessed (page_to_evict->pd, page_to_evict->vaddr) && !pagedir_is_accessed (init_page_dir, page_to_evict->paddr))
+        { 
+          if (page_to_evict->pinned == false)
+            return page_to_evict;
+        }
+        else 
+        {
+          pagedir_set_accessed (page_to_evict->pd, page_to_evict->vaddr, false);
+          pagedir_set_accessed (init_page_dir, page_to_evict->paddr, false);
+        }
       }
     }
   }

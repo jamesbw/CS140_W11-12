@@ -4,6 +4,8 @@
 #include "devices/block.h"
 #include "userprog/pagedir.h"
 #include <string.h>
+#include "frame.h"
+#include "page.h"
 
 
 unsigned 
@@ -33,9 +35,9 @@ sharing_register_page (struct page *page)
 
 	if (shared_exec)
 	{
-		lock_acquire (&shared_exec->busy);
+		// lock_acquire (&shared_exec->busy);
 		list_push_front (&shared_exec->user_pages, page->exec_elem);
-		lock_release (&shared_exec->busy);
+		// lock_release (&shared_exec->busy);
 	}
 	else
 	{
@@ -43,9 +45,9 @@ sharing_register_page (struct page *page)
 		ASSERT (shared_exec);
 		shared_exec->sector = page->file->inode->sector;
 		shared_exec->offset = page->offset;
-		shared_exec->kpage = NULL;
+		// shared_exec->kpage = NULL;
 		list_init (&shared_exec->user_pages);
-		lock_init (&shared_exec->busy);
+		// lock_init (&shared_exec->busy);
 
 		list_push_front (&shared_exec->user_pages, page->exec_elem);
 
@@ -61,13 +63,31 @@ void sharing_unregister_page (struct page *page)
 
 	ASSERT (shared_exec);
 
-	lock_acquire (&shared_exec->busy);
+	// lock_acquire (&shared_exec->busy);
 	list_remove (&shared_exec->user_pages, page->exec_elem);
-	lock_release (&shared_exec->busy);
+	// lock_release (&shared_exec->busy);
 	if (list_empty (&shared_exec->user_pages))
 	{
 		hash_delete (&executable_table, &shared_exec->elem);
 		free (shared_exec);
+	}
+	else
+	{
+		lock_acquire (&frame_table_lock);
+		if (hash_find (&frame_table, &page->frame_elem) == &page->frame_elem)
+		{
+			ASSERT (page->paddr);
+			list_remove (&page->exec_elem);
+			struct list_elem *e = list_begin (&shared_exec->user_pages);
+			struct page *sharing_page = list_entry (e, struct page, exec_elem);
+			sharing_page->paddr = page->paddr;
+			pagedir_set_page (sharing_page->pd, sharing_page->vaddr, sharing_page->paddr, false);
+			hash_delete (&frame_table, &page->frame_elem);
+			hash_insert (&frame_table, &sharing_page->frame_elem);
+		}
+		page->paddr = NULL;
+		pagedir_clear_page (page->pd, page->vaddr);
+		lock_release (&frame_table_lock);
 	}
 
 	lock_release (&executable_table_lock);
@@ -114,3 +134,72 @@ sharing_scan_and_clear_accessed_bit (struct page *page)
 
     return accessed;
 }
+
+void *
+sharing_find_shared_frame (struct page *page)
+{
+	lock_acquire (&executable_table_lock);
+    struct shared_executable *shared_exec = sharing_lookup (page);
+
+    ASSERT (shared_exec);
+
+	struc list_elem *e;
+	struct page *sharing_page;
+
+	for (e = list_begin (&shared_exec->user_pages); e != list_end (&shared_exec->user_pages); e = list_next (e))
+    {
+      sharing_page = list_entry (e, struct page, exec_elem);
+      if (sharing_page->paddr)
+      {
+      	lock_release (&executable_table_lock);
+      	return paddr;
+      }
+    }
+    lock_release (&executable_table_lock);
+    return NULL;
+}
+
+void
+sharing_invalidate (struct page *page)
+{
+	lock_acquire (&executable_table_lock);
+	struct shared_executable *shared_exec = sharing_lookup (page);
+
+    ASSERT (shared_exec);
+
+	struc list_elem *e;
+	struct page *sharing_page;
+
+	for (e = list_begin (&shared_exec->user_pages); e != list_end (&shared_exec->user_pages); e = list_next (e))
+    {
+      sharing_page = list_entry (e, struct page, exec_elem);
+      sharing_page->paddr = 0;
+      pagedir_clear_page (sharing_page->pd, sharing_page->vaddr);
+    }
+	lock_release (&executable_table_lock);
+}
+
+bool
+sharing_pinned (struct page *page)
+{
+	lock_acquire (&executable_table_lock);
+	struct shared_executable *shared_exec = sharing_lookup (page);
+
+    ASSERT (shared_exec);
+
+	struc list_elem *e;
+	struct page *sharing_page;
+
+	for (e = list_begin (&shared_exec->user_pages); e != list_end (&shared_exec->user_pages); e = list_next (e))
+    {
+      sharing_page = list_entry (e, struct page, exec_elem);
+      if (sharing_page->pinned)
+      {
+      	lock_release (&executable_table_lock);
+      	return true;
+      }
+    }
+	lock_release (&executable_table_lock);
+	return false;
+}
+
