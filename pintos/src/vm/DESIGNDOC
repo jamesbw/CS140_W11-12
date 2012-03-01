@@ -119,10 +119,12 @@ struct process
 >> A2: In a few paragraphs, describe your code for locating the frame,
 >> if any, that contains the data of a given page.
 
-Both virtual and physical location (kernel virtual memory actually) are 
-stored in the same struct page. Given a virtual address vaddr, we look it
- up in the process's supp_page_table. If the physical address (paddr) is not NULL, this is the address of the frame that contains the data.
-
+Both virtual and physical location (which corresponds to a kernel virtual
+address) are stored in the same struct page, which also contains a pointer
+to the owner user process's page directory. Given a virtual address
+vaddr, we look it up in the process's supp_page_table. If the physical
+address (paddr) is not NULL, this is the address of the frame that
+contains the data. 
 In the case of shared read-only executable pages, if paddr is NULL, then 
 we look through all the pages that share the same executable to see if 
 one has a physical memory frame allocated.
@@ -134,8 +136,10 @@ one has a physical memory frame allocated.
 >> alternatively how do you avoid the issue?
 
 Aliasing is mainly an issue in the clock algorithm where we don't want 
-to evict a page if it is dirty. We always checked the dirty and accessed 
-bit for both the virtual address and the kernel address.
+to evict a page if it is dirty. A page has different dirty bits and
+accessed bits for the user page directory and the kernal page directory.
+We always checked the dirty and accessed bit for both the virtual address
+and the kernel address. 
 
 On paging in, we also clear out the dirty bits for both.
 
@@ -147,8 +151,10 @@ pages that share the same executable.
 >> A4: When two user processes both need a new frame at the same time,
 >> how are races avoided?
 
-The clock algorithm is locked with the frame_table_lock, so each process 
-is given a different frame to evict. The eviction itself can go on 
+The entire frame table has a single lock that is acquired before any
+modifications to the table.  Within the eviction function, the clock
+algorithm is inside a critical section, so each process is given a
+different frame to evict. The eviction itself can go on  
 concurrently, but the clock algorithm is synchronous.
 
 ---- RATIONALE ----
@@ -156,8 +162,9 @@ concurrently, but the clock algorithm is synchronous.
 >> A5: Why did you choose the data structure(s) that you did for
 >> representing virtual-to-physical mappings?
 
-We started with two different data structure: struct page and struct frame.
-It meant that first we have to find a struct frame to evict, then find its
+We started with a design that used two different data structure: struct
+page and struct frame. 
+It meant that first we had to find a struct frame to evict, then find its
 owning struct page. That involved keeping around a pointer to the owning 
 process to get access to the supplemental page table for that process. Then 
 data had to be updated in both places. We also had issues where once we picked 
@@ -166,7 +173,8 @@ the frame to evict, the owning page was being freed.
 Putting everything is a single struct page made things a lot easier. Each 
 struct page is in its process's supp_page_table, but can also be inserted 
 into the global frame table, thanks to the second hash_elem (frame_elem) in
-struct page.
+struct page.  This also made moving these elements between the different
+data structures was quick and didn't require new declarations.
 
 
 		       PAGING TO AND FROM DISK
@@ -202,13 +210,21 @@ struct lock swap_lock;
 >> B2: When a frame is required but none is free, some frame must be
 >> evicted.  Describe your code for choosing a frame to evict.
 
-We implemented a simple clock algorithm. We advance the hand, and 
-check that frame. If it has been accessed, we clear the accessed bit 
-and move on to the next address. If it hasn't been accessed, this is 
-the frame that will be evicted.
+We implemented a simple clock algorithm that approximates a Last Recently
+Used (LRU) algorithm, using accessed and dirty bits as indicators of time.
+The global values are initialized in frame_base_init(), which sets the
+range of physical address space available to user pages.  Although the
+frame_table is stored as a hash table, every frame has a physical address
+of base + n*PGSIZE.  The clock starts at the base of the user pool's
+address space and every 'tick' advances the hand by PGSIZE. We advance the
+hand, and check that frame. If the page in this frame has been accessed
+via its user page directory or the kernel page directory, we clear the
+accessed bits of both and move on to the next address. If it hasn't been
+accessed, and the frame is not "pinned" (meaning that this page is not
+yet fully written into memory) then this frame will be evicted.
 
-We also check the kernel accessed bits, and in the case of sharing 
-read-only executables, the accessed bits of the sharing pages.
+In the case of sharing 
+read-only executables, we also check the accessed bits of the sharing pages.
 
 >> B3: When a process P obtains a frame that was previously used by a
 >> process Q, how do you adjust the page table (and any other data
@@ -226,6 +242,7 @@ The virtual address was considered a stack access if:
 - the address was between PHYS_BASE and the stack pointer esp
 - OR the address was esp - 4 (PUSH)
 - OR the address was esp -32 (PUSHA)
+All other accesses are treated as invalid.
 
 
 
@@ -242,7 +259,7 @@ The main locks used in our design are:
 
 The frame_table lock is acquired whenever the frame table is accessed
 (insert, delete, lookup) or when the clock algorithm is run. 
-The individual page lock are acquired when evicting and paging in the page
+The individual page lock is acquired when evicting and paging in the page
  (and when freeing the page). These two types are rarely held at the same 
 time, and when they are (briefly in frame_evict), it is the frame_lock 
 that is acquired first, thereby preventing circularity (and thus deadlocks).
@@ -294,11 +311,11 @@ for eviction (it still clears the accessed bit though).
 The pinning function check whether the page is in physical memory. If 
 not, it is paged in.
 
-Stack extension are dealt with in the verify_uaddr function. Now, in 
-addition to verifying the validity of the address, if it looks like 
+Stack extension is dealt with in the verify_uaddr function. Now, in 
+addition to verifying the validity of the address, if the address looks like 
 a stack access, it extends the stack.
 
-Other memory accesses are allowed to page fault.
+Other memory accesses are allowed, and required, to page fault.
 
 
 
@@ -313,8 +330,11 @@ Other memory accesses are allowed to page fault.
 
 We think our design allows for quite a bit of parallelism. In particular,
 the I/O related to pageing data in and out of disk only requires acquiring 
-the page's lock. The global lock on the frame_table is only used for modifications 
-of the frame table or for the clock algorithm.
+the page's lock. The global lock on the frame_table is only used for
+modifications of the frame table or for the clock algorithm.  Thus, if
+multiple processes page fault simulaneously, our system will be more
+conservative regarding parallelism.  Hopefully, however, simultaneous page
+faults are relatively uncommon in a well-designed system.
 
 At first, we were locking all of frame_evict with the global frame_table_lock. 
 The would mean that only one thread could be evicting at a time. This was 
