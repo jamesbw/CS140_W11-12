@@ -257,7 +257,7 @@ page_dump_table (void)
 bool
 page_stack_access (void *vaddr, void *esp)
 {
-  return ( (((uint32_t) vaddr >= (uint32_t) esp ) && ((uint32_t) esp < PHYS_BASE))
+  return ( (((uint32_t) vaddr >= (uint32_t) esp ) && ((uint32_t) esp < (uint32_t) PHYS_BASE))
           || ((uint32_t) vaddr == (uint32_t) esp - 4)
           || ((uint32_t) vaddr == (uint32_t) esp - 32)) ;
 }
