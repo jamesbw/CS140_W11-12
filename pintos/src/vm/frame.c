@@ -89,7 +89,7 @@ frame_evict (void)
             }
         case ZERO:
             if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr)
-                || page_is_dirty (init_page_dir, kpage))
+                || pagedir_is_dirty (init_page_dir, kpage))
             {
                 //move to swap
                 page_to_evict->type = SWAP;
@@ -107,7 +107,7 @@ frame_evict (void)
             break;
         case MMAPPED:
             if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr)
-                || page_is_dirty (init_page_dir, kpage))
+                || pagedir_is_dirty (init_page_dir, kpage))
             {
                 //copy back to disk
                 lock_acquire (&filesys_lock);
