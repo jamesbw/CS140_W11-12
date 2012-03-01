@@ -50,7 +50,7 @@ typedef int mapid_t;
 struct mmapped_file
 {
     struct file *file;
-    void *base_page; //virtual page at which the frame starts
+    void *base_page; //virtual page at which the file starts
     mapid_t mapid;
     struct list_elem elem;
 };

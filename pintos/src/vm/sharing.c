@@ -38,9 +38,7 @@ sharing_register_page (struct page *page)
 
 	if (shared_exec)
 	{
-		// lock_acquire (&shared_exec->busy);
 		list_push_front (&shared_exec->user_pages, &page->exec_elem);
-		// lock_release (&shared_exec->busy);
 	}
 	else
 	{
@@ -48,9 +46,7 @@ sharing_register_page (struct page *page)
 		ASSERT (shared_exec);
 		shared_exec->inode = file_get_inode (page->file);
 		shared_exec->offset = page->offset;
-		// shared_exec->kpage = NULL;
 		list_init (&shared_exec->user_pages);
-		// lock_init (&shared_exec->busy);
 
 		list_push_front (&shared_exec->user_pages, &page->exec_elem);
 
@@ -66,9 +62,7 @@ void sharing_unregister_page (struct page *page)
 
 	ASSERT (shared_exec);
 
-	// lock_acquire (&shared_exec->busy);
 	list_remove (&page->exec_elem);
-	// lock_release (&shared_exec->busy);
 	if (list_empty (&shared_exec->user_pages))
 	{
 		hash_delete (&executable_table, &shared_exec->elem);
@@ -76,6 +70,8 @@ void sharing_unregister_page (struct page *page)
 	}
 	else
 	{
+		//If there is another page, and the page being removed is the one
+		// in memory, we must transfer ownership of the physical memory
 		lock_acquire (&frame_table_lock);
 		if (hash_find (&frame_table, &page->frame_elem) == &page->frame_elem)
 		{

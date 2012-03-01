@@ -88,7 +88,8 @@ frame_evict (void)
                 sharing_invalidate (page_to_evict);
             }
         case ZERO:
-            if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr))
+            if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr)
+                || page_is_dirty (init_page_dir, kpage))
             {
                 //move to swap
                 page_to_evict->type = SWAP;
@@ -105,7 +106,8 @@ frame_evict (void)
             lock_release (&filesys_lock);
             break;
         case MMAPPED:
-            if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr))
+            if (pagedir_is_dirty (page_to_evict->pd, page_to_evict->vaddr)
+                || page_is_dirty (init_page_dir, kpage))
             {
                 //copy back to disk
                 lock_acquire (&filesys_lock);
@@ -113,7 +115,7 @@ frame_evict (void)
                 file_write (page_to_evict->file, kpage, page_to_evict->valid_bytes);
                 lock_release (&filesys_lock);
             }
-            pagedir_set_dirty (page_to_evict->pd, page_to_evict->vaddr, false); 
+            
             break;            
     }
 

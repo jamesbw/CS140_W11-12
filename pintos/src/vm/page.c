@@ -233,6 +233,8 @@ page_in (struct page *supp_page)
     default:
       break;
   }
+  pagedir_set_dirty (supp_page->pd, supp_page->vaddr, false); 
+  pagedir_set_dirty (init_page_dir, supp_page->paddr, false); 
   pagedir_set_page (supp_page->pd, supp_page->vaddr, supp_page->paddr, supp_page->writable);
   lock_release (&supp_page->busy);
 }

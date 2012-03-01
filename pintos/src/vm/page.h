@@ -20,7 +20,7 @@ enum page_type
 
 struct page{
   void *vaddr;
-  void *paddr;
+  void *paddr; //NULL is page is not in memory
   bool pinned;
   uint32_t *pd;
   enum page_type type;
@@ -30,10 +30,10 @@ struct page{
   struct file *file;
   off_t offset;
   uint32_t valid_bytes; // mmapped pages might be incomplete and must be filled with zeros.
-  struct hash_elem page_elem;
-  struct hash_elem frame_elem;
-  struct list_elem exec_elem;
-  struct lock busy; // busy when page is being paged out
+  struct hash_elem page_elem; //for process's supp page table
+  struct hash_elem frame_elem; // for global frame table
+  struct list_elem exec_elem; // for executable table if needed
+  struct lock busy; // busy when page is being paged in/out or freed
 };
 
 
