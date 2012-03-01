@@ -133,15 +133,41 @@ one has a physical memory frame allocated.
 >> kernel and user virtual addresses that alias a single frame, or
 >> alternatively how do you avoid the issue?
 
+Aliasing is mainly an issue in the clock algorithm where we don't want 
+to evict a page if it is dirty. We always checked the dirty and accessed 
+bit for both the virtual address and the kernel address.
+
+On paging in, we also clear out the dirty bits for both.
+
+For sharing, we also query and clear the accessed bits for all the 
+pages that share the same executable.
+
 ---- SYNCHRONIZATION ----
 
 >> A4: When two user processes both need a new frame at the same time,
 >> how are races avoided?
 
+The clock algorithm is locked with the frame_table_lock, so each process 
+is given a different frame to evict. The eviction itself can go on 
+concurrently, but the clock algorithm is synchronous.
+
 ---- RATIONALE ----
 
 >> A5: Why did you choose the data structure(s) that you did for
 >> representing virtual-to-physical mappings?
+
+We started with two different data structure: struct page and struct frame.
+It meant that first we have to find a struct frame to evict, then find its
+owning struct page. That involved keeping around a pointer to the owning 
+process to get access to the supplemental page table for that process. Then 
+data had to be updated in both places. We also had issues where once we picked 
+the frame to evict, the owning page was being freed.
+
+Putting everything is a single struct page made things a lot easier. Each 
+struct page is in its process's supp_page_table, but can also be inserted 
+into the global frame table, thanks to the second hash_elem (frame_elem) in
+struct page.
+
 
 		       PAGING TO AND FROM DISK
 		       =======================
@@ -176,13 +202,32 @@ struct lock swap_lock;
 >> B2: When a frame is required but none is free, some frame must be
 >> evicted.  Describe your code for choosing a frame to evict.
 
+We implemented a simple clock algorithm. We advance the hand, and 
+check that frame. If it has been accessed, we clear the accessed bit 
+and move on to the next address. If it hasn't been accessed, this is 
+the frame that will be evicted.
+
+We also check the kernel accessed bits, and in the case of sharing 
+read-only executables, the accessed bits of the sharing pages.
+
 >> B3: When a process P obtains a frame that was previously used by a
 >> process Q, how do you adjust the page table (and any other data
 >> structures) to reflect the frame Q no longer has?
 
+The paddr field in the Q struct page is NULLed. The present bit for Q 
+is cleared. The struct page for Q is removed from the frame table and 
+the one for P is inserted.
+
 >> B4: Explain your heuristic for deciding whether a page fault for an
 >> invalid virtual address should cause the stack to be extended into
 >> the page that faulted.
+
+The virtual address was considered a stack access if:
+- the address was between PHYS_BASE and the stack pointer esp
+- OR the address was esp - 4 (PUSH)
+- OR the address was esp -32 (PUSHA)
+
+
 
 ---- SYNCHRONIZATION ----
 
