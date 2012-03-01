@@ -7,6 +7,7 @@
 #include "threads/palloc.h"
 
 #include "vm/frame.h"
+#include "threads/init.h"
 
 static uint32_t *active_pd (void);
 static void invalidate_pagedir (uint32_t *);
