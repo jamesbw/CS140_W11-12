@@ -16,7 +16,6 @@ struct shared_executable
 {
 	struct inode *inode;
 	off_t offset;
-	// void *kpage;
 	struct lock busy;
 	struct list user_pages;
 	struct hash_elem elem;
