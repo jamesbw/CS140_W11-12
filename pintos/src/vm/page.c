@@ -12,6 +12,7 @@
 #include "threads/palloc.h"
 #include "filesys/file.h"
 #include "sharing.h"
+#include "threads/init.h"
 
 // void page_free_no_delete ( struct hash_elem *elem, void *aux UNUSED);
 
