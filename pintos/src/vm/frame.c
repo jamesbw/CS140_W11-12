@@ -55,7 +55,7 @@ frame_allocate (struct page *page)
     }
 
     page->paddr = kpage;
-    page->pinned = true;
+    page->pinned = true; //pinned all frames by default
     lock_acquire (&frame_table_lock);
     hash_insert (&frame_table, &page->frame_elem);
     lock_release (&frame_table_lock);

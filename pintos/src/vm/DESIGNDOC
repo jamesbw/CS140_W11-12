@@ -236,21 +236,65 @@ The virtual address was considered a stack access if:
 >> textbook for an explanation of the necessary conditions for
 >> deadlock.)
 
+The main locks used in our design are:
+- a global lock on the frame_table
+- a lock for each struct page
+
+The frame_table lock is acquired whenever the frame table is accessed
+(insert, delete, lookup) or when the clock algorithm is run. 
+The individual page lock are acquired when evicting and paging in the page
+ (and when freeing the page). These two types are rarely held at the same 
+time, and when they are (briefly in frame_evict), it is the frame_lock 
+that is acquired first, thereby preventing circularity (and thus deadlocks).
+
+In page_in, we do acquire the page lock first, then we may acquire the 
+frame_lock in frame_allocate. However, we will never need to acquire 
+the lock for the same page in page_in and in frame_evict. Indeed, a page 
+cannot be picked for eviction while it is being paged in (see next question).
+
 >> B6: A page fault in process P can cause another process Q's frame
 >> to be evicted.  How do you ensure that Q cannot access or modify
 >> the page during the eviction process?  How do you avoid a race
 >> between P evicting Q's frame and Q faulting the page back in?
+
+When a page is about to be evicted, the paddr field is immediately set 
+to NULL and the present bit is cleared. This happens before we try to 
+write out the data to disk. Therefore any access to that virtual address 
+will fault.
+
+Moreover, during eviction, we acquire the page's lock (before clearing the 
+set bit). This lock is also acquired before paging the page back in. 
+Therefore we are guaranteed the page will be written to disk before it 
+is read back in.
 
 >> B7: Suppose a page fault in process P causes a page to be read from
 >> the file system or swap.  How do you ensure that a second process Q
 >> cannot interfere by e.g. attempting to evict the frame while it is
 >> still being read in?
 
+All frames that are allocated are pinned by default (see question below).
+That means that they cannot be picked by the clock algorithm for eviction.
+Only once the page is read in is it un-pinned.
+
 >> B8: Explain how you handle access to paged-out pages that occur
 >> during system calls.  Do you use page faults to bring in pages (as
 >> in user programs), or do you have a mechanism for "locking" frames
 >> into physical memory, or do you use some other design?  How do you
 >> gracefully handle attempted accesses to invalid virtual addresses?
+
+All the syscalls that involve acquiring the filesystem lock cannot afford 
+to page fault. That would involve reacquiring the filesystem lock to 
+page in the data from swap. Therefore we decide to "pin" all the pages
+that were needed for the system call before acquiring the lock.
+
+In practice, that meant setting the pinned field in the struct page.
+This field meant that the clock algorithm would not choose this frame 
+for eviction (it still clears the accessed bit though).
+
+The pinning function check whether the page is in physical memory. If 
+not, it is paged in.
+
+
 
 ---- RATIONALE ----
 
@@ -260,6 +304,22 @@ The virtual address was considered a stack access if:
 >> possibility for deadlock but allows for high parallelism.  Explain
 >> where your design falls along this continuum and why you chose to
 >> design it this way.
+
+We think our design allows for quite a bit of parallelism. In particular,
+the I/O related to pageing data in and out of disk only requires acquiring 
+the page's lock. The global lock on the frame_table is only used for modifications 
+of the frame table or for the clock algorithm.
+
+At first, we were locking all of frame_evict with the global frame_table_lock. 
+The would mean that only one thread could be evicting at a time. This was 
+clearly a limit on parallelism, even though it made things easier. Our current 
+design manages to work with finer grained locking.
+
+Where our locking scheme is coarser is for sharing. We use only one lock for the 
+whole executable_table. The reasons for that were:
+- it was easier
+- the number of shared executable pages is a small proportion of the pages 
+that get paged in.
 
 			 MEMORY MAPPED FILES
 			 ===================
@@ -296,8 +356,23 @@ struct list mmapped_files was added to struct thread.
 >> memory subsystem.  Explain how the page fault and eviction
 >> processes differ between swap pages and other pages.
 
+The memory mapped files are recorded in a list in the struct thread.
+
+Each page is recorded in a struct page, like any other VM page.
+
+The page fault involves bringing in the page from disk. It is 
+therefore exactly the same as bringing in an executable page.
+
+For evicting, it is slightly different. Indeed, the dirty pages get 
+writing back to their original files, not to swap.
+
 >> C3: Explain how you determine whether a new file mapping overlaps
 >> any existing segment.
+
+For every address (by PGSIZE increments) between the base address at which 
+we want to map the file and the top of the file, we look up the address 
+in the supplemental page table. 
+If we find a page already, then there is an overlap.
 
 ---- RATIONALE ----
 
@@ -307,6 +382,14 @@ struct list mmapped_files was added to struct thread.
 >> that much of their implementation can be shared.  Explain why your
 >> implementation either does or does not share much of the code for
 >> the two situations.
+
+Our implementation shares code where it can be. For example, the mmapped 
+pages and the executable pages are both represented with the same 
+struct page.
+The paging in from disk of executables and mmapped files used the 
+same code.
+The eviction is different because we are writing to file and not to swap, 
+so code is not shared.
 
 			   SURVEY QUESTIONS
 			   ================

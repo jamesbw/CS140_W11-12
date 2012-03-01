@@ -166,7 +166,7 @@ page_fault (struct intr_frame *f)
     if (supp_page)
     {
       page_in (supp_page);
-      supp_page->pinned = false;
+      supp_page->pinned = false; //unpin the newly allocated frame
       return;
     }
     else
