@@ -294,6 +294,12 @@ for eviction (it still clears the accessed bit though).
 The pinning function check whether the page is in physical memory. If 
 not, it is paged in.
 
+Stack extension are dealt with in the verify_uaddr function. Now, in 
+addition to verifying the validity of the address, if it looks like 
+a stack access, it extends the stack.
+
+Other memory accesses are allowed to page fault.
+
 
 
 ---- RATIONALE ----
