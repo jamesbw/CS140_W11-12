@@ -211,7 +211,7 @@ struct lock swap_lock;
 >> evicted.  Describe your code for choosing a frame to evict.
 
 We implemented a simple clock algorithm that approximates a Last Recently
-Used (LRU) algorithm, using accessed and dirty bits as indicators of time.
+Used (LRU) algorithm, using accessed bits as indicators of usage.
 The global values are initialized in frame_base_init(), which sets the
 range of physical address space available to user pages.  Although the
 frame_table is stored as a hash table, every frame has a physical address
@@ -220,11 +220,10 @@ address space and every 'tick' advances the hand by PGSIZE. We advance the
 hand, and check that frame. If the page in this frame has been accessed
 via its user page directory or the kernel page directory, we clear the
 accessed bits of both and move on to the next address. If it hasn't been
-accessed, and the frame is not "pinned" (meaning that this page is not
-yet fully written into memory) then this frame will be evicted.
+accessed, and the frame is not "pinned", then this frame will be evicted.
 
-In the case of sharing 
-read-only executables, we also check the accessed bits of the sharing pages.
+In the case of sharing read-only executables, we also check the accessed 
+bits of the sharing pages.
 
 >> B3: When a process P obtains a frame that was previously used by a
 >> process Q, how do you adjust the page table (and any other data
@@ -331,10 +330,7 @@ Other memory accesses are allowed, and required, to page fault.
 We think our design allows for quite a bit of parallelism. In particular,
 the I/O related to pageing data in and out of disk only requires acquiring 
 the page's lock. The global lock on the frame_table is only used for
-modifications of the frame table or for the clock algorithm.  Thus, if
-multiple processes page fault simulaneously, our system will be more
-conservative regarding parallelism.  Hopefully, however, simultaneous page
-faults are relatively uncommon in a well-designed system.
+modifications of the frame table or for the clock algorithm.
 
 At first, we were locking all of frame_evict with the global frame_table_lock. 
 The would mean that only one thread could be evicting at a time. This was 
