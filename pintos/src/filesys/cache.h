@@ -22,5 +22,10 @@ struct lock cache_lock;
 
 void cache_init (void);
 struct cached_block *cache_lookup (block_sector_t sector);
+struct cached_block *cache_find_unused (void);
+struct cached_block *cache_allocate (void);
+struct cached_block *cache_evict (void);
+struct cached_block *cache_run_clock (void);
+
 
 #endif
