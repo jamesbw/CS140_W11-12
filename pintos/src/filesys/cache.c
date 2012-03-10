@@ -1,6 +1,8 @@
 #include "cache.h"
 #include "threads/synch.h"
 #include "devices/block.h"
+#include "filesys.h"
+#include <debug.h>
 
 struct cached_block block_cache[CACHE_SIZE];
 
@@ -70,7 +72,7 @@ cache_evict (void)
 
 	lock_release (&block_to_evict->lock);
 
-	return block_to_evict
+	return block_to_evict;
 }
 
 struct cached_block *
