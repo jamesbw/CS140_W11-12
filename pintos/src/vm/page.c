@@ -202,7 +202,6 @@ page_in (struct page *supp_page)
     if (shared_paddr)
     {
       supp_page->paddr = shared_paddr;
-      // lock_release (&supp_page->busy);
       pagedir_set_page (supp_page->pd, supp_page->vaddr, supp_page->paddr, supp_page->writable);
       lock_release (&supp_page->busy);
       return;

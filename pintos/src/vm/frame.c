@@ -50,7 +50,6 @@ frame_allocate (struct page *page)
     void *kpage = palloc_get_page (PAL_USER);
     if (kpage == NULL)
     {
-        //TODO: eviction
         kpage = frame_evict();
     }
 
