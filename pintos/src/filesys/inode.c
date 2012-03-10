@@ -111,6 +111,8 @@ inode_create (block_sector_t sector, off_t length)
 struct inode *
 inode_open (block_sector_t sector)
 {
+
+  //TODO synchronization of list?
   struct list_elem *e;
   struct inode *inode;
 
@@ -254,6 +256,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
    less than SIZE if end of file is reached or an error occurs.
    (Normally a write at end of file would extend the inode, but
    growth is not yet implemented.) */
+    //TODO edit comment
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
                 off_t offset) 
