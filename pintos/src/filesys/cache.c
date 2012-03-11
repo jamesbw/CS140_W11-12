@@ -85,7 +85,7 @@ cache_run_clock (void)
 	struct cached_block *b = NULL;
 	while (true)
 	{
-		hand ++;
+		hand = (hand + 1) % CACHE_SIZE;
 		b = &block_cache[hand];
 		if (!b->accessed)
 		{
