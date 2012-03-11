@@ -163,9 +163,9 @@ frame_dump_frame ( struct hash_elem *elem, void *aux UNUSED)
 void 
 frame_dump_table (void)
 {
-  lock_acquire (&frame_table_lock);
+  // lock_acquire (&frame_table_lock);
   hash_apply (&frame_table, frame_dump_frame);
-  lock_release (&frame_table_lock);
+  // lock_release (&frame_table_lock);
 }
 
 
