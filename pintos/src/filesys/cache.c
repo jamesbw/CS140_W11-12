@@ -49,6 +49,7 @@ cache_allocate (void)
 	{
 		b = cache_evict ();
 	}
+	b->in_use = true;
 	return b;
 }
 
