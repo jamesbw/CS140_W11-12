@@ -46,9 +46,9 @@ cache_find_unused (block_sector_t sector)
 struct cached_block *
 cache_allocate (block_sector_t sector)
 {
-	struct cached_block *b = cache_find_unused ();
+	struct cached_block *b = cache_find_unused (sector);
 	if (b == NULL)
-		b = cache_evict ();
+		b = cache_evict (sector);
 	return b;
 }
 
