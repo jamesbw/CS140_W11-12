@@ -61,12 +61,13 @@ cache_evict (block_sector_t new_sector)
 
 	lock_acquire( &block_to_evict->lock);
 	block_to_evict->pinned = true;
+	block_sector_t old_sector = block_to_evict->sector;
 	block_to_evict->sector = new_sector;
 
 	lock_release (&cache_lock);
 
 	if (block_to_evict->dirty)
-		block_write (fs_device, block_to_evict->sector, block_to_evict->data);
+		block_write (fs_device, old_sector, block_to_evict->data);
 	block_to_evict->dirty = false;
 	block_to_evict->accessed = false;
 
