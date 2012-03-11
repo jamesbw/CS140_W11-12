@@ -22,7 +22,7 @@ cache_init (void)
 }
 
 struct cached_block *
-cache_find_unused (void)
+cache_find_unused (block_sector_t sector)
 {
 	int i;
 	struct cached_block *b;
@@ -33,6 +33,8 @@ cache_find_unused (void)
 		if (!b->in_use)
 		{
 			b->pinned = true;
+			b->in_use = true;
+			b->sector = sector;
 			lock_release (&cache_lock);
 			return b;
 		}
@@ -46,16 +48,12 @@ cache_allocate (block_sector_t sector)
 {
 	struct cached_block *b = cache_find_unused ();
 	if (b == NULL)
-	{
 		b = cache_evict ();
-	}
-	b->in_use = true;
-	b->sector = sector;
 	return b;
 }
 
 struct cached_block *
-cache_evict (void)
+cache_evict (block_sector_t new_sector)
 {
 	lock_acquire (&cache_lock);
 
@@ -63,7 +61,7 @@ cache_evict (void)
 
 	lock_acquire( &block_to_evict->lock);
 	block_to_evict->pinned = true;
-	block_to_evict->in_use = false;
+	block_to_evict->sector = new_sector;
 
 	lock_release (&cache_lock);
 
