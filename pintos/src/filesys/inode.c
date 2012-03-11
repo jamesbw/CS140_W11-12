@@ -224,8 +224,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       if (chunk_size <= 0)
         break;
 
-      //TODO : synchronization: prevent someone from evicting
-      //        and ensure you hold the cache block
+
       cached_block = cache_lookup (sector_idx);
       if (cached_block == NULL)
       {
@@ -310,8 +309,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       if (chunk_size <= 0)
         break;
 
-      //TODO : synchronization: prevent someone from evicting
-      //        and ensure you hold the cache block
+
       cached_block = cache_lookup (sector_idx);
       if (cached_block == NULL)
       {
