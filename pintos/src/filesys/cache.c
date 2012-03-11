@@ -17,7 +17,7 @@ cache_init (void)
 	for (i = 0; i < CACHE_SIZE; i++)
 		lock_init (&block_cache[i].lock);
 
-	hand = 0;
+	cache_hand = 0;
 	lock_init (&cache_lock);
 }
 
@@ -85,8 +85,8 @@ cache_run_clock (void)
 	struct cached_block *b = NULL;
 	while (true)
 	{
-		hand = (hand + 1) % CACHE_SIZE;
-		b = &block_cache[hand];
+		cache_hand = (cache_hand + 1) % CACHE_SIZE;
+		b = &block_cache[cache_hand];
 		if (!b->accessed)
 		{
 			if (!b->pinned)
