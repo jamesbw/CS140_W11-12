@@ -229,7 +229,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       cached_block = cache_lookup (sector_idx);
       if (cached_block == NULL)
       {
-        cached_block = cache_allocate ();
+        cached_block = cache_allocate (sector_idx);
         lock_acquire (&cached_block->lock);
         block_read (fs_device, sector_idx, cached_block->data);
       }
@@ -315,7 +315,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       cached_block = cache_lookup (sector_idx);
       if (cached_block == NULL)
       {
-        cached_block = cache_allocate ();
+        cached_block = cache_allocate (sector_idx);
         lock_acquire (&cached_block->lock);
         block_read (fs_device, sector_idx, cached_block->data);
       }

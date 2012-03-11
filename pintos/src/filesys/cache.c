@@ -42,7 +42,7 @@ cache_find_unused (void)
 }
 
 struct cached_block *
-cache_allocate (void)
+cache_allocate (block_sector_t sector)
 {
 	struct cached_block *b = cache_find_unused ();
 	if (b == NULL)
@@ -50,6 +50,7 @@ cache_allocate (void)
 		b = cache_evict ();
 	}
 	b->in_use = true;
+	b->sector = sector;
 	return b;
 }
 
