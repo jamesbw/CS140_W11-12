@@ -25,6 +25,10 @@ cache_init (void)
 	cache_hand = 0;
 	lock_init (&cache_lock);
 
+	list_init (&read_ahead_queue);
+	lock_init (&read_ahead_lock);
+	cond_init (&read_ahead_go);
+
 
 	thread_create ("write-behind", PRI_DEFAULT, write_behind_func, NULL);
 	thread_create ("read_ahead", PRI_DEFAULT, read_ahead_func, NULL);
