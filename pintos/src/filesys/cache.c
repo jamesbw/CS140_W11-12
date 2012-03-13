@@ -5,6 +5,7 @@
 #include <debug.h>
 #include "threads/thread.h"
 #include "devices/timer.h"
+#include <stdio.h>
 
 struct cached_block block_cache[CACHE_SIZE];
 
@@ -58,7 +59,7 @@ read_ahead_func (void *aux UNUSED)
 			e = list_pop_front (&read_ahead_queue);
 			lock_release (&read_ahead_lock);
 			queued_sector = list_entry (e, struct queued_sector, elem);
-			printf ("Reading ahead sector %d\n", sector_idx);
+			printf ("Reading ahead sector %d\n", queued_sector->sector);
 			b = cache_insert (queued_sector->sector);
 			lock_release (&b->lock);
 			free (queued_sector);
