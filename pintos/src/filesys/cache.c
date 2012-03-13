@@ -220,8 +220,8 @@ cache_insert (block_sector_t sector)
 		{
 			b = cache_run_clock ();
 			// write_needed = b->dirty;
-			b->old_sector = b->sector;
 		}
+		b->old_sector = b->sector;
 		b->sector = sector;
 		b->IO_needed = true;
 
@@ -242,10 +242,14 @@ cache_insert (block_sector_t sector)
 		}
 		if (b->IO_needed)
 		{
+			ASSERT (b->active_r_w == 0);
 			if (b->dirty)
 			{
 				block_write (fs_device, b->old_sector, b->data);
 				printf ("Writing out block %d\n", b->old_sector);
+			}
+			else{
+				printf ("Evicting without writing block %d\n", b->old_sector);
 			}
 			block_read (fs_device, b->sector, b->data);
 			printf ("Reading in block %d\n", b->sector);
