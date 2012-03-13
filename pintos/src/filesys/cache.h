@@ -10,6 +10,7 @@ struct cached_block
 {
 	uint8_t data[BLOCK_SECTOR_SIZE];
 	block_sector_t sector;
+	block_sector_t old_sector;
 	bool in_use;
 	int active_r_w;
 	bool accessed;
