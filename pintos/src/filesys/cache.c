@@ -3,6 +3,8 @@
 #include "devices/block.h"
 #include "filesys.h"
 #include <debug.h>
+#include "threads/thread.h"
+#include "threads/timer.h"
 
 struct cached_block block_cache[CACHE_SIZE];
 
@@ -22,6 +24,18 @@ cache_init (void)
 
 	cache_hand = 0;
 	lock_init (&cache_lock);
+
+
+	thread_create ("write-behind", PRI_DEFAULT, write_behind_func, NULL);
+}
+
+void write_behind_func (void *aux UNUSED)
+{
+	while (true)
+	{
+		timer_sleep (TIMER_FREQ * 1);
+		cache_flush ();
+	}
 }
 
 // struct cached_block *
