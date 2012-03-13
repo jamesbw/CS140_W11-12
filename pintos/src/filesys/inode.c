@@ -257,6 +257,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
 
 
       memcpy (buffer + bytes_read, cached_block->data + sector_ofs, chunk_size);
+      cached_block->accessed = true;
 
       lock_acquire (&cached_block->lock);
       cached_block->active_r_w --;
@@ -359,6 +360,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
 
       memcpy (cached_block->data + sector_ofs, buffer + bytes_written, chunk_size);
+      cached_block->dirty = true;
 
       lock_acquire (&cached_block->lock);
       cached_block->active_r_w --;

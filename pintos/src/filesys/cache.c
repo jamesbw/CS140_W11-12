@@ -136,7 +136,7 @@ cache_insert (block_sector_t sector)
 	bool already_present = false;
 	// bool write_needed = false;
 	// bool read_needed = false;
-	block_sector_t old_block;
+	// block_sector_t old_block;
 
 	lock_acquire (&cache_lock);
 	for (i = 0; i < CACHE_SIZE; i++)
