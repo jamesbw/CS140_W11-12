@@ -31,6 +31,7 @@ void cache_init (void);
 struct cached_block *cache_run_clock (void);
 void cache_flush (void);
 struct cached_block *cache_insert (block_sector_t sector);
+void write_behind_func (void *aux UNUSED);
 
 
 #endif

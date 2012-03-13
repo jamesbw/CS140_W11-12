@@ -4,7 +4,7 @@
 #include "filesys.h"
 #include <debug.h>
 #include "threads/thread.h"
-#include "threads/timer.h"
+#include "devices/timer.h"
 
 struct cached_block block_cache[CACHE_SIZE];
 
