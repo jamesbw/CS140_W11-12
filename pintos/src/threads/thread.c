@@ -324,8 +324,8 @@ thread_exit (void)
   {
     lock_acquire (&b->lock);
     b->active_r_w --;
-    if (cached_block->active_r_w == 0)
-        cond_broadcast (&cached_block->r_w_done, &cached_block->lock);
+    if (b->active_r_w == 0)
+        cond_broadcast (&b->r_w_done, &b->lock);
     lock_release (&b->lock);
   }
 
