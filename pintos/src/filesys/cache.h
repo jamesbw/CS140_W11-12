@@ -20,6 +20,19 @@ struct cached_block
 	struct condition r_w_done;
 };
 
+struct queued_sector
+{
+	block_sector_t sector;
+	struct list_elem elem;
+};
+
+struct list read_ahead_queue;
+struct lock read_ahead_lock;
+struct condition read_ahead_go;
+
+void read_ahead_func (void *aux);
+void cache_read_ahead (block_sector_t sector);
+
 struct cached_block block_cache[CACHE_SIZE];
 struct lock cache_lock;
 

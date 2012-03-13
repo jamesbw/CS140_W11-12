@@ -27,15 +27,55 @@ cache_init (void)
 
 
 	thread_create ("write-behind", PRI_DEFAULT, write_behind_func, NULL);
+	thread_create ("read_ahead", PRI_DEFAULT, read_ahead_func, NULL);
 }
 
-void write_behind_func (void *aux UNUSED)
+void 
+write_behind_func (void *aux UNUSED)
 {
 	while (true)
 	{
 		timer_sleep (TIMER_FREQ * 1);
 		cache_flush ();
 	}
+}
+
+void 
+read_ahead_func (void *aux UNUSED)
+{
+	struct list_elem *e;
+	struct cached_block *b;
+	struct queued_sector *queued_sector;
+	while (true)
+	{
+		lock_acquire (&read_ahead_lock);
+		if (!list_empty (&read_ahead_queue))
+		{
+			e = list_pop_front (&read_ahead_queue);
+			lock_release (&read_ahead_lock);
+			queued_sector = list_entry (e, struct queued_sector, elem);
+			b = cache_insert (queued_sector->sector);
+			lock_release (&b->lock);
+			free (queued_sector);
+		}
+		else
+		{
+			cond_wait (&read_ahead_go, &read_ahead_lock);
+		}
+	}
+}
+
+void 
+cache_read_ahead (block_sector_t sector)
+{
+	struct queued_sector *qs = malloc (sizeof (struct queued_sector));
+	if (qs == NULL)
+		return;
+	qs->sector = sector;
+	lock_acquire (&read_ahead_lock);
+	list_push_back (&read_ahead_queue, &qs->elem);
+	cond_signal (&read_ahead_go, &read_ahead_lock);
+	lock_release (&read_ahead_lock);
 }
 
 // struct cached_block *
