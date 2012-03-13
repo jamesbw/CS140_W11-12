@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include "fixed_point.h"
 #include <hash.h>
+#include "filesys/cache.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -109,6 +110,7 @@ struct thread
     struct list mmapped_files;
     struct hash *supp_page_table;
     void *esp;
+    struct cached_block *cache_block_being_accessed;
 #endif
 
     /* Owned by thread.c. */

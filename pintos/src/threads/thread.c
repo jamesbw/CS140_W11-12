@@ -20,6 +20,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include <hash.h>
+#include "filesys/cache.h"
 
 
 /* Random value for struct thread's `magic' member.
@@ -317,6 +318,14 @@ thread_exit (void)
 #ifdef USERPROG
   process_exit ();
 #endif
+
+  struct cached_block *b = thread_current()->cache_block_being_accessed;
+  if (b != NULL)
+  {
+    lock_acquire (&b->lock);
+    b->active_r_w --;
+    lock_release (&b->lock);
+  }
 
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
