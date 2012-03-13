@@ -257,6 +257,8 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       cached_block->active_r_w ++ ;
       lock_release (&cached_block->lock);
 
+      ASSERT (cached_block->sector == sector_idx);
+
       // cache_read_ahead (sector_idx + 1);
 
       thread_current ()->cache_block_being_accessed = cached_block;
@@ -368,6 +370,9 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
       cached_block->active_r_w ++ ;
       lock_release (&cached_block->lock);
+
+      ASSERT (cached_block->sector == sector_idx);
+
 
 
       thread_current ()->cache_block_being_accessed = cached_block;
