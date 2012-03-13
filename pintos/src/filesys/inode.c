@@ -208,7 +208,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
   off_t bytes_read = 0;
   // uint8_t *bounce = NULL;
   struct cached_block *cached_block;
-  block_sector_t next_sector;
+  block_sector_t next_sector = 0;
 
   while (size > 0) 
     {
@@ -320,7 +320,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   off_t bytes_written = 0;
   // uint8_t *bounce = NULL;
   struct cached_block *cached_block;
-  block_sector_t next_sector;
+  block_sector_t next_sector = 0;
 
   if (inode->deny_write_cnt)
     return 0;
