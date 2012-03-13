@@ -38,7 +38,7 @@ void
 filesys_done (void) 
 {
 
-  //TODO flush cache to disk
+  cache_flush ();
   free_map_close ();
 }
 

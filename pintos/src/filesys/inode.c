@@ -225,24 +225,44 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
         break;
 
 
-      cached_block = cache_lookup (sector_idx);
-      if (cached_block == NULL)
-      {
-        cached_block = cache_allocate (sector_idx);
-        lock_acquire (&cached_block->lock);
-        block_read (fs_device, sector_idx, cached_block->data);
-      }
-      else
-      {
-        lock_acquire (&cached_block->lock);
-      }
+      // cached_block = cache_lookup (sector_idx);
+      // if (cached_block == NULL)
+      // {
+      //   cached_block = cache_allocate (sector_idx);
+      //   lock_acquire (&cached_block->lock);
+      //   block_read (fs_device, sector_idx, cached_block->data);
+      // }
+      // else
+      // {
+      //   lock_acquire (&cached_block->lock);
+      // }
+
+      // memcpy (buffer + bytes_read, cached_block->data + sector_ofs, chunk_size);
+      // cached_block->accessed = true;
+      // lock_release (&cached_block->lock);
+      // cached_block->pinned = false;
+
+      // cached_block = cache_insert (sector_idx);
+      // memcpy (buffer + bytes_read, cached_block->data + sector_ofs, chunk_size);
+      // lock_release (&cached_block->lock);
+
+
+      while ( (cached_block = cache_insert (sector_idx))
+            && (cached_block->sector != sector_idx))
+        lock_release (&cached_block->lock);
+
+
+      cached_block->active_r_w ++ ;
+      lock_release (&cached_block->lock);
+
 
       memcpy (buffer + bytes_read, cached_block->data + sector_ofs, chunk_size);
-      cached_block->accessed = true;
+
+      lock_acquire (&cached_block->lock);
+      cached_block->active_r_w --;
+      if (cached_block->active_r_w == 0)
+        cond_broadcast (&cached_block->r_w_done, &cached_block->lock);
       lock_release (&cached_block->lock);
-      cached_block->pinned = false;
-
-
 
 
 
@@ -310,23 +330,41 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
         break;
 
 
-      cached_block = cache_lookup (sector_idx);
-      if (cached_block == NULL)
-      {
-        cached_block = cache_allocate (sector_idx);
-        lock_acquire (&cached_block->lock);
-        block_read (fs_device, sector_idx, cached_block->data);
-      }
-      else
-      {
-        lock_acquire (&cached_block->lock);
-      }
-      memcpy (cached_block->data + sector_ofs, buffer + bytes_written, chunk_size);
-      cached_block->accessed = true;
-      cached_block->dirty = true;
-      lock_release (&cached_block->lock);
-      cached_block->pinned = false;
+      // cached_block = cache_lookup (sector_idx);
+      // if (cached_block == NULL)
+      // {
+      //   cached_block = cache_allocate (sector_idx);
+      //   lock_acquire (&cached_block->lock);
+      //   block_read (fs_device, sector_idx, cached_block->data);
+      // }
+      // else
+      // {
+      //   lock_acquire (&cached_block->lock);
+      // }
+      // memcpy (cached_block->data + sector_ofs, buffer + bytes_written, chunk_size);
+      // cached_block->accessed = true;
+      // cached_block->dirty = true;
+      // lock_release (&cached_block->lock);
+      // cached_block->pinned = false;
 
+      // cached_block = cache_insert (sector_idx);
+
+      while ( (cached_block = cache_insert (sector_idx))
+            && (cached_block->sector != sector_idx))
+        lock_release (&cached_block->lock);
+
+
+      cached_block->active_r_w ++ ;
+      lock_release (&cached_block->lock);
+
+
+      memcpy (cached_block->data + sector_ofs, buffer + bytes_written, chunk_size);
+
+      lock_acquire (&cached_block->lock);
+      cached_block->active_r_w --;
+      if (cached_block->active_r_w == 0)
+        cond_broadcast (&cached_block->r_w_done, &cached_block->lock);
+      lock_release (&cached_block->lock);
 
 
 
