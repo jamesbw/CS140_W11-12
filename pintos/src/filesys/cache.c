@@ -243,8 +243,10 @@ cache_insert (block_sector_t sector)
 		if (b->dirty)
 		{
 			block_write (fs_device, b->old_sector, b->data);
+			printf ("Writing out block %d\n", b->old_sector);
 		}
 		block_read (fs_device, b->sector, b->data);
+		printf ("Reading in block %d\n", b->sector);
 		b->IO_needed = false;
 		b->accessed = false;
 		b->dirty = false;
