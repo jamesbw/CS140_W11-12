@@ -157,7 +157,6 @@ cache_insert (block_sector_t sector)
 
 		if (b->IO_needed)
 		{
-			ASSERT (b->sector == sector);
 			while (b->active_r_w > 0)
 			{
 				cond_wait (&b->r_w_done, &b->lock);
