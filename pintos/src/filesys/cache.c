@@ -118,12 +118,13 @@ cache_insert (block_sector_t sector)
 
 	int i;
 	struct cached_block *b;
-	struct cached_block *empty_b = NULL;
-	bool already_present = false;
+	struct cached_block *empty_b;
+	bool already_present;
 
 	while (true)
 	{
-
+		empty_b = NULL;
+		already_present = false;
 		lock_acquire (&cache_lock);
 		for (i = 0; i < CACHE_SIZE; i++)
 		{
