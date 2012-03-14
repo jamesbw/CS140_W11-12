@@ -59,7 +59,7 @@ read_ahead_func (void *aux UNUSED)
 			e = list_pop_front (&read_ahead_queue);
 			lock_release (&read_ahead_lock);
 			queued_sector = list_entry (e, struct queued_sector, elem);
-			printf ("Reading ahead sector %d\n", queued_sector->sector);
+			// printf ("Reading ahead sector %d\n", queued_sector->sector);
 			b = cache_insert (queued_sector->sector);
 			lock_release (&b->lock);
 			free (queued_sector);
@@ -249,14 +249,14 @@ cache_insert (block_sector_t sector)
 				if (b->dirty)
 				{
 					block_write (fs_device, b->old_sector, b->data);
-					printf ("Writing out block %d\n", b->old_sector);
+					// printf ("Writing out block %d\n", b->old_sector);
 					b->old_sector = -1;
 				}
 				else{
-					printf ("Evicting without writing block %d\n", b->old_sector);
+					// printf ("Evicting without writing block %d\n", b->old_sector);
 				}
 				block_read (fs_device, b->sector, b->data);
-				printf ("Reading in block %d\n", b->sector);
+				// printf ("Reading in block %d\n", b->sector);
 				b->IO_needed = false;
 				b->accessed = false;
 				b->dirty = false;
