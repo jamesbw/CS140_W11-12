@@ -86,6 +86,8 @@ byte_to_sector (const struct inode *inode, off_t pos)
 
 /* List of open inodes, so that opening a single inode twice
    returns the same `struct inode'. */
+
+//TODO lock this list
 static struct list open_inodes;
 
 /* Initializes the inode module. */
@@ -262,83 +264,14 @@ inode_create (block_sector_t sector_, off_t length)
 
     if (success = false) //allocation fails along the way, roll back allocations
     {
-
-      //deallocate direct blocks
-      int direct_block_num;
-      for (direct_block_num = 0; direct_block_num < NUM_DIRECT_BLOCKS; direct_block_num++)
-      {
-        sector = inode->direct_blocks[direct_block_num];
-        if (sector != 0)
-        {
-          free_map_release (sector, 1);
-        }
-        else
-        {
-          free (inode);
-          return success;
-        }
-      }
-
-      //deallocate indirect block
-      if (inode->indirect_block != 0)
-      {
-        block_read (fs_device, inode->indirect_block, ind_block_buf);
-        free_map_release (inode->indirect_block, 1);
-        for (final_block_index = 0; final_block_index < BLOCKS_PER_INDIRECT; final_block_index ++)
-        {
-          sector = ind_block_buf[final_block_index];
-          if (sector != 0)
-          {
-            free_map_release (sector, 1);
-          }
-          else
-          {
-            free (inode);
-            return success;
-          }
-        }
-      }
-
-      //deallocate doubly indirect block
-      if (inode->doubly_indirect_block != 0)
-      {
-        block_read (fs_device, inode->doubly_indirect_block, db_ind_block_buf);
-        free_map_release (inode->doubly_indirect_block, 1);
-
-        for (indirect_block_num = 0; indirect_block_num < BLOCKS_PER_INDIRECT; indirect_block_num ++)
-        {
-          block_sector_t indirect_block_sector = db_ind_block_buf[indirect_block_num];
-          if (indirect_block_sector != 0)
-          {
-            block_read (fs_device, indirect_block_sector, ind_block_buf);
-            free_map_release (indirect_block_sector, 1);
-
-            for (final_block_index = 0; final_block_index < BLOCKS_PER_INDIRECT; final_block_index ++)
-            {
-              sector = ind_block_buf[final_block_index];
-              if (sector != 0)
-              {
-                free_map_release (sector, 1);
-              }
-              else
-              {
-                free (inode);
-                return success;
-              }
-            }
-          }
-          else
-          {
-            free (inode);
-            return success;
-          }
-        }
-      }
+      inode_release_allocated_sectors (inode);
     }
-
-    memset (buf, 0, BLOCK_SECTOR_SIZE);
-    memcpy (buf, inode, sizeof (*inode));
-    block_write (fs_device, inode->sector, buf);
+    else
+    {
+      memset (buf, 0, BLOCK_SECTOR_SIZE);
+      memcpy (buf, inode, sizeof (*inode));
+      block_write (fs_device, inode->sector, buf);
+    }
     free (inode);
   }
   return success;
@@ -369,6 +302,83 @@ inode_create (block_sector_t sector_, off_t length)
   // return success;
 }
 
+void inode_release_allocated_sectors (struct inode *inode)
+{
+  //deallocate direct blocks
+  int direct_block_num;
+  int indirect_block_num;
+  int final_block_index;
+  block_sector_t *ind_block_buf[BLOCKS_PER_INDIRECT];
+  block_sector_t *db_ind_block_buf[BLOCKS_PER_INDIRECT];
+  block_sector_t sector;
+
+  for (direct_block_num = 0; direct_block_num < NUM_DIRECT_BLOCKS; direct_block_num++)
+  {
+    sector = inode->direct_blocks[direct_block_num];
+    if (sector != 0)
+    {
+      free_map_release (sector, 1);
+    }
+    else
+    {
+      return;
+    }
+  }
+
+  //deallocate indirect block
+  if (inode->indirect_block != 0)
+  {
+    block_read (fs_device, inode->indirect_block, ind_block_buf);
+    free_map_release (inode->indirect_block, 1);
+    for (final_block_index = 0; final_block_index < BLOCKS_PER_INDIRECT; final_block_index ++)
+    {
+      sector = ind_block_buf[final_block_index];
+      if (sector != 0)
+      {
+        free_map_release (sector, 1);
+      }
+      else
+      {
+        return;
+      }
+    }
+  }
+
+  //deallocate doubly indirect block
+  if (inode->doubly_indirect_block != 0)
+  {
+    block_read (fs_device, inode->doubly_indirect_block, db_ind_block_buf);
+    free_map_release (inode->doubly_indirect_block, 1);
+
+    for (indirect_block_num = 0; indirect_block_num < BLOCKS_PER_INDIRECT; indirect_block_num ++)
+    {
+      block_sector_t indirect_block_sector = db_ind_block_buf[indirect_block_num];
+      if (indirect_block_sector != 0)
+      {
+        block_read (fs_device, indirect_block_sector, ind_block_buf);
+        free_map_release (indirect_block_sector, 1);
+
+        for (final_block_index = 0; final_block_index < BLOCKS_PER_INDIRECT; final_block_index ++)
+        {
+          sector = ind_block_buf[final_block_index];
+          if (sector != 0)
+          {
+            free_map_release (sector, 1);
+          }
+          else
+          {
+            return ;
+          }
+        }
+      }
+      else
+      {
+        return;
+      }
+    }
+  }
+}
+
 /* Reads an inode from SECTOR
    and returns a `struct inode' that contains it.
    Returns a null pointer if memory allocation fails. */
@@ -379,6 +389,7 @@ inode_open (block_sector_t sector)
   //TODO synchronization of list?
   struct list_elem *e;
   struct inode *inode;
+  uint8_t buf[BLOCK_SECTOR_SIZE];
 
   /* Check whether this inode is already open. */
   for (e = list_begin (&open_inodes); e != list_end (&open_inodes);
@@ -398,12 +409,18 @@ inode_open (block_sector_t sector)
     return NULL;
 
   /* Initialize. */
+  block_read (fs_device, sector, buf);
+  memcpy (inode, buf, sizeof (*inode));
+
+  ASSERT (inode->sector == sector);
+  ASSERT (inode->magic == INODE_MAGIC);
+
   list_push_front (&open_inodes, &inode->elem);
-  inode->sector = sector;
+
+  // inode->sector = sector;
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
   inode->removed = false;
-  block_read (fs_device, inode->sector, &inode->data);
   return inode;
 }
 
@@ -443,8 +460,9 @@ inode_close (struct inode *inode)
       if (inode->removed) 
         {
           free_map_release (inode->sector, 1);
-          free_map_release (inode->data.start,
-                            bytes_to_sectors (inode->data.length)); 
+          // free_map_release (inode->data.start,
+          //                   bytes_to_sectors (inode->data.length));
+          inode_release_allocated_sectors (inode); 
         }
 
       free (inode); 
