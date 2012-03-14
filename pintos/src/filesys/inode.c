@@ -111,8 +111,8 @@ inode_create (block_sector_t sector_, off_t length)
   static char zeros[BLOCK_SECTOR_SIZE];
   bool success = false;
 
-  int indirect_block_num ;
-  int final_block_index ;
+  int indirect_block_num = 0;
+  int final_block_index = 0;
 
 
   ASSERT (length >= 0);
