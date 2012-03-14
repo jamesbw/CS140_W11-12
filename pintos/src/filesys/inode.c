@@ -73,7 +73,7 @@ byte_to_sector (const struct inode *inode, off_t pos)
     else
     {
       int indirect_block_num = ( block_num - (NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT )) / BLOCKS_PER_INDIRECT;
-      block_read (fs_device, inode->indirect_block, block_buf);
+      block_read (fs_device, inode->doubly_indirect_block, block_buf);
       block_read (fs_device, block_buf[indirect_block_num], block_buf);
       int final_block_index = ( block_num - (NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT )) % BLOCKS_PER_INDIRECT;
       return block_buf[final_block_index];
