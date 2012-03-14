@@ -13,16 +13,18 @@
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
+#define NUM_DIRECT_BLOCKS 12
+#define BLOCKS_PER_INDIRECT (BLOCK_SECTOR_SIZE / sizeof block_sector_t)
 
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
-struct inode_disk
-  {
-    block_sector_t start;               /* First data sector. */
-    off_t length;                       /* File size in bytes. */
-    unsigned magic;                     /* Magic number. */
-    uint32_t unused[125];               /* Not used. */
-  };
+// struct inode_disk
+//   {
+//     block_sector_t start;               /* First data sector. */
+//     off_t length;                       /* File size in bytes. */
+//     unsigned magic;                     /* Magic number. */
+//     uint32_t unused[125];               /* Not used. */
+//   };
 
 /* Returns the number of sectors to allocate for an inode SIZE
    bytes long. */
@@ -40,7 +42,11 @@ struct inode
     int open_cnt;                       /* Number of openers. */
     bool removed;                       /* True if deleted, false otherwise. */
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
-    struct inode_disk data;             /* Inode content. */
+    off_t length;
+    block_sector_t direct_blocks[NUM_DIRECT_BLOCKS];
+    block_sector_t indirect_block;
+    block_sector_t doubly_indirect_block;
+    unsigned magic;
   };
 
 /* Returns the block device sector that contains byte offset POS
@@ -51,8 +57,29 @@ static block_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) 
 {
   ASSERT (inode != NULL);
-  if (pos < inode->data.length)
-    return inode->data.start + pos / BLOCK_SECTOR_SIZE;
+  block_sector_t block_buf[BLOCKS_PER_INDIRECT];
+  if (pos < inode->length)
+  {
+    int block_num = pos / BLOCK_SECTOR_SIZE;
+    if (block_num < NUM_DIRECT_BLOCKS)
+    {
+      return inode->direct_blocks[block_num];
+    }
+    if (block_num < NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT)
+    {
+      block_read (fs_device, inode->indirect_block, block_buf);
+      return block_buf[block_num - NUM_DIRECT_BLOCKS];
+    }
+    else
+    {
+      int indirect_block_num = ( block_num - (NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT )) / BLOCKS_PER_INDIRECT;
+      block_read (fs_device, inode->indirect_block, block_buf);
+      block_read (fs_device, block_buf[indirect_block_num], block_buf);
+      int final_block_index = ( block_num - (NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT )) % BLOCKS_PER_INDIRECT;
+      return block_buf[final_block_index];
+
+    }
+  }
   else
     return -1;
 }
