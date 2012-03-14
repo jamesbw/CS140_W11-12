@@ -120,7 +120,8 @@ inode_create (block_sector_t sector_, off_t length)
   if (inode != NULL)
   {
 
-
+    success = true;
+    
     inode->sector = sector_;
     inode->length = length;
     inode->magic = INODE_MAGIC;
