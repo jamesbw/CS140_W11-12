@@ -21,6 +21,8 @@ cache_init (void)
 	{
 		lock_init (&block_cache[i].lock);
 		cond_init (&block_cache[i].r_w_done);
+		block_cache[i].old_sector = -1;
+		block_cache[i].sector = -1;
 	}
 
 	cache_hand = 0;
@@ -223,8 +225,8 @@ cache_insert (block_sector_t sector)
 			{
 				b = cache_run_clock ();
 				// write_needed = b->dirty;
+				b->old_sector = b->sector;
 			}
-			b->old_sector = b->sector;
 			b->sector = sector;
 			b->IO_needed = true;
 
@@ -250,12 +252,12 @@ cache_insert (block_sector_t sector)
 				{
 					block_write (fs_device, b->old_sector, b->data);
 					// printf ("Writing out block %d\n", b->old_sector);
-					b->old_sector = -1;
 				}
 				else{
 					// printf ("Evicting without writing block %d\n", b->old_sector);
 				}
 				block_read (fs_device, b->sector, b->data);
+				b->old_sector = -1;
 				// printf ("Reading in block %d\n", b->sector);
 				b->IO_needed = false;
 				b->accessed = false;
