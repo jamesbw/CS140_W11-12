@@ -107,7 +107,7 @@ inode_create (block_sector_t sector_, off_t length)
 {
   uint8_t buf[BLOCK_SECTOR_SIZE];
   block_sector_t *ind_block_buf = (block_sector_t *) buf;
-  block_sector_t *db_ind_block_buf[BLOCKS_PER_INDIRECT];
+  block_sector_t db_ind_block_buf[BLOCKS_PER_INDIRECT];
   static char zeros[BLOCK_SECTOR_SIZE];
   bool success = false;
 
@@ -126,7 +126,7 @@ inode_create (block_sector_t sector_, off_t length)
     inode->magic = INODE_MAGIC;
 
     size_t sectors = bytes_to_sectors (length);
-    int block_num;
+    size_t block_num;
     block_sector_t sector;
     for (block_num = 0; block_num < sectors; block_num ++)
     {
@@ -262,7 +262,7 @@ inode_create (block_sector_t sector_, off_t length)
       }
     }
 
-    if (success = false) //allocation fails along the way, roll back allocations
+    if (success == false) //allocation fails along the way, roll back allocations
     {
       inode_release_allocated_sectors (inode);
     }
@@ -304,14 +304,14 @@ inode_create (block_sector_t sector_, off_t length)
 
 void inode_release_allocated_sectors (struct inode *inode)
 {
-  //deallocate direct blocks
   int direct_block_num;
   int indirect_block_num;
   int final_block_index;
-  block_sector_t *ind_block_buf[BLOCKS_PER_INDIRECT];
-  block_sector_t *db_ind_block_buf[BLOCKS_PER_INDIRECT];
+  block_sector_t ind_block_buf[BLOCKS_PER_INDIRECT];
+  block_sector_t db_ind_block_buf[BLOCKS_PER_INDIRECT];
   block_sector_t sector;
 
+  //deallocate direct blocks
   for (direct_block_num = 0; direct_block_num < NUM_DIRECT_BLOCKS; direct_block_num++)
   {
     sector = inode->direct_blocks[direct_block_num];
