@@ -207,7 +207,7 @@ cache_insert (block_sector_t sector)
 		{
 			empty_b = b;
 		}
-		else if (b->sector == sector )
+		else if (b->sector == sector || b->old_sector == sector)
 		{
 			already_present = true;		
 			break;
@@ -247,6 +247,7 @@ cache_insert (block_sector_t sector)
 			{
 				block_write (fs_device, b->old_sector, b->data);
 				printf ("Writing out block %d\n", b->old_sector);
+				b->old_sector = -1;
 			}
 			else{
 				printf ("Evicting without writing block %d\n", b->old_sector);
