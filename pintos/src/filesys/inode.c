@@ -119,12 +119,20 @@ inode_create (block_sector_t sector_, off_t length)
   struct inode *inode = malloc (sizeof (struct inode));
   if (inode != NULL)
   {
+    memset (db_ind_block_buf, 0, sizeof db_ind_block_buf);
 
     success = true;
-    
+
     inode->sector = sector_;
     inode->length = length;
     inode->magic = INODE_MAGIC;
+    inode->open_cnt = 0;
+    inode->removed = 0;
+    inode->deny_write_cnt = 0;
+    inode->indirect_block = 0;
+    inode->doubly_indirect_block = 0;
+    memset (inode->direct_blocks, 0, sizeof inode->direct_blocks);
+
 
     size_t sectors = bytes_to_sectors (length);
     size_t block_num;
