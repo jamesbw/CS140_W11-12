@@ -14,7 +14,7 @@
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
 #define NUM_DIRECT_BLOCKS 12
-#define BLOCKS_PER_INDIRECT (BLOCK_SECTOR_SIZE / sizeof block_sector_t)
+#define BLOCKS_PER_INDIRECT (BLOCK_SECTOR_SIZE / 4)
 
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
