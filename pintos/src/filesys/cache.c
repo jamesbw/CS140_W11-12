@@ -199,65 +199,74 @@ cache_insert (block_sector_t sector)
 	// bool read_needed = false;
 	// block_sector_t old_block;
 
-	lock_acquire (&cache_lock);
-	for (i = 0; i < CACHE_SIZE; i++)
+	while (true)
 	{
-		b = &block_cache[i];
-		if (!b->in_use)
-		{
-			empty_b = b;
-		}
-		else if (b->sector == sector || b->old_sector == sector)
-		{
-			already_present = true;		
-			break;
-		}
-	}
-	if (!already_present)
-	{
-		b = empty_b;
-		if (b == NULL)
-		{
-			b = cache_run_clock ();
-			// write_needed = b->dirty;
-		}
-		b->old_sector = b->sector;
-		b->sector = sector;
-		b->IO_needed = true;
 
-		b->in_use = true;
-		// read_needed = true;
-	}
-
-	// b->pinned = true;
-	lock_release (&cache_lock);
-	lock_acquire (&b->lock);
-
-	if (b->IO_needed)
-	{
-		ASSERT (b->sector == sector);
-		while (b->active_r_w > 0)
+		lock_acquire (&cache_lock);
+		for (i = 0; i < CACHE_SIZE; i++)
 		{
-			cond_wait (&b->r_w_done, &b->lock);
+			b = &block_cache[i];
+			if (!b->in_use)
+			{
+				empty_b = b;
+			}
+			else if (b->sector == sector || b->old_sector == sector)
+			{
+				already_present = true;		
+				break;
+			}
 		}
+		if (!already_present)
+		{
+			b = empty_b;
+			if (b == NULL)
+			{
+				b = cache_run_clock ();
+				// write_needed = b->dirty;
+			}
+			b->old_sector = b->sector;
+			b->sector = sector;
+			b->IO_needed = true;
+
+			b->in_use = true;
+			// read_needed = true;
+		}
+
+		// b->pinned = true;
+		lock_release (&cache_lock);
+		lock_acquire (&b->lock);
+
 		if (b->IO_needed)
 		{
-			ASSERT (b->active_r_w == 0);
-			if (b->dirty)
+			ASSERT (b->sector == sector);
+			while (b->active_r_w > 0)
 			{
-				block_write (fs_device, b->old_sector, b->data);
-				printf ("Writing out block %d\n", b->old_sector);
-				b->old_sector = -1;
+				cond_wait (&b->r_w_done, &b->lock);
 			}
-			else{
-				printf ("Evicting without writing block %d\n", b->old_sector);
+			if (b->IO_needed)
+			{
+				ASSERT (b->active_r_w == 0);
+				if (b->dirty)
+				{
+					block_write (fs_device, b->old_sector, b->data);
+					printf ("Writing out block %d\n", b->old_sector);
+					b->old_sector = -1;
+				}
+				else{
+					printf ("Evicting without writing block %d\n", b->old_sector);
+				}
+				block_read (fs_device, b->sector, b->data);
+				printf ("Reading in block %d\n", b->sector);
+				b->IO_needed = false;
+				b->accessed = false;
+				b->dirty = false;
 			}
-			block_read (fs_device, b->sector, b->data);
-			printf ("Reading in block %d\n", b->sector);
-			b->IO_needed = false;
-			b->accessed = false;
-			b->dirty = false;
 		}
+
+		if (b->sector == sector)
+			break;
+		else
+			lock_release (&b->lock);
 	}
 
 

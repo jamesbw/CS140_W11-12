@@ -265,9 +265,11 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       // }
 
       printf ("Reading sector %d\n", sector_idx);
-      while ( (cached_block = cache_insert (sector_idx))
-            && (cached_block->sector != sector_idx))
-        lock_release (&cached_block->lock);
+      // while ( (cached_block = cache_insert (sector_idx))
+      //       && (cached_block->sector != sector_idx))
+      //   lock_release (&cached_block->lock);
+
+      cached_block = cache_insert (sector_idx);
 
 
       cached_block->active_r_w ++ ;
@@ -380,10 +382,11 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       // cached_block = cache_insert (sector_idx);
 
       printf ("Writing sector %d\n", sector_idx);
-      while ( (cached_block = cache_insert (sector_idx))
-            && (cached_block->sector != sector_idx))
-        lock_release (&cached_block->lock);
+      // while ( (cached_block = cache_insert (sector_idx))
+      //       && (cached_block->sector != sector_idx))
+      //   lock_release (&cached_block->lock);
 
+      cached_block = cache_insert (sector_idx);
 
       cached_block->active_r_w ++ ;
       lock_release (&cached_block->lock);
