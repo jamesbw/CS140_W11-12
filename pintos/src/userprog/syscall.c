@@ -429,15 +429,20 @@ syscall_readdir (struct intr_frame *f, uint32_t fd, uint32_t name_)
   char *name = (char *) name_;
   verify_uaddr ( name);
 
+  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+  if (fw != NULL || !fw->is_dir) 
+    return;
+  else
+    dir_readdir ((struct dir *)fw->file_or_dir, name);
+
 }
 
 void 
 syscall_isdir (struct intr_frame *f, uint32_t fd)
 {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  if (fw != NULL) {
+  if (fw != NULL) 
     f->eax = fw->is_dir;
-  }
   else
     f->eax = false; 
 }
@@ -446,7 +451,8 @@ void
 syscall_inumber (struct intr_frame *f, uint32_t fd)
 {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  if (fw != NULL) {
+  if (fw != NULL) 
+  {
     if (fw->is_dir)
     {
       struct dir *file = (struct dir *) fw->file_or_dir;
