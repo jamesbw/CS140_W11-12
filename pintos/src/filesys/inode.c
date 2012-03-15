@@ -682,8 +682,8 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   {
     if (!inode_extend(inode, num_blocks_to_add))
       return 0;
-    inode->length = offset + size ;
   }
+  inode->length = offset + size ;
 
   while (size > 0) 
     {
