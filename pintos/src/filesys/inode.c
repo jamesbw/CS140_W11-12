@@ -687,6 +687,11 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
         return 0;
     }
     inode->length = offset + size ;
+
+    uint8_t buf[BLOCK_SECTOR_SIZE];
+    memset (buf, 0, BLOCK_SECTOR_SIZE);
+    memcpy (buf, inode, sizeof (*inode));
+    block_write (fs_device, inode->sector, buf);
   }
 
   while (size > 0) 
