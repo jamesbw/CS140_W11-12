@@ -438,6 +438,8 @@ syscall_isdir (struct intr_frame *f, uint32_t fd)
   if (fw != NULL) {
     f->eax = fw->is_dir;
   }
+  else
+    f->eax = false; 
 }
 
 void 
@@ -461,6 +463,8 @@ syscall_inumber (struct intr_frame *f, uint32_t fd)
     }
     
   }
+  else
+    f->eax = -1;
 }
 
 

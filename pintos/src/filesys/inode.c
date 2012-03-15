@@ -654,6 +654,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
 
       next_sector = sector_idx + 1;
     }
+    //TODO: revisit read ahead. Make sure next_sector is not too big
     cache_read_ahead (next_sector);
 
 
