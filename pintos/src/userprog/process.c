@@ -201,9 +201,18 @@ process_exit (void)
   {
     struct file_wrapper *fw = list_entry (e, struct file_wrapper, elem);
     e = list_remove (e);
-    lock_acquire (&filesys_lock);
-    file_close (fw->file);
-    lock_release (&filesys_lock);
+    if (fw->is_dir)
+    {
+      lock_acquire (&filesys_lock);
+      dir_close ((struct dir *) fw->file_or_dir);
+      lock_release (&filesys_lock); 
+    }
+    else
+    {
+      lock_acquire (&filesys_lock);
+      file_close ((struct file *) fw->file_or_dir);
+      lock_release (&filesys_lock);  
+    }
     free (fw);
   }
 
@@ -708,12 +717,13 @@ install_page (void *upage, void *kpage, bool writable)
 // Wraps a struct file into a struct with a file descriptor
 // and a list_elem so that it can be inserted into a list.
 struct file_wrapper *
-wrap_file (struct file *file)
+wrap_file (void *file_or_dir, bool is_dir)
 {
   struct file_wrapper *fw = malloc (sizeof (struct file_wrapper));
   if (fw == NULL) //couldn't allocate memory
     thread_exit ();
-  fw->file = file;
+  fw->is_dir = is_dir;
+  fw->file_or_dir = file_or_dir;
   fw->fd = allocate_fd ();
   return fw;
 }

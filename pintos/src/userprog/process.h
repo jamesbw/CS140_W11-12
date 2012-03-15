@@ -33,12 +33,13 @@ struct process
 struct file_wrapper
 {
     fd_t fd;
-    struct file *file;
+    void *file_or_dir;
+    bool is_dir;
     struct list_elem elem;
 };
 
 struct file_wrapper * lookup_fd ( fd_t fd);
-struct file_wrapper *wrap_file (struct file *file);
+struct file_wrapper *wrap_file (void *file_or_dir, bool is_dir);
 
 
 

@@ -220,14 +220,16 @@ void syscall_remove (struct intr_frame *f, uint32_t file_name)
 
 void syscall_open (struct intr_frame *f, uint32_t file_name) 
 {
+  bool is_dir;
+
   verify_uaddr ((char *) file_name);
   pin_buffer ((char *) file_name, strlen ((char *) file_name));
   lock_acquire (&filesys_lock);
-  struct file *file = filesys_open ( (char *) file_name);
+  void *file_or_dir = filesys_open ( (char *) file_name, &is_dir);
   if (file == NULL) {
     f->eax = -1;
   } else {
-    struct file_wrapper *fw = wrap_file (file); 
+    struct file_wrapper *fw = wrap_file (file_or_dir, is_dir); 
     list_push_back (&thread_current ()->open_files, &fw->elem);   
     f->eax = fw->fd;
   }
@@ -242,12 +244,12 @@ void syscall_filesize (struct intr_frame *f, uint32_t fd)
   else
   {    
     struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-    if (fw == NULL)
+    if (fw == NULL || fw->is_dir)
       f->eax = -1;
     else
     {    
       lock_acquire (&filesys_lock);
-      f->eax = file_length (fw->file);
+      f->eax = file_length ((struct file *)fw->file_or_dir);
       lock_release (&filesys_lock);
     }
   }
@@ -268,12 +270,12 @@ void syscall_read (struct intr_frame *f, uint32_t fd, uint32_t buffer,
     }
   } else {
     struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-    if (fw == NULL) {
+    if (fw == NULL || fw->is_dir) {
       f->eax =  -1;
     } else {
       pin_buffer (buf, size);
       lock_acquire (&filesys_lock);
-      f->eax = file_read (fw->file, buf, size);
+      f->eax = file_read ((struct file *)fw->file_or_dir, buf, size);
       lock_release (&filesys_lock);
       unpin_buffer (buf, size);
     }
@@ -297,12 +299,12 @@ void syscall_write (struct intr_frame *f, uint32_t fd, uint32_t buffer,
     f->eax = size;
   } else {
     struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-    if (fw == NULL) {
+    if (fw == NULL || fw->is_dir) {
       f->eax =  -1;
     } else {
       pin_buffer (buf, size);
       lock_acquire (&filesys_lock);
-      f->eax = file_write (fw->file, buf, size);
+      f->eax = file_write ((struct file *)fw->file_or_dir, buf, size);
       lock_release (&filesys_lock);
       unpin_buffer (buf, size);
     }
@@ -312,9 +314,9 @@ void syscall_write (struct intr_frame *f, uint32_t fd, uint32_t buffer,
 void syscall_seek (struct intr_frame *f UNUSED, uint32_t fd, uint32_t position) 
 {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  if (fw != NULL) { 
+  if (fw != NULL && !fw->is_dir) { 
     lock_acquire (&filesys_lock);
-    file_seek (fw->file, position);
+    file_seek ((struct file *)fw->file_or_dir, position);
     lock_release (&filesys_lock);
   }
 }
@@ -322,11 +324,11 @@ void syscall_seek (struct intr_frame *f UNUSED, uint32_t fd, uint32_t position)
 void syscall_tell (struct intr_frame *f, uint32_t fd) 
 {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  if (fw == NULL) {
+  if (fw == NULL || fw->is_dir) {
     f->eax =  -1;
   } else {
     lock_acquire (&filesys_lock);
-    f->eax = file_tell (fw->file);
+    f->eax = file_tell ((struct file *)fw->file_or_dir);
     lock_release (&filesys_lock);
   }
 }
@@ -336,9 +338,18 @@ void syscall_close (struct intr_frame *f UNUSED, uint32_t fd)
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL) {
     list_remove (&fw->elem);
-    lock_acquire (&filesys_lock);
-    file_close (fw->file);
-    lock_release (&filesys_lock);
+    if (fw->is_dir)
+    {
+      lock_acquire (&filesys_lock);
+      dir_close ((struct dir *)fw->file_or_dir);
+      lock_release (&filesys_lock);
+    }
+    else
+    {
+      lock_acquire (&filesys_lock);
+      file_close ((struct file *)fw->file_or_dir);
+      lock_release (&filesys_lock);
+    }
     free (fw);
   }
 }
@@ -351,8 +362,8 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
     thread_exit (); // Not user address
 
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  if ((fw == NULL )
-    || (file_length (fw->file) == 0)
+  if ((fw == NULL || fw->is_dir)
+    || (file_length ((struct file *)fw->file_or_dir) == 0)
     || ((uint32_t) vaddr % PGSIZE != 0)
     || (vaddr == 0)) {
     f->eax =  MAP_FAILED;
@@ -360,7 +371,7 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
   }
 
   //check that no pages are mapped in the space needed for the file
-  int num_pages = (file_length (fw->file) -1 )/ PGSIZE + 1;
+  int num_pages = (file_length ((struct file *)fw->file_or_dir) -1 )/ PGSIZE + 1;
   off_t offset;
   for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
   {
@@ -374,12 +385,12 @@ syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr_)
   mapid_t mapid = fd; 
 
   struct mmapped_file *mf = malloc (sizeof (struct mmapped_file));
-  mf->file = file_reopen (fw->file);
+  mf->file = file_reopen ((struct file *)fw->file_or_dir);
   ASSERT (mf->file);
   mf->base_page = vaddr;
   mf->mapid = mapid;
 
-  int size_left = file_length (fw->file);
+  int size_left = file_length ((struct file *)fw->file_or_dir);
   for (offset = 0; offset < num_pages *PGSIZE; offset += PGSIZE)
   {
     int valid_bytes = size_left < PGSIZE ? size_left : PGSIZE;
@@ -413,8 +424,10 @@ syscall_mkdir (struct intr_frame *f, uint32_t dir_name)
 }
 
 void 
-syscall_readdir (struct intr_frame *f, uint32_t fd, uint32_t name)
+syscall_readdir (struct intr_frame *f, uint32_t fd, uint32_t name_)
 {
+  char *name = (char *) name_;
+  verify_uaddr ( name);
 
 }
 
@@ -423,9 +436,7 @@ syscall_isdir (struct intr_frame *f, uint32_t fd)
 {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL) {
-    lock_acquire (&filesys_lock);
-    f->eax = inode_is_directory (file_get_inode (fw->file));
-    lock_release (&filesys_lock);
+    f->eax = fw->is_dir;
   }
 }
 
@@ -434,9 +445,21 @@ syscall_inumber (struct intr_frame *f, uint32_t fd)
 {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL) {
-    lock_acquire (&filesys_lock);
-    f->eax = inode_get_inumber (file_get_inode (fw->file));
-    lock_release (&filesys_lock);
+    if (fw->is_dir)
+    {
+      struct dir *file = (struct dir *) fw->file_or_dir;
+      lock_acquire (&filesys_lock);
+      f->eax = inode_get_inumber (dir_get_inode (fw->file));
+      lock_release (&filesys_lock);
+    }
+    else
+    {
+      struct file *file = (struct file *) fw->file_or_dir;
+      lock_acquire (&filesys_lock);
+      f->eax = inode_get_inumber (file_get_inode (fw->file));
+      lock_release (&filesys_lock);
+    }
+    
   }
 }
 
