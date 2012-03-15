@@ -111,7 +111,7 @@ start_process (void *spf_)
 
     hash_init (&(new_process->supp_page_table), page_hash, page_less, NULL);
     thread_current ()->supp_page_table = &new_process->supp_page_table;
-    thread_current ()->current_dir = sfp->current_dir;
+    thread_current ()->current_dir = spf->current_dir;
 
     lock_acquire(&process_lock);
     list_push_back ( &process_list, &new_process->elem);
