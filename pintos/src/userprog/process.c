@@ -405,7 +405,7 @@ load (const char *file_name, void (**eip) (void), void **esp, struct file **exec
 
   /* Open executable file. */
   lock_acquire (&filesys_lock);
-  file = filesys_open (file_name);
+  file = (struct file *)filesys_open (file_name);
   lock_release (&filesys_lock);
   *executable = file;
   if (file == NULL) 

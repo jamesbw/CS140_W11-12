@@ -12,6 +12,7 @@
 #include "filesys/file.h"
 #include "devices/input.h"
 #include "threads/malloc.h"
+#include "filesys/directory.h"
 
 #include "vm/page.h"
 #include "vm/frame.h"
@@ -226,7 +227,7 @@ void syscall_open (struct intr_frame *f, uint32_t file_name)
   pin_buffer ((char *) file_name, strlen ((char *) file_name));
   lock_acquire (&filesys_lock);
   void *file_or_dir = filesys_open ( (char *) file_name, &is_dir);
-  if (file == NULL) {
+  if (file_or_dir == NULL) {
     f->eax = -1;
   } else {
     struct file_wrapper *fw = wrap_file (file_or_dir, is_dir); 
@@ -412,19 +413,19 @@ syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
 
 
 void 
-syscall_chdir (struct intr_frame *f, uint32_t dir_name)
+syscall_chdir (struct intr_frame *f , uint32_t dir_name)
 {
 
 }
 
 void 
-syscall_mkdir (struct intr_frame *f, uint32_t dir_name)
+syscall_mkdir (struct intr_frame *f , uint32_t dir_name)
 {
 
 }
 
 void 
-syscall_readdir (struct intr_frame *f, uint32_t fd, uint32_t name_)
+syscall_readdir (struct intr_frame *f UNUSED, uint32_t fd, uint32_t name_)
 {
   char *name = (char *) name_;
   verify_uaddr ( name);
@@ -457,14 +458,14 @@ syscall_inumber (struct intr_frame *f, uint32_t fd)
     {
       struct dir *file = (struct dir *) fw->file_or_dir;
       lock_acquire (&filesys_lock);
-      f->eax = inode_get_inumber (dir_get_inode (fw->file));
+      f->eax = inode_get_inumber (dir_get_inode ((struct dir *)fw->file_or_dir));
       lock_release (&filesys_lock);
     }
     else
     {
       struct file *file = (struct file *) fw->file_or_dir;
       lock_acquire (&filesys_lock);
-      f->eax = inode_get_inumber (file_get_inode (fw->file));
+      f->eax = inode_get_inumber (file_get_inode ((struct file *)fw->file_or_dir));
       lock_release (&filesys_lock);
     }
     
