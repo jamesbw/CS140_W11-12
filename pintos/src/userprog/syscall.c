@@ -414,13 +414,13 @@ syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
 
 
 void 
-syscall_chdir (struct intr_frame *f , uint32_t dir_name)
+syscall_chdir (struct intr_frame *f UNUSED, uint32_t dir_name UNUSED)
 {
 
 }
 
 void 
-syscall_mkdir (struct intr_frame *f , uint32_t dir_name)
+syscall_mkdir (struct intr_frame *f UNUSED, uint32_t dir_name UNUSED)
 {
 
 }
@@ -457,16 +457,16 @@ syscall_inumber (struct intr_frame *f, uint32_t fd)
   {
     if (fw->is_dir)
     {
-      struct dir *file = (struct dir *) fw->file_or_dir;
+      struct dir *dir = (struct dir *) fw->file_or_dir;
       lock_acquire (&filesys_lock);
-      f->eax = inode_get_inumber (dir_get_inode ((struct dir *)fw->file_or_dir));
+      f->eax = inode_get_inumber (dir_get_inode (dir));
       lock_release (&filesys_lock);
     }
     else
     {
       struct file *file = (struct file *) fw->file_or_dir;
       lock_acquire (&filesys_lock);
-      f->eax = inode_get_inumber (file_get_inode ((struct file *)fw->file_or_dir));
+      f->eax = inode_get_inumber (file_get_inode (file));
       lock_release (&filesys_lock);
     }
     
