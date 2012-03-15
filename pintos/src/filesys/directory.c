@@ -24,9 +24,18 @@ struct dir_entry
 /* Creates a directory with space for ENTRY_CNT entries in the
    given SECTOR.  Returns true if successful, false on failure. */
 bool
-dir_create (block_sector_t sector, size_t entry_cnt)
+dir_create (block_sector_t sector, block_sector_t parent_sector, size_t entry_cnt)
 {
-  return inode_create (sector, entry_cnt * sizeof (struct dir_entry), true);
+  entry_cnt += 2; //to account for "." and ".."
+  struct inode *inode =  inode_create (sector, entry_cnt * sizeof (struct dir_entry), true);
+  if (inode == NULL)
+    return false;
+
+  struct dir *dir = dir_open (inode);
+  dir_add (dir, ".", sector);
+  dir_add (dir, "..", parent_sector);
+  dir_close (dir);
+  return true;
 }
 
 /* Opens and returns the directory for the given INODE, of which
