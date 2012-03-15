@@ -391,7 +391,7 @@ void inode_release_allocated_sectors (struct inode *inode, int num_blocks_to_rem
     {
       final_block_index = block_num - NUM_DIRECT_BLOCKS;
       if ((final_block_index == BLOCK_SECTOR_SIZE -1)
-        && (inode->doubly_indirect_block != 0)
+        && (inode->doubly_indirect_block != 0))
       {
         free_map_release (db_ind_block_buf[0], 1);
         free_map_release (inode->doubly_indirect_block, 1);
@@ -405,7 +405,7 @@ void inode_release_allocated_sectors (struct inode *inode, int num_blocks_to_rem
       //onto direct blocks now
     {
       if ((block_num == NUM_DIRECT_BLOCKS -1)
-        && (inode->indirect_block != 0)
+        && (inode->indirect_block != 0))
         {
           free_map_release (inode->indirect_block, 1);
           inode->indirect_block = 0;
@@ -787,7 +787,7 @@ inode_extend (struct inode *inode, int num_blocks_to_add)
   if (inode->doubly_indirect_block != 0)
   {
     block_read (fs_device, inode->doubly_indirect_block, db_ind_block_buf);
-    indirect_block_num = ( block_num - (NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT )) / BLOCKS_PER_INDIRECT;
+    indirect_block_num = ( original_inode_sectors - (NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT )) / BLOCKS_PER_INDIRECT;
     block_read (fs_device, db_ind_block_buf[indirect_block_num], ind_block_buf);
   }
   else 
