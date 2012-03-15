@@ -46,7 +46,7 @@ struct inode
     block_sector_t direct_blocks[NUM_DIRECT_BLOCKS];
     block_sector_t indirect_block;
     block_sector_t doubly_indirect_block;
-    // bool is_dir;
+    bool is_dir;
     unsigned magic;
   };
 
