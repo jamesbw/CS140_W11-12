@@ -677,13 +677,17 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
     return 0;
 
   //grow inode if necessary
-  int num_blocks_to_add = bytes_to_sectors (offset + size ) - bytes_to_sectors (inode_length (inode));
-  if (num_blocks_to_add > 0)
+  
+  if (offset + size > inode->length)
   {
-    if (!inode_extend(inode, num_blocks_to_add))
-      return 0;
+    int num_blocks_to_add = bytes_to_sectors (offset + size ) - bytes_to_sectors (inode_length (inode));
+    if (num_blocks_to_add > 0)
+    {
+      if (!inode_extend(inode, num_blocks_to_add))
+        return 0;
+    }
+    inode->length = offset + size ;
   }
-  inode->length = offset + size ;
 
   while (size > 0) 
     {
