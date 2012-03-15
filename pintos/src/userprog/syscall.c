@@ -18,6 +18,7 @@
 #include "vm/frame.h"
 #include <hash.h>
 #include <string.h>
+#include "filesys/inode.h"
 
 static void syscall_handler (struct intr_frame *);
 static void verify_uaddr ( void *uaddr);

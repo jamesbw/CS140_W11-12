@@ -27,9 +27,10 @@ bool
 dir_create (block_sector_t sector, block_sector_t parent_sector, size_t entry_cnt)
 {
   entry_cnt += 2; //to account for "." and ".."
-  struct inode *inode =  inode_create (sector, entry_cnt * sizeof (struct dir_entry), true);
-  if (inode == NULL)
+  if (!inode_create (sector, entry_cnt * sizeof (struct dir_entry), true))
     return false;
+
+  struct inode *inode = inode_open (sector);
 
   struct dir *dir = dir_open (inode);
   dir_add (dir, ".", sector);
