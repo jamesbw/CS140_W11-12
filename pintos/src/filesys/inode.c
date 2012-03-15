@@ -926,11 +926,11 @@ inode_extend (struct inode *inode, int num_blocks_to_add)
 
 }
 
-// bool 
-// inode_is_directory (struct inode *inode)
-// {
-//   return inode->is_dir;
-// }
+bool 
+inode_is_directory (struct inode *inode)
+{
+  return inode->is_dir;
+}
 
 
 
