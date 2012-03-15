@@ -40,7 +40,9 @@ struct inode
     struct list_elem elem;              /* Element in inode list. */
     block_sector_t sector;              /* Sector number of disk location. */
     int open_cnt;                       /* Number of openers. */
-    bool removed;                       /* True if deleted, false otherwise. */
+    bool removed;                       /* True if deleted, false
+					   otherwise. */
+    bool isdir;
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
     off_t length;
     block_sector_t direct_blocks[NUM_DIRECT_BLOCKS];
@@ -103,7 +105,7 @@ inode_init (void)
    Returns true if successful.
    Returns false if memory or disk allocation fails. */
 bool
-inode_create (block_sector_t sector_, off_t length)
+inode_create (block_sector_t sector_, off_t length, bool dirflag)
 {
   uint8_t buf[BLOCK_SECTOR_SIZE];
   block_sector_t *ind_block_buf = (block_sector_t *) buf;
@@ -128,6 +130,7 @@ inode_create (block_sector_t sector_, off_t length)
     inode->magic = INODE_MAGIC;
     inode->open_cnt = 0;
     inode->removed = 0;
+    inode->isdir = dirflag;
     inode->deny_write_cnt = 0;
     inode->indirect_block = 0;
     inode->doubly_indirect_block = 0;

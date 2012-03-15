@@ -26,7 +26,7 @@ struct dir_entry
 bool
 dir_create (block_sector_t sector, size_t entry_cnt)
 {
-  return inode_create (sector, entry_cnt * sizeof (struct dir_entry));
+  return inode_create (sector, entry_cnt * sizeof (struct dir_entry), true);
 }
 
 /* Opens and returns the directory for the given INODE, of which
@@ -94,7 +94,6 @@ lookup (const struct dir *dir, const char *name,
 {
   struct dir_entry e;
   size_t ofs;
-  const char DELIM = '/';
   
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
@@ -125,12 +124,27 @@ dir_lookup (const struct dir *dir, const char *name,
 
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
-
-  if (lookup (dir, name, &e, NULL))
-    *inode = inode_open (e.inode_sector);
-  else
-    *inode = NULL;
-
+  struct dir *cd;
+  char *split;
+  char *token, *save_ptr;
+  char *rest = name;
+  if (*name == '/') {
+    cd = dir_open_root();
+  } else {
+    cd = dir_reopen(dir);
+  }
+  for (token = strtok_r (name, "/", &save_ptr); token != NULL;
+       token = strtok_r (NULL, "/", &save_ptr)) {
+    if (lookup(cd, token, &e, NULL)) {
+      inode_close(*inode);
+      *inode = inode_open(e.inode_sector);
+      dir_close(cd);
+      cd = dir_open(*inode);
+    } else {
+      *inode = NULL;
+      return false;
+    }
+  }
   return *inode != NULL;
 }
 
@@ -236,3 +250,5 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
     }
   return false;
 }
+
+
