@@ -19,6 +19,7 @@ off_t inode_write_at (struct inode *, const void *, off_t size, off_t offset);
 void inode_deny_write (struct inode *);
 void inode_allow_write (struct inode *);
 off_t inode_length (const struct inode *);
-void inode_release_allocated_sectors (struct inode *inode);
+void inode_release_allocated_sectors (struct inode *inode, num_blocks_to_remove);
+bool inode_extend (struct inode *inode, int num_blocks_to_add);
 
 #endif /* filesys/inode.h */
