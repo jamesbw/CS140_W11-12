@@ -346,7 +346,7 @@ void inode_release_allocated_sectors (struct inode *inode, int num_blocks_to_rem
   if (inode->doubly_indirect_block != 0)
   {
     block_read (fs_device, inode->doubly_indirect_block, db_ind_block_buf);
-    indirect_block_num = ( block_num - (NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT )) / BLOCKS_PER_INDIRECT;
+    indirect_block_num = ( original_inode_sectors - (NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT )) / BLOCKS_PER_INDIRECT;
     block_read (fs_device, db_ind_block_buf[indirect_block_num], ind_block_buf);
   }
   else 
