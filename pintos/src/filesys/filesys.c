@@ -81,12 +81,14 @@ filesys_open (const char *name, bool *is_dir)
 
   if (inode_is_directory (inode))
   {
-    *is_dir = true;
+    if (is_dir != NULL)
+      *is_dir = true;
     return (void *)dir_open (inode);
   }
   else
   {
-    *is_dir = false;
+    if (is_dir != NULL)
+      *is_dir = false;
     return (void *)file_open (inode);
   }
 }
