@@ -46,6 +46,7 @@ struct inode
     block_sector_t direct_blocks[NUM_DIRECT_BLOCKS];
     block_sector_t indirect_block;
     block_sector_t doubly_indirect_block;
+    bool is_dir;
     unsigned magic;
   };
 
@@ -103,7 +104,7 @@ inode_init (void)
    Returns true if successful.
    Returns false if memory or disk allocation fails. */
 bool
-inode_create (block_sector_t sector_, off_t length)
+inode_create (block_sector_t sector_, off_t length, bool is_dir)
 {
   uint8_t buf[BLOCK_SECTOR_SIZE];
   // block_sector_t *ind_block_buf = (block_sector_t *) buf;
@@ -127,6 +128,7 @@ inode_create (block_sector_t sector_, off_t length)
     inode->deny_write_cnt = 0;
     inode->indirect_block = 0;
     inode->doubly_indirect_block = 0;
+    inode->is_dir = is_dir;
     memset (inode->direct_blocks, 0, sizeof inode->direct_blocks);
 
     success = inode_extend (inode, bytes_to_sectors(length));
@@ -922,3 +924,13 @@ inode_extend (struct inode *inode, int num_blocks_to_add)
   return success;
 
 }
+
+bool 
+inode_is_directory (struct inode *inode)
+{
+  return inode->is_dir;
+}
+
+
+
+

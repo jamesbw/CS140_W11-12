@@ -42,6 +42,13 @@ void syscall_tell (struct intr_frame *f, uint32_t fd);
 void syscall_close (struct intr_frame *f, uint32_t fd);
 void syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr);
 void syscall_munmap (struct intr_frame *f, uint32_t mapid);
+void syscall_chdir (struct intr_frame *f, uint32_t dir_name);
+void syscall_mkdir (struct intr_frame *f, uint32_t dir_name);
+void syscall_readdir (struct intr_frame *f, uint32_t fd, uint32_t name);
+void syscall_isdir (struct intr_frame *f, uint32_t fd);
+void syscall_inumber (struct intr_frame *f, uint32_t fd);
+
+
 
 void
 syscall_init (void) 
@@ -73,6 +80,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_CREATE:
     case SYS_SEEK:
     case SYS_MMAP:
+    case SYS_READDIR:
       verify_uaddr (f->esp + 8);
       arg2 = *(uint32_t *) (f->esp + 8);
     case SYS_EXIT:
@@ -84,6 +92,10 @@ syscall_handler (struct intr_frame *f)
     case SYS_TELL:
     case SYS_CLOSE:
     case SYS_MUNMAP:
+    case SYS_CHDIR:
+    case SYS_MKDIR:
+    case SYS_ISDIR:
+    case SYS_INUMBER:
       verify_uaddr (f->esp + 4);
       arg1 = *(uint32_t *) (f->esp + 4);
     case SYS_HALT:
@@ -136,6 +148,21 @@ syscall_handler (struct intr_frame *f)
         break;
       case SYS_MUNMAP:
         syscall_munmap (f, arg1);
+        break;
+      case SYS_CHDIR:
+        syscall_chdir (f, arg1);
+        break;
+      case SYS_MKDIR:
+        syscall_mkdir (f, arg1);
+        break;
+      case SYS_READDIR:
+        syscall_readdir (f, arg1, arg2);
+        break;
+      case SYS_ISDIR:
+        syscall_isdir (f, arg1);
+        break;
+      case SYS_INUMBER:
+        syscall_inumber (f, arg1);
         break;
       default:
         printf ("system call!\n");
@@ -370,6 +397,47 @@ syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
 
   process_munmap ( (mapid_t) mapid);
 
+}
+
+
+void 
+syscall_chdir (struct intr_frame *f, uint32_t dir_name)
+{
+
+}
+
+void 
+syscall_mkdir (struct intr_frame *f, uint32_t dir_name)
+{
+
+}
+
+void 
+syscall_readdir (struct intr_frame *f, uint32_t fd, uint32_t name)
+{
+
+}
+
+void 
+syscall_isdir (struct intr_frame *f, uint32_t fd)
+{
+  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+  if (fw != NULL) {
+    lock_acquire (&filesys_lock);
+    f->eax = inode_is_directory (file_get_inode (fw->file));
+    lock_release (&filesys_lock);
+  }
+}
+
+void 
+syscall_inumber (struct intr_frame *f, uint32_t fd)
+{
+  struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
+  if (fw != NULL) {
+    lock_acquire (&filesys_lock);
+    f->eax = inode_get_inumber (file_get_inode (fw->file));
+    lock_release (&filesys_lock);
+  }
 }
 
 
