@@ -338,9 +338,9 @@ void inode_release_allocated_sectors (struct inode *inode, int num_blocks_to_rem
   // block_sector_t sector;
 
 
-  size_t block_num;
-  size_t original_inode_sectors = bytes_to_sectors (inode->length);
-  size_t new_sectors = original_inode_sectors - num_blocks_to_remove;
+  int block_num;
+  int original_inode_sectors = bytes_to_sectors (inode->length);
+  int new_sectors = original_inode_sectors - num_blocks_to_remove;
 
   //initialize block buffers based on current number of sectors
   if (inode->doubly_indirect_block != 0)
