@@ -22,6 +22,7 @@
 
 #include "vm/page.h"
 #include "vm/frame.h"
+#include "devices/block.h"
 
 
 static thread_func start_process NO_RETURN;
@@ -34,6 +35,7 @@ struct start_process_frame
   bool success;
   struct semaphore *sema_loaded;
   tid_t parent_tid;
+  block_sector_t current_dir;
 };
 
 struct lock filesys_lock;
@@ -63,6 +65,7 @@ process_execute (const char *file_name)
   spf.success = false;
   spf.sema_loaded = &loaded;
   spf.parent_tid = thread_current ()->tid;
+  spf.current_dir = thread_current ()->current_dir;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, &spf);
@@ -108,6 +111,7 @@ start_process (void *spf_)
 
     hash_init (&(new_process->supp_page_table), page_hash, page_less, NULL);
     thread_current ()->supp_page_table = &new_process->supp_page_table;
+    thread_current ()->current_dir = sfp->current_dir;
 
     lock_acquire(&process_lock);
     list_push_back ( &process_list, &new_process->elem);

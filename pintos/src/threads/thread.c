@@ -21,6 +21,7 @@
 #include "vm/frame.h"
 #include <hash.h>
 #include "filesys/cache.h"
+#include "filesys/filesys.h"
 
 
 /* Random value for struct thread's `magic' member.
@@ -707,6 +708,8 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init (&(t->locks_held));
   list_init (&(t->open_files));
   list_init (&(t->mmapped_files));
+
+  t->current_dir = ROOT_DIR_SECTOR;
 
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
