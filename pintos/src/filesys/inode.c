@@ -111,8 +111,8 @@ inode_create (block_sector_t sector_, off_t length)
   // static char zeros[BLOCK_SECTOR_SIZE];
   bool success = false;
 
-  int indirect_block_num = 0;
-  int final_block_index = 0;
+  // int indirect_block_num = 0;
+  // int final_block_index = 0;
 
 
   ASSERT (length >= 0);
@@ -328,19 +328,19 @@ inode_create (block_sector_t sector_, off_t length)
 //   // return success;
 // }
 
-void inode_release_allocated_sectors (struct inode *inode, num_blocks_to_remove)
+void inode_release_allocated_sectors (struct inode *inode, int num_blocks_to_remove)
 {
-  int direct_block_num;
+  // int direct_block_num;
   int indirect_block_num;
   int final_block_index;
   block_sector_t ind_block_buf[BLOCKS_PER_INDIRECT];
   block_sector_t db_ind_block_buf[BLOCKS_PER_INDIRECT];
-  block_sector_t sector;
+  // block_sector_t sector;
 
 
   size_t block_num;
-  int original_inode_sectors = bytes_to_sectors (inode->length);
-  int new_sectors = original_inode_sectors - num_blocks_to_remove;
+  size_t original_inode_sectors = bytes_to_sectors (inode->length);
+  size_t new_sectors = original_inode_sectors - num_blocks_to_remove;
 
   //initialize block buffers based on current number of sectors
   if (inode->doubly_indirect_block != 0)
@@ -386,7 +386,7 @@ void inode_release_allocated_sectors (struct inode *inode, num_blocks_to_remove)
        
     }
     if ((block_num < NUM_DIRECT_BLOCKS + BLOCKS_PER_INDIRECT)
-      && (block_num >= NUM_DIRECT_BLOCKS)
+      && (block_num >= NUM_DIRECT_BLOCKS))
       //single indirect block now
     {
       final_block_index = block_num - NUM_DIRECT_BLOCKS;
