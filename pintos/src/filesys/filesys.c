@@ -140,13 +140,23 @@ filesys_remove (const char *pathname)
 
   if (inode_is_directory (inode))
   {
-    if ((pathname[strlen (pathname) -1] == '/')
-      || (dir_get_num_entries (dir) > 2))
+    struct dir *dir_to_remove = dir_open (inode);
+    if (dir_get_num_entries (dir_to_remove) > 2)
     {
+      dir_close (dir_to_remove);
       dir_close (dir);
       inode_close (inode);
       return false;
     }
+    dir_close (dir_to_remove);
+  }
+  else
+  if (pathname[strlen (pathname) -1] == '/')
+    //invalid file name
+  {
+    dir_close (dir);
+    inode_close (inode);
+    return false;
   }
 
   bool success = dir_remove (dir, name);
