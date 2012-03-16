@@ -407,7 +407,7 @@ dir_get_num_entries (struct dir *dir)
         count ++;
   }
 
-  dir-pos = saved_pos;
+  dir->pos = saved_pos;
 
   return count;
 }
