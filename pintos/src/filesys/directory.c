@@ -316,17 +316,18 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
     // starting_block = inode_get_inumber (dir)
   }
 
-  free (path_copy);
+  
 
   //is there still another token?
   if (strtok_r (NULL, "/", &save_ptr) != NULL)
   {
     dir_close (*parent_dir);
+    free (path_copy);
     *parent_dir = NULL;
     return false;
   }
 
-
+  free (path_copy);
   return true;
 }
 
