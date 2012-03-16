@@ -456,7 +456,7 @@ syscall_readdir (struct intr_frame *f UNUSED, uint32_t fd, uint32_t name_)
   }
   else
   {
-    pin_buffer ( name, strlen (name));
+    pin_buffer ( name, NAME_MAX + 1);
     lock_acquire (&filesys_lock);
     dir_readdir ((struct dir *)fw->file_or_dir, name);
     lock_release (&filesys_lock);
