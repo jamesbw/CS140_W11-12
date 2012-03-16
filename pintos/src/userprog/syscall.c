@@ -436,7 +436,7 @@ syscall_mkdir (struct intr_frame *f UNUSED, uint32_t dir_name_)
 
   pin_buffer ( dir_name, strlen (dir_name));
   lock_acquire (&filesys_lock);
-  f->eax =  dir_create_pathname (dir_name);
+  f->eax =  filesys_create(dir_name, 0);
   lock_release (&filesys_lock);
   unpin_buffer ( dir_name, strlen (dir_name));
 

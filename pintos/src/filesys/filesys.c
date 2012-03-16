@@ -7,6 +7,7 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 #include "cache.h"
+#include "threads/thread.h"
 
 /* Partition that contains the file system. */
 struct block *fs_device;
@@ -82,12 +83,19 @@ filesys_open (const char *pathname, bool *is_dir)
 {
   char name[NAME_MAX + 1];
   struct dir *dir;
-
-  //if (!dir_parse_pathname (pathname, &dir, name))
-  //return NULL;
-
-  struct inode *inode = NULL;
-
+  block_sector_t old_dir = thread_current()->current_dir; //reset before
+  //   return.
+  char *split = strrchr(pathname, '/');
+  if (split != NULL) {
+    *split = '\0';
+  }
+  while (strlen(split+1) == 0) {
+    split = strrchr(pathname, '/');
+  }
+  bool changed = dir_set_current_dir(pathname);
+  struct inode *inode = inode_open(thread_current()->current_dir);
+  dir = dir_open(inode);
+  strlcpy(name, split+1, NAME_MAX+1);
   if (dir != NULL)
     dir_lookup (dir, name, &inode);
   dir_close (dir);
@@ -122,14 +130,22 @@ filesys_remove (const char *pathname)
   // struct dir *dir = dir_open_root ();
 
   char name[NAME_MAX + 1];
+
   struct dir *dir;
+  block_sector_t old_dir = thread_current()->current_dir; //reset before
+  //   return.
+  char *split = strrchr(pathname, '/');
+  if (split != NULL) {
+    *split = '\0';
+  }
+  //if (!dir_parse_pathname (pathname, &dir, name))
+  //return NULL;
 
-  struct inode *inode;
 
+  bool changed = dir_set_current_dir(pathname);
+  struct inode *inode = NULL;
+  strlcpy(name, split+1, NAME_MAX+1);
   if (!strcmp (name, ".") || !strcmp (name, ".."))
-    return false;
-
-  if (!dir_parse_pathname (pathname, &dir, name))
     return false;
 
   if (!dir_lookup (dir, name, &inode))
