@@ -290,13 +290,14 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   {
     //TODO close directories
     strlcpy (name, token, NAME_MAX + 1);
-    dir_close (*parent_dir);
-    *parent_dir = dir_open (inode);
 
-    if (*parent_dir == NULL)
+    if (inode_is_directory (inode))
+      (*parent_dir)->inode = inode;
+    else
     {
       free (path_copy);
       inode_close (inode);
+      dir_close (*parent_dir);
       return false;
     }
 
