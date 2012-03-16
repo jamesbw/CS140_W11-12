@@ -289,6 +289,11 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
     current_inode = inode_open (thread_current ()->current_dir);
     *parent_dir = dir_open (current_inode);
   }
+  if (current_inode == NULL)
+  {
+    free (path_copy);
+    return false;
+  }
 
   char *token, *save_ptr;
   for (token = strtok_r (path_copy, "/", &save_ptr); token != NULL;
