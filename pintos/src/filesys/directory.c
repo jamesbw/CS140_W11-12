@@ -293,6 +293,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
     // starting_block = thread_current ()->current_dir;
     // *parent_dir = dir_open (inode_open (thread_current ()->current_dir));
     inode = inode_open (thread_current ()->current_dir);
+    *parent_dir = dir_open (inode);
   }
 
   char *token, *save_ptr;
@@ -301,6 +302,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   {
     //TODO close directories
     strlcpy (name, token, NAME_MAX + 1);
+    dir_close (*parent_dir);
     *parent_dir = dir_open (inode);
 
     if (*parent_dir == NULL)
@@ -314,8 +316,6 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
     // dir = dir_open (inode_open (starting_block));
     if (!dir_lookup (*parent_dir, token, &inode))
       break;
-    else
-      dir_close (*parent_dir);
 
     // if (!inode_is_directory (inode) 
     //   && ((strtok_r (s, "/", &save_ptr) != NULL) 
@@ -328,17 +328,18 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
     // starting_block = inode_get_inumber (dir)
   }
 
-  free (path_copy);
+  
 
   //is there still another token?
-  if (strtok_r (path_copy, "/", &save_ptr) != NULL)
+  if (strtok_r (NULL, "/", &save_ptr) != NULL)
   {
     dir_close (*parent_dir);
+    free (path_copy);
     *parent_dir = NULL;
     return false;
   }
 
-
+  free (path_copy);
   return true;
 }
 
