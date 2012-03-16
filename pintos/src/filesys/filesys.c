@@ -7,6 +7,7 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 #include "cache.h"
+#include "threads/thread.h"
 
 /* Partition that contains the file system. */
 struct block *fs_device;
@@ -53,13 +54,15 @@ filesys_create (const char *pathname, off_t initial_size)
   char name[NAME_MAX + 1];
   struct dir *dir;
 
+  block_sector_t cd = thread_current()->current_dir;
   //reject trailing '/'
   if (pathname[strlen (pathname)- 1] == '/')
     return NULL;
 
-  if (!dir_parse_pathname (pathname, &dir, name))
+  if (!dir_parse_pathname (pathname, &dir, name)) {
+    thread_current()->current_dir = cd;
     return false;
-
+  }
 
   // struct dir *dir = dir_open_root ();
   bool success = (dir != NULL
@@ -70,7 +73,7 @@ filesys_create (const char *pathname, off_t initial_size)
   if (!success && inode_sector != 0) 
     free_map_release (inode_sector, 1);
   dir_close (dir);
-
+  thread_current()->current_dir = cd;
   return success;
 }
 
@@ -84,37 +87,44 @@ filesys_open (const char *pathname, bool *is_dir)
 {
   char name[NAME_MAX + 1];
   struct dir *dir;
-
-  if (!dir_parse_pathname (pathname, &dir, name))
+  block_sector_t cd = thread_current()->current_dir;
+  if (!dir_parse_pathname (pathname, &dir, name)) {
+    thread_current()->current_dir = cd;
     return NULL;
-
+  }
   if (inode_is_removed (dir_get_inode (dir)))
   {
     dir_close (dir);
+    thread_current()->current_dir = cd;
     return NULL;
   }
 
   struct inode *inode = NULL;
 
-  if (dir != NULL)
+  if (dir != NULL) 
     dir_lookup (dir, name, &inode);
   dir_close (dir);
 
-  if (inode == NULL)
+  if (inode == NULL) {
+    thread_current()->current_dir = cd;
     return NULL;
-
+  }
   if (inode_is_directory (inode))
   {
     if (is_dir != NULL)
       *is_dir = true;
+    thread_current()->current_dir = cd;
     return (void *)dir_open (inode);
   }
   else
   {
-    if (pathname[strlen (pathname)- 1] == '/')
+    if (pathname[strlen (pathname)- 1] == '/') {
+      thread_current()->current_dir = cd;
       return NULL;
+    }
     if (is_dir != NULL)
       *is_dir = false;
+    thread_current()->current_dir = cd;
     return (void *)file_open (inode);
   }
 }
@@ -128,11 +138,13 @@ filesys_remove (const char *pathname)
 {
   //TODO dir is current directory + nav
   // struct dir *dir = dir_open_root ();
-
+ 
   char name[NAME_MAX + 1];
   struct dir *dir;
 
   struct inode *inode;
+
+  block_sector_t cd = thread_current()->current_dir;
 
   if (!strcmp (name, ".") || !strcmp (name, ".."))
     return false;
@@ -145,7 +157,10 @@ filesys_remove (const char *pathname)
     dir_close (dir);
     return false;
   }
-
+  if (inode_get_inumber(inode) == cd) { //Can't delete yourself
+    dir_close(dir);
+    return false;
+  }
   if (inode_is_directory (inode))
   {
     struct dir *dir_to_remove = dir_open (inode);
@@ -154,6 +169,7 @@ filesys_remove (const char *pathname)
       dir_close (dir_to_remove);
       dir_close (dir);
       inode_close (inode);
+      thread_current()->current_dir = cd;
       return false;
     }
     dir_close (dir_to_remove);
@@ -164,13 +180,14 @@ filesys_remove (const char *pathname)
   {
     dir_close (dir);
     inode_close (inode);
+    thread_current()->current_dir = cd;
     return false;
   }
 
   bool success = dir_remove (dir, name);
   dir_close (dir);
   inode_close (inode);
-
+  thread_current()->current_dir = cd;
   return success;
 }
 
