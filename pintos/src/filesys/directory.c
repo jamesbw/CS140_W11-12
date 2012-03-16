@@ -267,7 +267,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   // struct inode *inode;
 
   struct inode *current_inode;
-  struct inode *next_inode = cu;
+  struct inode *next_inode = NULL;
 
   if (path_copy[0] == '/')
   {
