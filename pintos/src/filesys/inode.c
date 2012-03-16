@@ -655,7 +655,8 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       next_sector = sector_idx + 1;
     }
     //TODO: revisit read ahead. Make sure next_sector is not too big
-    cache_read_ahead (next_sector);
+    if (next_sector < block_size (fs_device))
+      cache_read_ahead (next_sector);
 
 
   return bytes_read;
@@ -740,7 +741,8 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
       next_sector = sector_idx + 1;
     }
-    cache_read_ahead (next_sector);
+    if (next_sector < block_size (fs_device))
+      cache_read_ahead (next_sector);
 
 
   return bytes_written;
