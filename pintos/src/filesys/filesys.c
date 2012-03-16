@@ -47,11 +47,20 @@ filesys_done (void)
    Fails if a file named NAME already exists,
    or if internal memory allocation fails. */
 bool
-filesys_create (const char *name, off_t initial_size) 
+filesys_create (const char *pathname, off_t initial_size) 
 {
   block_sector_t inode_sector = 0;
-  //TODO dir is current directory + nav
-  struct dir *dir = dir_open_root ();
+  char name[NAME_MAX + 1];
+  struct dir *dir;
+
+  //reject trailing '/'
+  if (pathname[strlen (pathname)- 1] == '/')
+    return NULL;
+
+  if (!dir_parse_pathname (pathname, &dir, name))
+    return false;
+
+  // struct dir *dir = dir_open_root ();
   bool success = (dir != NULL
                   && free_map_allocate (1, &inode_sector)
                   && inode_create (inode_sector, initial_size, false)
@@ -63,16 +72,20 @@ filesys_create (const char *name, off_t initial_size)
   return success;
 }
 
-/* Opens the file with the given NAME.
+/* Opens the file or directory with the given NAME.
    Returns the new file if successful or a null pointer
    otherwise.
    Fails if no file named NAME exists,
    or if an internal memory allocation fails. */
 void *
-filesys_open (const char *name, bool *is_dir)
+filesys_open (const char *pathname, bool *is_dir)
 {
-  //TODO dir is current directory + nav
-  struct dir *dir = dir_open_root ();
+  char name[NAME_MAX + 1];
+  struct dir *dir;
+
+  if (!dir_parse_pathname (pathname, &dir, name))
+    return NULL;
+
   struct inode *inode = NULL;
 
   if (dir != NULL)
@@ -90,6 +103,8 @@ filesys_open (const char *name, bool *is_dir)
   }
   else
   {
+    if (pathname[strlen (pathname)- 1] == '/')
+      return NULL;
     if (is_dir != NULL)
       *is_dir = false;
     return (void *)file_open (inode);
@@ -105,6 +120,9 @@ filesys_remove (const char *name)
 {
   //TODO dir is current directory + nav
   struct dir *dir = dir_open_root ();
+
+  //TODO special case for directory
+
   bool success = dir != NULL && dir_remove (dir, name);
   dir_close (dir); 
 

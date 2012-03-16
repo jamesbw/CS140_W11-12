@@ -45,7 +45,7 @@ struct dir *
 dir_open (struct inode *inode) 
 {
   struct dir *dir = calloc (1, sizeof *dir);
-  if (inode != NULL && dir != NULL)
+  if (inode != NULL && dir != NULL && inode_is_directory (inode))
     {
       dir->inode = inode;
       dir->pos = 0;
@@ -245,4 +245,127 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
         } 
     }
   return false;
+}
+
+bool 
+dir_parse_pathname (char *pathname, struct dir **parent_dir, char *name)
+{
+
+  if (pathname == NULL || pathname[0] = '\0')
+    return false;
+
+  char *path_copy = malloc (strlen (pathname) +1);
+  if (path_copy == NULL)
+    return false;
+
+  // block_sector_t starting_block;
+  // struct dir *dir;
+  struct inode *inode;
+
+  if (path_copy[0] == '/')
+  {
+    // *parent_dir = dir_open_root;
+    inode = inode_open (ROOT_DIR_SECTOR);
+
+    // in case the pathname refers to the root directory, give these default values
+    // they get overwritten if ever there is something in the 
+    *parent_dir = dir_open_root ();
+    strlcpy (name, ".", NAME_MAX + 1);
+  }
+  else
+  {
+    // starting_block = thread_current ()->current_dir;
+    // *parent_dir = dir_open (inode_open (thread_current ()->current_dir));
+    inode = inode_open (thread_current ()->current_dir);
+  }
+
+  char *token, *save_ptr;
+  struct dir *dir;
+  for (token = strtok_r (s, "/", &save_ptr); token != NULL;
+       token = strtok_r (NULL, "/", &save_ptr))
+  {
+    //TODO close directories
+    strlcpy (name, token, NAME_MAX + 1);
+    *parent_dir = dir_open (inode);
+
+    if (*parent_dir == NULL)
+    {
+      free (path_copy);
+      return false;
+    }
+
+
+    // dir = dir_open (inode_open (starting_block));
+    if (!dir_lookup (*parent_dir, token, &inode))
+      break;
+    else
+      dir_close (*parent_dir);
+
+    // if (!inode_is_directory (inode) 
+    //   && ((strtok_r (s, "/", &save_ptr) != NULL) 
+    //       || (pathname[strlen(pathname -1)]=='/')))
+
+    // {
+    //   free (path_copy);
+    //   return false;
+    // }
+    // starting_block = inode_get_inumber (dir)
+  }
+
+  //is there still another token?
+  if (strtok_r (s, "/", &save_ptr) != NULL)
+  {
+    free (path_copy);
+    return false;
+  }
+
+  return true;
+}
+
+
+bool 
+dir_create_pathname (char *pathname)
+{
+  char name[NAME_MAX + 1];
+  struct dir *dir;
+
+  if (!dir_parse_pathname (pathname, &dir, name))
+    return false;
+
+  block_sector_t parent_sector = inode_get_inumber (dir_get_inode (dir));
+
+  block_sector_t inode_sector = 0;
+
+  bool success = (dir != NULL
+                  && free_map_allocate (1, &inode_sector)
+                  && dir_create (inode_sector, parent_sector, 0)
+                  && dir_add (dir, name, inode_sector));
+  if (!success && inode_sector != 0) 
+    free_map_release (inode_sector, 1);
+  dir_close (dir);
+
+  return success;
+
+}
+
+bool 
+dir_set_current_dir (char *pathname)
+{
+  char name[NAME_MAX + 1];
+  struct dir *dir;
+
+  if (!dir_parse_pathname (pathname, &dir, name))
+    return false;
+
+  struct inode *inode = NULL;
+
+  success = ( dir_lookup (dir, name, &inode)
+             && inode_is_directory (inode));
+
+  if (success)
+    thread_current ()->current_dir = inode_get_inumber (inode);
+  if (inode != NULL)
+    inode_close (inode);
+
+  return success;          
 }
