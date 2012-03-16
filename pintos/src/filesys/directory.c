@@ -6,7 +6,7 @@
 #include "filesys/inode.h"
 #include "threads/malloc.h"
 #include "threads/thread.h"
-#include "freemap.h"
+#include "free-map.h"
 
 /* A directory. */
 struct dir 
