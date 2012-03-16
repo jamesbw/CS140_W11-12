@@ -530,15 +530,22 @@ inode_open (block_sector_t sector)
   block_read (fs_device, sector, buf);
   memcpy (inode, buf, sizeof (*inode));
 
-  ASSERT (inode->sector == sector);
-  ASSERT (inode->magic == INODE_MAGIC);
+  // ASSERT (inode->sector == sector);
+  // ASSERT (inode->magic == INODE_MAGIC);
+
+  if ( (inode->sector != sector)
+        || (inode->magic) != INODE_MAGIC)
+  {
+    free (inode);
+    return NULL;
+  }
 
   list_push_front (&open_inodes, &inode->elem);
 
   // inode->sector = sector;
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
-  inode->removed = false;
+  // inode->removed = false;
   return inode;
 }
 
