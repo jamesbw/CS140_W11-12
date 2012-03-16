@@ -274,7 +274,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
     // in case the pathname refers to the root directory, give these default values
     // they get overwritten if ever there is something in the 
     *parent_dir = dir_open_root ();
-    strlcpy (name, ".", NAME_MAX + 1);
+    strlcpy (name, ".", strlen (".") + 1);
   }
   else
   {
@@ -289,7 +289,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
        token = strtok_r (NULL, "/", &save_ptr))
   {
     //TODO close directories
-    strlcpy (name, token, NAME_MAX + 1);
+    strlcpy (name, token, strlen (token) + 1);
 
     if (inode_is_directory (inode))
       (*parent_dir)->inode = inode;
