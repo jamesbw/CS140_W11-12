@@ -60,8 +60,10 @@ filesys_create (const char *pathname, off_t initial_size)
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
 
+
   // struct dir *dir = dir_open_root ();
   bool success = (dir != NULL
+                  && !inode_is_removed (dir_get_inode (dir))
                   && free_map_allocate (1, &inode_sector)
                   && inode_create (inode_sector, initial_size, false)
                   && dir_add (dir, name, inode_sector));
