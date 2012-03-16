@@ -187,7 +187,8 @@ page_free ( struct hash_elem *elem, void *aux UNUSED)
 void 
 page_free_supp_page_table (void)
 {
-  hash_destroy (thread_current ()->supp_page_table, page_free);
+  if (thread_current ()->supp_page_table != NULL)
+    hash_destroy (thread_current ()->supp_page_table, page_free);
 }
 
 
