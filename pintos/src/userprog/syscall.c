@@ -449,7 +449,7 @@ syscall_readdir (struct intr_frame *f UNUSED, uint32_t fd, uint32_t name_)
   verify_uaddr ( name);
 
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
-  if (fw != NULL || !fw->is_dir) 
+  if (fw == NULL || !fw->is_dir) 
   {
     f->eax = false;
     return;
