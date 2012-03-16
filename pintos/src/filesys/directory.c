@@ -5,6 +5,8 @@
 #include "filesys/filesys.h"
 #include "filesys/inode.h"
 #include "threads/malloc.h"
+#include "threads/thread.h"
+#include "freemap.h"
 
 /* A directory. */
 struct dir 
@@ -248,10 +250,10 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
 }
 
 bool 
-dir_parse_pathname (char *pathname, struct dir **parent_dir, char *name)
+dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
 {
 
-  if (pathname == NULL || pathname[0] = '\0')
+  if ((pathname == NULL) || (pathname[0] == '\0'))
     return false;
 
   char *path_copy = malloc (strlen (pathname) +1);
@@ -280,7 +282,6 @@ dir_parse_pathname (char *pathname, struct dir **parent_dir, char *name)
   }
 
   char *token, *save_ptr;
-  struct dir *dir;
   for (token = strtok_r (path_copy, "/", &save_ptr); token != NULL;
        token = strtok_r (NULL, "/", &save_ptr))
   {
@@ -316,7 +317,7 @@ dir_parse_pathname (char *pathname, struct dir **parent_dir, char *name)
   free (path_copy);
 
   //is there still another token?
-  if (strtok_r (s, "/", &save_ptr) != NULL)
+  if (strtok_r (path_copy, "/", &save_ptr) != NULL)
   {
     dir_close (*parent_dir);
     *parent_dir = NULL;
@@ -364,7 +365,7 @@ dir_set_current_dir (char *pathname)
 
   struct inode *inode = NULL;
 
-  success = ( dir_lookup (dir, name, &inode)
+  bool success = ( dir_lookup (dir, name, &inode)
              && inode_is_directory (inode));
 
   if (success)
