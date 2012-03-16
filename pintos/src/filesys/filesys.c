@@ -73,15 +73,31 @@ filesys_open (const char *name, bool *is_dir)
 {
   //TODO dir is current directory + nav
   struct dir *dir = dir_open_root ();
-  struct inode *inode = NULL;
-
-  if (dir != NULL)
-    dir_lookup (dir, name, &inode);
-  dir_close (dir);
-
+  struct inode *inode;
+  struct dir *cd;
+  if (*name == '/') {
+    cd = dir_open_root();
+  } else {
+    inode = NULL;
+    block_sector_t i = thread_current->current_dir;
+    inode = inode_open(i);   
+    if (inode != NULL) {
+      cd = dir_open(inode);
+      inode_close(inode);
+    }
+  }
+  char *split;
+  char *token, *save_ptr;
+  char *rest; 
+  for (token = strtok_r (name, "/", &save_ptr); token != NULL;
+       token = strtok_r (NULL, "/", &save_ptr)) {
+    if (cd != NULL)
+      dir_lookup (cd, token, &inode);
+    dir_close (cd);
+  }
   if (inode == NULL)
     return NULL;
-
+  
   if (inode_is_directory (inode))
   {
     if (is_dir != NULL)
@@ -89,7 +105,7 @@ filesys_open (const char *name, bool *is_dir)
     return (void *)dir_open (inode);
   }
   else
-  {
+    {
     if (is_dir != NULL)
       *is_dir = false;
     return (void *)file_open (inode);
