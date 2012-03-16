@@ -22,5 +22,6 @@ off_t inode_length (const struct inode *);
 void inode_release_allocated_sectors (struct inode *inode, int num_blocks_to_remove);
 bool inode_extend (struct inode *inode, int num_blocks_to_add);
 bool inode_is_directory (struct inode *inode);
+bool inode_is_removed (struct inode *inode);
 
 #endif /* filesys/inode.h */

@@ -86,6 +86,12 @@ filesys_open (const char *pathname, bool *is_dir)
   if (!dir_parse_pathname (pathname, &dir, name))
     return NULL;
 
+  if (inode_is_removed (dir_get_inode (dir)))
+  {
+    dir_close (dir);
+    return NULL;
+  }
+
   struct inode *inode = NULL;
 
   if (dir != NULL)
