@@ -582,6 +582,9 @@ inode_close (struct inode *inode)
           //                   bytes_to_sectors (inode->data.length));
           int num_sectors = bytes_to_sectors (inode->length);
           inode_release_allocated_sectors (inode, num_sectors); 
+          uint8_t buf[BLOCK_SECTOR_SIZE];
+          memcpy (buf, inode, sizeof (*inode));
+          block_write (fs_device, sector, buf);
         }
 
       free (inode); 
