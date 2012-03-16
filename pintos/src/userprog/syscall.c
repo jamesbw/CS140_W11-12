@@ -420,7 +420,7 @@ syscall_chdir (struct intr_frame *f UNUSED, uint32_t dir_name UNUSED)
 }
 
 void 
-syscall_mkdir (struct intr_frame *f UNUSED, uint32_t dir_name UNUSED)
+syscall_mkdir (struct intr_frame *f, uint32_t dir_name UNUSED)
 {
   char *name = (char *) dir_name;
   verify_uaddr (name);
@@ -431,20 +431,22 @@ syscall_mkdir (struct intr_frame *f UNUSED, uint32_t dir_name UNUSED)
   struct dir *dir = dir_open(inode);
   inode_close(inode);
   added = dir_add(dir, name, &inode);
+  f->eax = added;
 }
 
 void 
-syscall_readdir (struct intr_frame *f UNUSED, uint32_t fd, uint32_t name_)
+syscall_readdir (struct intr_frame *f, uint32_t fd, uint32_t name_)
 {
   char *name = (char *) name_;
   verify_uaddr ( name);
-
+  bool read;
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL || !fw->is_dir) 
-    return;
-  else
-    dir_readdir ((struct dir *)fw->file_or_dir, name);
-
+    f->eax = false;
+  else {
+    read = dir_readdir ((struct dir *)fw->file_or_dir, name);
+    f->eax = read;
+  }
 }
 
 void 

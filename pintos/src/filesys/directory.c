@@ -107,18 +107,18 @@ lookup (const struct dir *dir, const char *name,
   
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
-
+  
   for (ofs = 0; inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
-       ofs += sizeof e) 
+       ofs += sizeof e) {
     if (e.in_use && !strcmp (name, e.name)) 
       {
-        if (ep != NULL)
-          *ep = e;
-        if (ofsp != NULL)
-          *ofsp = ofs;
-        return true;
+	if (ep != NULL)
+	  *ep = e;
+	if (ofsp != NULL)
+	  *ofsp = ofs;
       }
-  return false;
+  }
+  return false; 
 }
 
 /* Searches DIR for a file with the given NAME
@@ -154,6 +154,7 @@ dir_lookup (const struct dir *dir, const char *name,
       *inode = NULL;
       return false;
     }
+  }
   return *inode != NULL;
 }
 
@@ -176,9 +177,12 @@ dir_add (struct dir *dir, const char *name, block_sector_t inode_sector)
   /* Check NAME for validity. */
   if (*name == '\0' || strlen (name) > NAME_MAX)
     return false;
-
+  struct inode *inode = inode_open(inode_sector);
+  if (inode == NULL) {
+    goto done;
+  }
   /* Check that NAME is not in use. */
-  if (lookup (dir, name, NULL, NULL))
+  if (dir_lookup (dir, name, &inode))
     goto done;
 
   /* Set OFS to offset of free slot.
