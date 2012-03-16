@@ -116,15 +116,42 @@ filesys_open (const char *pathname, bool *is_dir)
    Fails if no file named NAME exists,
    or if an internal memory allocation fails. */
 bool
-filesys_remove (const char *name) 
+filesys_remove (const char *pathname) 
 {
   //TODO dir is current directory + nav
-  struct dir *dir = dir_open_root ();
+  // struct dir *dir = dir_open_root ();
 
-  //TODO special case for directory
+  char name[NAME_MAX + 1];
+  struct dir *dir;
 
-  bool success = dir != NULL && dir_remove (dir, name);
-  dir_close (dir); 
+  struct inode *inode;
+
+  if (!strcmp (name, ".") || !strcmp (name, ".."))
+    return false;
+
+  if (!dir_parse_pathname (pathname, &dir, name))
+    return false;
+
+  if (!dir_lookup (dir, name, &inode))
+  {
+    dir_close (dir);
+    return false;
+  }
+
+  if (inode_is_directory (inode))
+  {
+    if ((pathname[strlen (pathname) -1] == '/')
+      || (dir_get_num_entries (dir) <= 2))
+    {
+      dir_close (dir);
+      inode_close (inode);
+      return false;
+    }
+  }
+
+  bool success = dir_remove (dir, name);
+  dir_close (dir);
+  inode_close (inode);
 
   return success;
 }

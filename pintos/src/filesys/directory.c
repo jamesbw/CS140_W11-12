@@ -281,7 +281,7 @@ dir_parse_pathname (char *pathname, struct dir **parent_dir, char *name)
 
   char *token, *save_ptr;
   struct dir *dir;
-  for (token = strtok_r (s, "/", &save_ptr); token != NULL;
+  for (token = strtok_r (path_copy, "/", &save_ptr); token != NULL;
        token = strtok_r (NULL, "/", &save_ptr))
   {
     //TODO close directories
@@ -291,6 +291,7 @@ dir_parse_pathname (char *pathname, struct dir **parent_dir, char *name)
     if (*parent_dir == NULL)
     {
       free (path_copy);
+      inode_close (inode);
       return false;
     }
 
@@ -312,12 +313,16 @@ dir_parse_pathname (char *pathname, struct dir **parent_dir, char *name)
     // starting_block = inode_get_inumber (dir)
   }
 
+  free (path_copy);
+
   //is there still another token?
   if (strtok_r (s, "/", &save_ptr) != NULL)
   {
-    free (path_copy);
+    dir_close (*parent_dir);
+    *parent_dir = NULL;
     return false;
   }
+
 
   return true;
 }
@@ -367,5 +372,13 @@ dir_set_current_dir (char *pathname)
   if (inode != NULL)
     inode_close (inode);
 
+  dir_close (dir);
+
   return success;          
+}
+
+size_t 
+dir_get_num_entries (struct dir *dir)
+{
+  return inode_length (dir_get_inode (dir)) / sizeof (struct dir_entry);
 }
