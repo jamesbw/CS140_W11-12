@@ -395,5 +395,19 @@ dir_set_current_dir (char *pathname)
 size_t 
 dir_get_num_entries (struct dir *dir)
 {
-  return inode_length (dir_get_inode (dir)) / sizeof (struct dir_entry);
+  int count = 0;
+  off_t saved_pos = dir->pos;
+
+  struct dir_entry e;
+
+  while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e) 
+  {
+    dir->pos += sizeof e;
+    if ((e.in_use)
+        count ++;
+  }
+
+  dir-pos = saved_pos;
+
+  return count;
 }
