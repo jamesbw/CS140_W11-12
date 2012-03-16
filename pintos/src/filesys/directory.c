@@ -289,6 +289,16 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
        token = strtok_r (NULL, "/", &save_ptr))
   {
     //TODO close directories
+
+    if (strlen (token) > NAME_MAX)
+    {
+      free (path_copy);
+      inode_close (inode);
+      dir_close (*parent_dir);
+      return false;
+    }
+
+
     strlcpy (name, token, strlen (token) + 1);
 
     if (inode_is_directory (inode))
