@@ -304,6 +304,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
       return false;
     }
 
+    strlcpy (name, token, strlen (token) + 1);
 
     if ( next_inode != NULL )
     {
