@@ -319,7 +319,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   free (path_copy);
 
   //is there still another token?
-  if (strtok_r (path_copy, "/", &save_ptr) != NULL)
+  if (strtok_r (NULL, "/", &save_ptr) != NULL)
   {
     dir_close (*parent_dir);
     *parent_dir = NULL;
