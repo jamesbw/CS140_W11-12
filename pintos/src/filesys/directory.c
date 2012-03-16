@@ -134,11 +134,26 @@ dir_lookup (const struct dir *dir, const char *name,
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
 
-  if (lookup (dir, name, &e, NULL))
-    *inode = inode_open (e.inode_sector);
-  else
-    *inode = NULL;
-
+  struct dir *cd;
+  char *split;
+  char *token, *save_ptr;
+  char *rest;
+  if (*name == '/') {
+    cd = dir_open_root();
+  } else {
+    cd = dir_reopen(dir);
+  } 
+  for (token = strtok_r (name, "/", &save_ptr); token != NULL;
+       token = strtok_r (NULL, "/", &save_ptr)) {
+    if (lookup (dir, name, &e, NULL)) {
+      inode_close(*inode);
+      *inode = inode_open (e.inode_sector);
+      dir_close(cd);
+      cd = dir_open(*inode);
+    } else {
+      *inode = NULL;
+      return false;
+    }
   return *inode != NULL;
 }
 

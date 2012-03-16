@@ -44,8 +44,8 @@ void syscall_tell (struct intr_frame *f, uint32_t fd);
 void syscall_close (struct intr_frame *f, uint32_t fd);
 void syscall_mmap (struct intr_frame *f, uint32_t fd, uint32_t vaddr);
 void syscall_munmap (struct intr_frame *f, uint32_t mapid);
-void syscall_chdir (struct intr_frame *f, uint32_t dir_name);
-void syscall_mkdir (struct intr_frame *f, uint32_t dir_name);
+void syscall_chdir (struct intr_frame *f, uint32_t fd, uint32_t dir_name);
+void syscall_mkdir (struct intr_frame *f, uint32_t fd, uint32_t dir_name);
 void syscall_readdir (struct intr_frame *f, uint32_t fd, uint32_t name);
 void syscall_isdir (struct intr_frame *f, uint32_t fd);
 void syscall_inumber (struct intr_frame *f, uint32_t fd);
@@ -414,15 +414,23 @@ syscall_munmap (struct intr_frame *f UNUSED, uint32_t mapid)
 
 
 void 
-syscall_chdir (struct intr_frame *f UNUSED, uint32_t dir_name UNUSED)
+syscall_chdir (struct intr_frame *f UNUSED, uint32_t fd, uint32_t dir_name UNUSED)
 {
-
+  
 }
 
 void 
-syscall_mkdir (struct intr_frame *f UNUSED, uint32_t dir_name UNUSED)
+syscall_mkdir (struct intr_frame *f UNUSED, uint32_t fd, uint32_t dir_name UNUSED)
 {
-
+  char *name = (char *) dir_name;
+  verify_uaddr (name);
+  char *split = strrchr(name, '/');
+  bool added;
+  block_sector_t cd = thread_current()->current_dir;
+  struct inode *inode = inode_open(cd);
+  struct dir *dir = dir_open(inode);
+  inode_close(inode);
+  added = dir_add(dir, name, &inode);
 }
 
 void 
