@@ -530,15 +530,22 @@ inode_open (block_sector_t sector)
   block_read (fs_device, sector, buf);
   memcpy (inode, buf, sizeof (*inode));
 
-  ASSERT (inode->sector == sector);
-  ASSERT (inode->magic == INODE_MAGIC);
+  // ASSERT (inode->sector == sector);
+  // ASSERT (inode->magic == INODE_MAGIC);
+
+  if ( (inode->sector != sector)
+        || (inode->magic) != INODE_MAGIC)
+  {
+    free (inode);
+    return NULL;
+  }
 
   list_push_front (&open_inodes, &inode->elem);
 
   // inode->sector = sector;
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
-  inode->removed = false;
+  // inode->removed = false;
   return inode;
 }
 
@@ -577,11 +584,14 @@ inode_close (struct inode *inode)
       /* Deallocate blocks if removed. */
       if (inode->removed) 
         {
-          free_map_release (inode->sector, 1);
           // free_map_release (inode->data.start,
           //                   bytes_to_sectors (inode->data.length));
           int num_sectors = bytes_to_sectors (inode->length);
           inode_release_allocated_sectors (inode, num_sectors); 
+          uint8_t buf[BLOCK_SECTOR_SIZE];
+          memset (buf, 0, BLOCK_SECTOR_SIZE);
+          block_write (fs_device, inode->sector, buf);
+          free_map_release (inode->sector, 1);
         }
 
       free (inode); 

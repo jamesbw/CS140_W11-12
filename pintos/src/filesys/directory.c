@@ -277,7 +277,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
 
     // in case the pathname refers to the root directory, give these default values
     // they get overwritten if ever there is something in the 
-    *parent_dir = dir_open_root ();
+    *parent_dir = dir_open (current_inode);
     strlcpy (name, ".", strlen (".") + 1);
   }
   else
@@ -288,6 +288,11 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
     // *parent_dir = dir_open (inode);
     current_inode = inode_open (thread_current ()->current_dir);
     *parent_dir = dir_open (current_inode);
+  }
+  if (current_inode == NULL)
+  {
+    free (path_copy);
+    return false;
   }
 
   char *token, *save_ptr;
