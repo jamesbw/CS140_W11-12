@@ -458,10 +458,9 @@ syscall_readdir (struct intr_frame *f UNUSED, uint32_t fd, uint32_t name_)
   {
     pin_buffer ( name, NAME_MAX + 1);
     lock_acquire (&filesys_lock);
-    dir_readdir ((struct dir *)fw->file_or_dir, name);
+    f->eax = dir_readdir ((struct dir *)fw->file_or_dir, name);
     lock_release (&filesys_lock);
     unpin_buffer ( name, strlen (name));
-    f->eax = true;
   }
 
 }
