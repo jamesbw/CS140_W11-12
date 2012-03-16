@@ -421,7 +421,7 @@ syscall_chdir (struct intr_frame *f UNUSED, uint32_t dir_name_ )
 
   pin_buffer ( dir_name, strlen (dir_name));
   lock_acquire (&filesys_lock);
-  f-eax-> dir_set_current_dir (dir_name);
+  f->eax = dir_set_current_dir (dir_name);
   lock_release (&filesys_lock);
   unpin_buffer ( dir_name, strlen (dir_name));
 
@@ -433,12 +433,10 @@ syscall_mkdir (struct intr_frame *f UNUSED, uint32_t dir_name_)
   char *dir_name = (char *) dir_name_;
   verify_uaddr ( dir_name);
 
-  char name[NAME_MAX + 1];
-  struct dir *dir;
 
   pin_buffer ( dir_name, strlen (dir_name));
   lock_acquire (&filesys_lock);
-  f-eax-> dir_create_pathname (dir_name);
+  f->eax =  dir_create_pathname (dir_name);
   lock_release (&filesys_lock);
   unpin_buffer ( dir_name, strlen (dir_name));
 
