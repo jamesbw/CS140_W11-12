@@ -118,7 +118,8 @@ lookup (const struct dir *dir, const char *name,
 	  *ofsp = ofs;
       }
   }
-  return false; 
+
+  return false;
 }
 
 /* Searches DIR for a file with the given NAME
@@ -265,3 +266,5 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
     }
   return false;
 }
+
+
