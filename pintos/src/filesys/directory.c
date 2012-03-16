@@ -264,12 +264,16 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
 
   // block_sector_t starting_block;
   // struct dir *dir;
-  struct inode *inode;
+  // struct inode *inode;
+
+  struct inode *current_inode;
+  struct inode *next_inode = cu;
 
   if (path_copy[0] == '/')
   {
     // *parent_dir = dir_open_root;
-    inode = inode_open (ROOT_DIR_SECTOR);
+    // inode = inode_open (ROOT_DIR_SECTOR);
+    current_inode = inode_open (ROOT_DIR_SECTOR);
 
     // in case the pathname refers to the root directory, give these default values
     // they get overwritten if ever there is something in the 
@@ -280,52 +284,70 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   {
     // starting_block = thread_current ()->current_dir;
     // *parent_dir = dir_open (inode_open (thread_current ()->current_dir));
-    inode = inode_open (thread_current ()->current_dir);
-    *parent_dir = dir_open (inode);
+    // inode = inode_open (thread_current ()->current_dir);
+    // *parent_dir = dir_open (inode);
+    current_inode = inode_open (thread_current ()->current_dir);
+    *parent_dir = dir_open (current_inode);
   }
 
   char *token, *save_ptr;
   for (token = strtok_r (path_copy, "/", &save_ptr); token != NULL;
        token = strtok_r (NULL, "/", &save_ptr))
   {
-    //TODO close directories
 
     if (strlen (token) > NAME_MAX)
     {
-      free (path_copy);
-      inode_close (inode);
+      inode_close (next_inode);
       dir_close (*parent_dir);
+      *parent_dir = NULL;
+      free (path_copy);
       return false;
     }
 
 
-    strlcpy (name, token, strlen (token) + 1);
-
-    if (inode_is_directory (inode))
-      (*parent_dir)->inode = inode;
-    else
+    if ( next_inode != NULL )
     {
-      free (path_copy);
-      inode_close (inode);
-      dir_close (*parent_dir);
-      return false;
+      if (inode_is_directory (next_inode))
+      {
+        dir_close (*parent_dir);
+        current_inode = next_inode;
+        *parent_dir = dir_open (current_inode);
+      }
+      else
+      {
+        inode_close (next_inode);
+        dir_close (*parent_dir);
+        free (path_copy);
+        *parent_dir = NULL;
+        return false;
+      }
     }
+    
 
 
-    // dir = dir_open (inode_open (starting_block));
-    if (!dir_lookup (*parent_dir, token, &inode))
+    if (!dir_lookup (*parent_dir, token, &next_inode))
       break;
 
-    // if (!inode_is_directory (inode) 
-    //   && ((strtok_r (s, "/", &save_ptr) != NULL) 
-    //       || (pathname[strlen(pathname -1)]=='/')))
 
+    // strlcpy (name, token, strlen (token) + 1);
+
+    // if (inode_is_directory (inode))
+    //   (*parent_dir)->inode = inode;
+    // else
     // {
     //   free (path_copy);
+    //   inode_close (inode);
+    //   dir_close (*parent_dir);
     //   return false;
     // }
-    // starting_block = inode_get_inumber (dir)
+
+
+    // if (!dir_lookup (*parent_dir, token, &inode))
+    //   break;
+
   }
+
+  inode_close (next_inode);
 
   
 
