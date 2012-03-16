@@ -141,7 +141,7 @@ filesys_remove (const char *pathname)
   if (inode_is_directory (inode))
   {
     if ((pathname[strlen (pathname) -1] == '/')
-      || (dir_get_num_entries (dir) <= 2))
+      || (dir_get_num_entries (dir) > 2))
     {
       dir_close (dir);
       inode_close (inode);
