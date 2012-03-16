@@ -260,6 +260,8 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   if (path_copy == NULL)
     return false;
 
+  strlcpy (path_copy, pathname, strlen (pathname));
+
   // block_sector_t starting_block;
   // struct dir *dir;
   struct inode *inode;
