@@ -403,7 +403,7 @@ dir_get_num_entries (struct dir *dir)
   while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e) 
   {
     dir->pos += sizeof e;
-    if ((e.in_use)
+    if (e.in_use)
         count ++;
   }
 
