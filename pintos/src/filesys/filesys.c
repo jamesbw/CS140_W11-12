@@ -54,11 +54,11 @@ filesys_create (const char *pathname, off_t initial_size)
   struct dir *dir;
 
   //reject trailing '/'
-  if (pathname[strlen (pathname)- 1] == '/')
-    return NULL;
+  //if (pathname[strlen (pathname)- 1] == '/')
+  //return NULL;
 
-  if (!dir_parse_pathname (pathname, &dir, name))
-    return false;
+  //if (!dir_parse_pathname (pathname, &dir, name))
+  //return false;
 
   // struct dir *dir = dir_open_root ();
   bool success = (dir != NULL
@@ -83,8 +83,8 @@ filesys_open (const char *pathname, bool *is_dir)
   char name[NAME_MAX + 1];
   struct dir *dir;
 
-  if (!dir_parse_pathname (pathname, &dir, name))
-    return NULL;
+  //if (!dir_parse_pathname (pathname, &dir, name))
+  //return NULL;
 
   struct inode *inode = NULL;
 
