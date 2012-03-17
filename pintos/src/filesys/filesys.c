@@ -62,6 +62,9 @@ filesys_create (const char *pathname, off_t initial_size)
     thread_current()->current_dir = cd;
     return false;
   }
+  dir_lock (dir);
+
+
   bool success = (dir != NULL
                   && !inode_is_removed (dir_get_inode (dir))
                   && free_map_allocate (1, &inode_sector)
@@ -90,6 +93,7 @@ filesys_open (const char *pathname, bool *is_dir)
     thread_current()->current_dir = cd;
     return NULL;
   }
+  dir_lock (dir);
 
   if (inode_is_removed (dir_get_inode (dir)))
   {
@@ -144,7 +148,10 @@ filesys_remove (const char *pathname)
 
   block_sector_t cd = thread_current()->current_dir;
 
-  if (!strcmp (name, ".") || !strcmp (name, ".."))
+  if (!strcmp(pathname, "/")) {
+    return false;
+  }
+  if (!strcmp (pathname, ".") || !strcmp (pathname, ".."))
     return false;
 
   if (!dir_parse_pathname (pathname, &dir, name))
