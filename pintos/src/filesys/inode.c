@@ -427,7 +427,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
     // {
     extending = true;
     lock_acquire (&inode->extend_lock);
-    num_blocks_to_add = bytes_to_sectors (offset + size ) - bytes_to_sectors (inode_length (inode));
+    int num_blocks_to_add = bytes_to_sectors (offset + size ) - bytes_to_sectors (inode_length (inode));
     if (num_blocks_to_add > 0)
     {
       if (!inode_extend(inode, num_blocks_to_add))
