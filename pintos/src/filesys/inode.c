@@ -9,6 +9,7 @@
 #include "cache.h"
 #include "threads/thread.h"
 #include <stdio.h>
+#include "threads/synch.h"
 
 
 /* Identifies an inode. */
@@ -80,12 +81,14 @@ byte_to_sector (const struct inode *inode, off_t pos)
    returns the same `struct inode'. */
 
 //TODO lock this list
+struct lock inode_list_lock;
 static struct list open_inodes;
 
 /* Initializes the inode module. */
 void
 inode_init (void) 
 {
+  lock_init (&inode_list_lock);
   list_init (&open_inodes);
 }
 
@@ -235,16 +238,18 @@ inode_open (block_sector_t sector)
   uint8_t buf[BLOCK_SECTOR_SIZE];
 
   /* Check whether this inode is already open. */
+  lock_acquire (&inode_list_lock);
   for (e = list_begin (&open_inodes); e != list_end (&open_inodes);
        e = list_next (e)) 
-    {
-      inode = list_entry (e, struct inode, elem);
-      if (inode->sector == sector) 
-        {
-          inode_reopen (inode);
-          return inode; 
-        }
-    }
+  {
+    inode = list_entry (e, struct inode, elem);
+    if (inode->sector == sector) 
+      {
+        inode_reopen (inode);
+        return inode; 
+      }
+  }
+  lock_release (&inode_list_lock);
 
   /* Allocate memory. */
   inode = malloc (sizeof *inode);
@@ -262,7 +267,9 @@ inode_open (block_sector_t sector)
     return NULL;
   }
 
+  lock_acquire (&inode_list_lock);
   list_push_front (&open_inodes, &inode->elem);
+  lock_release (&inode_list_lock);
 
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
