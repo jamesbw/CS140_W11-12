@@ -37,7 +37,6 @@ filesys_init (bool format)
 void
 filesys_done (void) 
 {
-
   cache_flush ();
   free_map_close ();
 }
@@ -61,7 +60,6 @@ filesys_create (const char *pathname, off_t initial_size)
     return false;
 
 
-  // struct dir *dir = dir_open_root ();
   bool success = (dir != NULL
                   && !inode_is_removed (dir_get_inode (dir))
                   && free_map_allocate (1, &inode_sector)
@@ -126,9 +124,6 @@ filesys_open (const char *pathname, bool *is_dir)
 bool
 filesys_remove (const char *pathname) 
 {
-  //TODO dir is current directory + nav
-  // struct dir *dir = dir_open_root ();
-
   char name[NAME_MAX + 1];
   struct dir *dir;
 

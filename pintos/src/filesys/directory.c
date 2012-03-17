@@ -262,17 +262,11 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
 
   strlcpy (path_copy, pathname, strlen (pathname) +1);
 
-  // block_sector_t starting_block;
-  // struct dir *dir;
-  // struct inode *inode;
-
   struct inode *current_inode;
   struct inode *next_inode = NULL;
 
   if (path_copy[0] == '/')
   {
-    // *parent_dir = dir_open_root;
-    // inode = inode_open (ROOT_DIR_SECTOR);
     current_inode = inode_open (ROOT_DIR_SECTOR);
 
     // in case the pathname refers to the root directory, give these default values
@@ -282,10 +276,6 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   }
   else
   {
-    // starting_block = thread_current ()->current_dir;
-    // *parent_dir = dir_open (inode_open (thread_current ()->current_dir));
-    // inode = inode_open (thread_current ()->current_dir);
-    // *parent_dir = dir_open (inode);
     current_inode = inode_open (thread_current ()->current_dir);
     *parent_dir = dir_open (current_inode);
   }
@@ -328,34 +318,12 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
         return false;
       }
     }
-    
-
 
     if (!dir_lookup (*parent_dir, token, &next_inode))
       break;
-
-
-    // strlcpy (name, token, strlen (token) + 1);
-
-    // if (inode_is_directory (inode))
-    //   (*parent_dir)->inode = inode;
-    // else
-    // {
-    //   free (path_copy);
-    //   inode_close (inode);
-    //   dir_close (*parent_dir);
-    //   return false;
-    // }
-
-
-    // if (!dir_lookup (*parent_dir, token, &inode))
-    //   break;
-
   }
 
   inode_close (next_inode);
-
-  
 
   //is there still another token?
   if (strtok_r (NULL, "/", &save_ptr) != NULL)
