@@ -157,10 +157,10 @@ filesys_remove (const char *pathname)
     dir_close (dir);
     return false;
   }
-  if (inode_get_inumber(inode) == cd) { //Can't delete yourself
+  /* if (inode_get_inumber(inode) == cd) { //Can't delete yourself
     dir_close(dir);
     return false;
-  }
+    }*/
   if (inode_is_directory (inode))
   {
     struct dir *dir_to_remove = dir_open (inode);
