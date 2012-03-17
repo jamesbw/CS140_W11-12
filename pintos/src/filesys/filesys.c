@@ -62,7 +62,6 @@ filesys_create (const char *pathname, off_t initial_size)
     thread_current()->current_dir = cd;
     return false;
   }
-
   bool success = (dir != NULL
                   && !inode_is_removed (dir_get_inode (dir))
                   && free_map_allocate (1, &inode_sector)
@@ -70,6 +69,7 @@ filesys_create (const char *pathname, off_t initial_size)
                   && dir_add (dir, name, inode_sector));
   if (!success && inode_sector != 0) 
     free_map_release (inode_sector, 1);
+  dir_unlock (dir);
   dir_close (dir);
   thread_current()->current_dir = cd;
   return success;
@@ -90,8 +90,10 @@ filesys_open (const char *pathname, bool *is_dir)
     thread_current()->current_dir = cd;
     return NULL;
   }
+
   if (inode_is_removed (dir_get_inode (dir)))
   {
+    dir_unlock (dir);
     dir_close (dir);
     thread_current()->current_dir = cd;
     return NULL;
@@ -101,6 +103,7 @@ filesys_open (const char *pathname, bool *is_dir)
 
   if (dir != NULL) 
     dir_lookup (dir, name, &inode);
+  dir_unlock (dir);
   dir_close (dir);
 
   if (inode == NULL) {
@@ -146,9 +149,11 @@ filesys_remove (const char *pathname)
 
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
+  dir_lock (dir);
 
   if (!dir_lookup (dir, name, &inode))
   {
+    dir_unlock (dir);
     dir_close (dir);
     return false;
   }
@@ -159,20 +164,25 @@ filesys_remove (const char *pathname)
   if (inode_is_directory (inode))
   {
     struct dir *dir_to_remove = dir_open (inode);
+    dir_lock (dir_to_remove);
     if (dir_get_num_entries (dir_to_remove) > 2)
     {
+      dir_unlock (dir_to_remove);
+      dir_unlock (dir);
       dir_close (dir_to_remove);
       dir_close (dir);
       inode_close (inode);
       thread_current()->current_dir = cd;
       return false;
     }
+    dir_unlock (dir_to_remove);
     dir_close (dir_to_remove);
   }
   else
   if (pathname[strlen (pathname) -1] == '/')
     //invalid file name
   {
+    dir_unlock (dir);
     dir_close (dir);
     inode_close (inode);
     thread_current()->current_dir = cd;
@@ -180,6 +190,7 @@ filesys_remove (const char *pathname)
   }
 
   bool success = dir_remove (dir, name);
+  dir_unlock (dir);
   dir_close (dir);
   inode_close (inode);
   thread_current()->current_dir = cd;

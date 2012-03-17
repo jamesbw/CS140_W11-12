@@ -31,5 +31,7 @@ bool dir_set_current_dir (char *pathname);
 bool dir_create_pathname (char *pathname);
 bool dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name);
 size_t dir_get_num_entries (struct dir *dir);
+void dir_lock (struct dir *dir);
+void dir_unlock (struct dir *dir);
 
 #endif /* filesys/directory.h */
