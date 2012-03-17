@@ -165,7 +165,6 @@ filesys_remove (const char *pathname)
       dir_unlock (dir);
       dir_close (dir_to_remove);
       dir_close (dir);
-      inode_close (inode);
       return false;
     }
     if (strcmp (name, "."))
@@ -176,14 +175,18 @@ filesys_remove (const char *pathname)
     dir_close (dir_to_remove);
   }
   else
-  if (pathname[strlen (pathname) -1] == '/')
-    //invalid file name
-  {
-    dir_unlock (dir);
-    dir_close (dir);
+  {    
+    //this is a file, not a directory
     inode_close (inode);
-    return false;
+    if (pathname[strlen (pathname) -1] == '/')
+      //invalid file name
+    {
+      dir_unlock (dir);
+      dir_close (dir);
+      return false;
+    }
   }
+  
 
   bool success = dir_remove (dir, name);
   dir_unlock (dir);
