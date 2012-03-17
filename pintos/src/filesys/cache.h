@@ -4,7 +4,8 @@
 #include "devices/block.h"
 #include "threads/synch.h"
 
-#define CACHE_SIZE 64 // 64 sectors
+#define CACHE_SIZE 65 // 64 sectors + free map
+#define WRITE_BEHIND_INTERVAL (1 /10) //in seconds
 
 struct cached_block
 {

@@ -48,7 +48,7 @@ write_behind_func (void *aux UNUSED)
 {
 	while (true)
 	{
-		timer_sleep (TIMER_FREQ * 1);
+		timer_sleep (TIMER_FREQ * WRITE_BEHIND_INTERVAL);
 		cache_flush ();
 	}
 }
