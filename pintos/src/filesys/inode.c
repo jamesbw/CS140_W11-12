@@ -83,7 +83,6 @@ byte_to_sector (const struct inode *inode, off_t pos)
 /* List of open inodes, so that opening a single inode twice
    returns the same `struct inode'. */
 
-//TODO lock this list
 struct lock inode_list_lock;
 static struct list open_inodes;
 
@@ -236,7 +235,6 @@ struct inode *
 inode_open (block_sector_t sector)
 {
 
-  //TODO synchronization of list?
   struct list_elem *e;
   struct inode *inode;
   uint8_t buf[BLOCK_SECTOR_SIZE];
@@ -411,7 +409,6 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
 
       next_sector = sector_idx + 1;
     }
-    //TODO: revisit read ahead. Make sure next_sector is not too big
     if (next_sector < block_size (fs_device))
       cache_read_ahead (next_sector);
 

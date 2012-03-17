@@ -139,8 +139,6 @@ filesys_remove (const char *pathname)
   if (!strcmp(pathname, "/")) {
     return false;
   }
-  if (!strcmp (pathname, ".") || !strcmp (pathname, ".."))
-    return false;
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
   dir_lock (dir);
@@ -151,10 +149,6 @@ filesys_remove (const char *pathname)
     dir_close (dir);
     return false;
   }
-  /* if (inode_get_inumber(inode) == cd) { //Can't delete yourself
-    dir_close(dir);
-    return false;
-    }*/
   if (inode_is_directory (inode))
   {
     struct dir *dir_to_remove = dir_open (inode);
