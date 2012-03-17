@@ -7,6 +7,7 @@
 #include "threads/malloc.h"
 #include "threads/thread.h"
 #include "free-map.h"
+#include "threads/synch.h"
 
 /* A directory. */
 struct dir 
@@ -34,7 +35,9 @@ dir_create (block_sector_t sector, block_sector_t parent_sector, size_t entry_cn
 
   struct inode *inode = inode_open (sector);
 
+
   struct dir *dir = dir_open (inode);
+
   dir_add (dir, ".", sector);
   dir_add (dir, "..", parent_sector);
   dir_close (dir);
@@ -233,19 +236,23 @@ dir_remove (struct dir *dir, const char *name)
 bool
 dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
 {
+  dir_lock (dir);
+
   struct dir_entry e;
 
   while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e) 
-    {
-      dir->pos += sizeof e;
-      if ((e.in_use)
-          && strcmp (e.name, ".")
-          && strcmp (e.name, ".."))
-        {
-          strlcpy (name, e.name, NAME_MAX + 1);
-          return true;
-        } 
-    }
+  {
+    dir->pos += sizeof e;
+    if ((e.in_use)
+        && strcmp (e.name, ".")
+        && strcmp (e.name, ".."))
+      {
+        strlcpy (name, e.name, NAME_MAX + 1);
+        dir_unlock (dir);
+        return true;
+      } 
+  }
+  dir_unlock (dir);
   return false;
 }
 
@@ -347,6 +354,7 @@ dir_create_pathname (char *pathname)
 
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
+  dir_lock (dir);
 
   block_sector_t parent_sector = inode_get_inumber (dir_get_inode (dir));
 
@@ -358,6 +366,8 @@ dir_create_pathname (char *pathname)
                   && dir_add (dir, name, inode_sector));
   if (!success && inode_sector != 0) 
     free_map_release (inode_sector, 1);
+
+  dir_unlock (dir);
   dir_close (dir);
 
   return success;
@@ -373,6 +383,8 @@ dir_set_current_dir (char *pathname)
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
 
+  dir_lock (dir);
+
   struct inode *inode = NULL;
 
   bool success = ( dir_lookup (dir, name, &inode)
@@ -383,6 +395,7 @@ dir_set_current_dir (char *pathname)
   if (inode != NULL)
     inode_close (inode);
 
+  dir_unlock (dir);
   dir_close (dir);
 
   return success;          
@@ -406,4 +419,16 @@ dir_get_num_entries (struct dir *dir)
   dir->pos = saved_pos;
 
   return count;
+}
+
+void
+dir_lock (struct dir *dir)
+{
+  lock_acquire (inode_get_lock (dir_get_inode (dir)));
+}
+
+void
+dir_unlock (struct dir *dir)
+{
+  lock_release (inode_get_lock (dir_get_inode (dir)));
 }

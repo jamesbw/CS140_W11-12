@@ -422,9 +422,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   
   if (offset + size > inode->max_read_length)
   {
-    // int num_blocks_to_add = bytes_to_sectors (offset + size ) - bytes_to_sectors (inode_length (inode));
-    // if (num_blocks_to_add > 0)
-    // {
+
     extending = true;
     lock_acquire (&inode->extend_lock);
     if (offset + size > inode->max_read_length)
@@ -438,13 +436,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
           return 0;
         }
       }
-      // inode->max_read_length = inode->length;
       inode->length = offset + size ;
-      // lock_release (&inode->extend_lock);
-      // }
-      // inode->length = offset + size ;
-
-      
     }
     else
     {
@@ -691,6 +683,12 @@ bool
 inode_is_removed (struct inode *inode)
 {
   return inode->removed;
+}
+
+struct lock *
+inode_get_lock (struct inode *inode)
+{
+  return &inode->extend_lock;
 }
 
 
