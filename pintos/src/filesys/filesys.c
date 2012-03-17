@@ -53,15 +53,13 @@ filesys_create (const char *pathname, off_t initial_size)
   char name[NAME_MAX + 1];
   struct dir *dir;
 
-  block_sector_t cd = thread_current()->current_dir;
   //reject trailing '/'
   if (pathname[strlen (pathname)- 1] == '/')
     return NULL;
 
-  if (!dir_parse_pathname (pathname, &dir, name)) {
-    thread_current()->current_dir = cd;
+  if (!dir_parse_pathname (pathname, &dir, name)) 
     return false;
-  }
+  
   dir_lock (dir);
 
 
@@ -74,7 +72,6 @@ filesys_create (const char *pathname, off_t initial_size)
     free_map_release (inode_sector, 1);
   dir_unlock (dir);
   dir_close (dir);
-  thread_current()->current_dir = cd;
   return success;
 }
 
@@ -88,18 +85,15 @@ filesys_open (const char *pathname, bool *is_dir)
 {
   char name[NAME_MAX + 1];
   struct dir *dir;
-  block_sector_t cd = thread_current()->current_dir;
-  if (!dir_parse_pathname (pathname, &dir, name)) {
-    thread_current()->current_dir = cd;
+  if (!dir_parse_pathname (pathname, &dir, name)) 
     return NULL;
-  }
+  
   dir_lock (dir);
 
   if (inode_is_removed (dir_get_inode (dir)))
   {
     dir_unlock (dir);
     dir_close (dir);
-    thread_current()->current_dir = cd;
     return NULL;
   }
 
@@ -110,26 +104,21 @@ filesys_open (const char *pathname, bool *is_dir)
   dir_unlock (dir);
   dir_close (dir);
 
-  if (inode == NULL) {
-    thread_current()->current_dir = cd;
+  if (inode == NULL) 
     return NULL;
-  }
+  
   if (inode_is_directory (inode))
   {
     if (is_dir != NULL)
       *is_dir = true;
-    thread_current()->current_dir = cd;
     return (void *)dir_open (inode);
   }
   else
   {
-    if (pathname[strlen (pathname)- 1] == '/') {
-      thread_current()->current_dir = cd;
+    if (pathname[strlen (pathname)- 1] == '/')
       return NULL;
-    }
     if (is_dir != NULL)
       *is_dir = false;
-    thread_current()->current_dir = cd;
     return (void *)file_open (inode);
   }
 }
@@ -146,7 +135,6 @@ filesys_remove (const char *pathname)
 
   struct inode *inode;
 
-  block_sector_t cd = thread_current()->current_dir;
 
   if (!strcmp(pathname, "/")) {
     return false;
@@ -183,27 +171,22 @@ filesys_remove (const char *pathname)
       dir_unlock (dir);
       dir_close (dir_to_remove);
       dir_close (dir);
-      inode_close (inode);
-      thread_current()->current_dir = cd;
       return false;
     }
     if (strcmp (name, "."))
     {
       dir_unlock (dir_to_remove);
     }
-    // dir_unlock (dir_to_remove);
     dir_close (dir_to_remove);
   }
   else
   {    
     //this is a file, not a directory
-    inode_close (inode);
     if (pathname[strlen (pathname) -1] == '/')
       //invalid file name
     {
       dir_unlock (dir);
       dir_close (dir);
-      thread_current()->current_dir = cd;
       return false;
     }
   }
@@ -212,7 +195,6 @@ filesys_remove (const char *pathname)
   bool success = dir_remove (dir, name);
   dir_unlock (dir);
   dir_close (dir);
-  thread_current()->current_dir = cd;
   return success;
 }
 
