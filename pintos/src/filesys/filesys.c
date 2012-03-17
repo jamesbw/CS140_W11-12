@@ -134,10 +134,6 @@ filesys_remove (const char *pathname)
 
   struct inode *inode;
 
-  // if (!strcmp (name, ".") || !strcmp (name, ".."))
-  //   return false;
-  //TODO
-
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
   dir_lock (dir);

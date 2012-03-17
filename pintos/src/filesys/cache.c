@@ -25,6 +25,12 @@ cache_init (void)
 		block_cache[i].sector = -1;
 	}
 
+	//first block is preallocated for the free map.
+	// it will not be evicted
+	block_cache[0].sector = 0;
+	block_cache[0].in_use = true;
+	block_cache[0].IO_needed = true;
+
 	cache_hand = 0;
 	lock_init (&cache_lock);
 
@@ -96,7 +102,8 @@ cache_run_clock (void)
 	struct cached_block *b = NULL;
 	while (true)
 	{
-		cache_hand = (cache_hand + 1) % CACHE_SIZE;
+		 //cache hand in 1-64, so it doesn't evict free map
+		cache_hand = (cache_hand + 1) % (CACHE_SIZE -1) + 1;
 		b = &block_cache[cache_hand];
 		if (!b->accessed)
 		{
