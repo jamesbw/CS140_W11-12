@@ -107,7 +107,6 @@ thread_init (void)
 
   list_init (&process_list);
   lock_init (&process_lock);
-  lock_init (&filesys_lock);
 
 
 
