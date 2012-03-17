@@ -23,6 +23,6 @@ void inode_release_allocated_sectors (struct inode *inode, int num_blocks_to_rem
 bool inode_extend (struct inode *inode, int num_blocks_to_add);
 bool inode_is_directory (struct inode *inode);
 bool inode_is_removed (struct inode *inode);
-struct lock *inode_get_lock (struct inode *inode);
+struct lock *inode_get_dir_lock (struct inode *inode);
 
 #endif /* filesys/inode.h */

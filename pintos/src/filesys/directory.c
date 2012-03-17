@@ -424,11 +424,11 @@ dir_get_num_entries (struct dir *dir)
 void
 dir_lock (struct dir *dir)
 {
-  lock_acquire (inode_get_lock (dir_get_inode (dir)));
+  lock_acquire (inode_get_dir_lock (dir_get_inode (dir)));
 }
 
 void
 dir_unlock (struct dir *dir)
 {
-  lock_release (inode_get_lock (dir_get_inode (dir)));
+  lock_release (inode_get_dir_lock (dir_get_inode (dir)));
 }

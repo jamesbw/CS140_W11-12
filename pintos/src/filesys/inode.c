@@ -40,6 +40,7 @@ struct inode
     block_sector_t doubly_indirect_block;
     bool is_dir;
     struct lock extend_lock;
+    struct lock dir_lock;
     off_t max_read_length; // limits the byte to be read, if the inode is being extended
     unsigned magic;
   };
@@ -278,6 +279,7 @@ inode_open (block_sector_t sector)
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
   lock_init (&inode->extend_lock);
+  lock_init (&inode->dir_lock);
   return inode;
 }
 
@@ -686,9 +688,9 @@ inode_is_removed (struct inode *inode)
 }
 
 struct lock *
-inode_get_lock (struct inode *inode)
+inode_get_dir_lock (struct inode *inode)
 {
-  return &inode->extend_lock;
+  return &inode->dir_lock;
 }
 
 
