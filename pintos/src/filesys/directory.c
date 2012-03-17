@@ -236,7 +236,7 @@ dir_remove (struct dir *dir, const char *name)
 bool
 dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
 {
-  dir_lock (dir);
+  // dir_lock (dir);
 
   struct dir_entry e;
 
@@ -252,7 +252,7 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
         return true;
       } 
   }
-  dir_unlock (dir);
+  // dir_unlock (dir);
   return false;
 }
 
@@ -354,7 +354,7 @@ dir_create_pathname (char *pathname)
 
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
-  dir_lock (dir);
+  // dir_lock (dir);
 
   block_sector_t parent_sector = inode_get_inumber (dir_get_inode (dir));
 
@@ -367,7 +367,7 @@ dir_create_pathname (char *pathname)
   if (!success && inode_sector != 0) 
     free_map_release (inode_sector, 1);
 
-  dir_unlock (dir);
+  // dir_unlock (dir);
   dir_close (dir);
 
   return success;
@@ -383,7 +383,7 @@ dir_set_current_dir (char *pathname)
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
 
-  dir_lock (dir);
+  // dir_lock (dir);
 
   struct inode *inode = NULL;
 
@@ -395,7 +395,7 @@ dir_set_current_dir (char *pathname)
   if (inode != NULL)
     inode_close (inode);
 
-  dir_unlock (dir);
+  // dir_unlock (dir);
   dir_close (dir);
 
   return success;          
