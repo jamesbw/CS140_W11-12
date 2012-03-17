@@ -273,6 +273,21 @@ inode_open (block_sector_t sector)
   }
 
   lock_acquire (&inode_list_lock);
+  //double check the inode hasn't been added by someone else
+  struct inode *other_inode;
+  for (e = list_begin (&open_inodes); e != list_end (&open_inodes);
+       e = list_next (e)) 
+  {
+    other_inode = list_entry (e, struct inode, elem);
+    if (other_inode->sector == sector) 
+      {
+        inode_reopen (other_inode);
+        free (inode);
+        lock_release (&inode_list_lock);
+        return other_inode; 
+      }
+  }
+  // it hasn't been added by someone else. push onto list.
   list_push_front (&open_inodes, &inode->elem);
   lock_release (&inode_list_lock);
 
