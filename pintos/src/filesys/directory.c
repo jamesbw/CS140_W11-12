@@ -248,7 +248,7 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
         && strcmp (e.name, ".."))
       {
         strlcpy (name, e.name, NAME_MAX + 1);
-        dir_unlock (dir);
+        // dir_unlock (dir);
         return true;
       } 
   }
