@@ -78,7 +78,10 @@ indirect block. That means:
 >> extend a file at the same time.
 
 If a process wants to extend a file, it has to acquire the extend_lock 
-for that inode. This avoids race conditions on extension.
+for that inode. This avoids race conditions on extension. The code has
+been modified so that if two processes try to open the same file on disk,
+then each gets a pointer to the same inode in memory, so that the
+entend_lock is shared between all processes using that file.		
 
 >> A4: Suppose processes A and B both have file F open, both
 >> positioned at end-of-file.  If A reads and B writes F at the same
@@ -116,7 +119,7 @@ ensured.
 
 We chose a multilevel index. Having one indirect block and one doubly 
 indirect block was enough to reach 8MB. In contrast, it was not possible 
-to have only singly indirect block and reach 8MB. 
+to have only singly indirect blocks and reach 8MB. 
 
 We chose to keep 12 direct blocks in the in-memory inode to make access 
 faster for small files.
@@ -134,7 +137,42 @@ is small enough to be kept entirely in memory.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
-No changes here.
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    char name[16];                      /* Name (for debugging purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    int original_priority;              /* Original priority before donation */
+    struct list_elem allelem;           /* List element for all threads list.*/
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+
+    struct lock *lock_waited_on; /* If thread is blocked on a lock */
+    struct list locks_held; /* All locks currently held */
+    /* mlfqs. */
+    int nice;
+    int17_14t recent_cpu;
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+    struct list open_files;
+    struct list mmapped_files;
+    struct hash *supp_page_table;
+    void *esp;
+    struct cached_block *cache_block_being_accessed;
+    block_sector_t current_dir;
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+  };
+
+Added a current_dir field to the thread so that relative pathnames
+have a start point.
 
 ---- ALGORITHMS ----
 
@@ -145,7 +183,7 @@ Traversal is done in dir_parse_pathname. It takes a pathname string,
 a struct dir **, and a name string and returns a boolean for success.
 
 The name string gets filled with the name of the file or directory
-being pointed at.
+being pointed at. This name will contain no "/".
 
 The struct dir ** gets populated with the directory containing name.
 
