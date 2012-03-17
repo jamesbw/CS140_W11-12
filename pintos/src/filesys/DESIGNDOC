@@ -78,10 +78,7 @@ indirect block. That means:
 >> extend a file at the same time.
 
 If a process wants to extend a file, it has to acquire the extend_lock 
-for that inode. This avoids race conditions on extension. The code has
-been modified so that if two processes try to open the same file on disk,
-then each gets a pointer to the same inode in memory, so that the
-entend_lock is shared between all processes using that file.		
+for that inode. This avoids race conditions on extension.		
 
 >> A4: Suppose processes A and B both have file F open, both
 >> positioned at end-of-file.  If A reads and B writes F at the same
