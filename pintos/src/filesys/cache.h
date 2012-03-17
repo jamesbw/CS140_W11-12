@@ -5,7 +5,7 @@
 #include "threads/synch.h"
 
 #define CACHE_SIZE 65 // 64 sectors + free map
-#define WRITE_BEHIND_INTERVAL (1 /10) //in seconds
+#define WRITE_BEHIND_INTERVAL 1 //in seconds
 
 struct cached_block
 {

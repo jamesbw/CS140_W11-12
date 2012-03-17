@@ -361,12 +361,12 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
   uint8_t *buffer = buffer_;
   off_t bytes_read = 0;
   struct cached_block *cached_block;
-  block_sector_t next_sector = 0;
+  block_sector_t sector_idx = -1;
 
   while (size > 0) 
     {
       /* Disk sector to read, starting byte offset within sector. */
-      block_sector_t sector_idx = byte_to_sector (inode, offset);
+      sector_idx = byte_to_sector (inode, offset);
       int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
       /* Bytes left in inode, bytes left in sector, lesser of the two. */
@@ -407,10 +407,12 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       offset += chunk_size;
       bytes_read += chunk_size;
 
-      next_sector = sector_idx + 1;
     }
-    if (next_sector < block_size (fs_device))
+    if (((int)sector_idx != -1) && (bytes_to_sectors (inode->max_read_length) > sector_idx))
+    {
+      block_sector_t next_sector = byte_to_sector (inode, offset + BLOCK_SECTOR_SIZE);
       cache_read_ahead (next_sector);
+    }
 
 
   return bytes_read;
@@ -426,7 +428,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   const uint8_t *buffer = buffer_;
   off_t bytes_written = 0;
   struct cached_block *cached_block;
-  block_sector_t next_sector = 0;
+  block_sector_t sector_idx = -1;
   bool extending = false;
 
   if (inode->deny_write_cnt)
@@ -462,7 +464,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   while (size > 0) 
   {
     /* Sector to write, starting byte offset within sector. */
-    block_sector_t sector_idx = byte_to_sector (inode, offset);
+    sector_idx = byte_to_sector (inode, offset);
     int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
     /* Bytes left in inode, bytes left in sector, lesser of the two. */
@@ -499,11 +501,13 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
     offset += chunk_size;
     bytes_written += chunk_size;
 
-
-    next_sector = sector_idx + 1;
   }
-  if (next_sector < block_size (fs_device))
+
+  if (((int)sector_idx != -1) && (bytes_to_sectors (inode->max_read_length) > sector_idx))
+  {
+    block_sector_t next_sector = byte_to_sector (inode, offset + BLOCK_SECTOR_SIZE);
     cache_read_ahead (next_sector);
+  }
 
   if (extending)
   {

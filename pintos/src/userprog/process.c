@@ -38,7 +38,6 @@ struct start_process_frame
   block_sector_t current_dir;
 };
 
-struct lock filesys_lock;
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -203,15 +202,11 @@ process_exit (void)
     e = list_remove (e);
     if (fw->is_dir)
     {
-      // lock_acquire (&filesys_lock);
       dir_close ((struct dir *) fw->file_or_dir);
-      // lock_release (&filesys_lock); 
     }
     else
     {
-      // lock_acquire (&filesys_lock);
       file_close ((struct file *) fw->file_or_dir);
-      // lock_release (&filesys_lock);  
     }
     free (fw);
   }
@@ -404,9 +399,7 @@ load (const char *file_name, void (**eip) (void), void **esp, struct file **exec
   } 
 
   /* Open executable file. */
-  // lock_acquire (&filesys_lock);
   file = (struct file *)filesys_open (file_name, NULL);
-  // lock_release (&filesys_lock);
   *executable = file;
   if (file == NULL) 
     {
@@ -752,7 +745,6 @@ static fd_t
 allocate_fd (void) 
 {
 
-  // ASSERT (lock_held_by_current_thread (&filesys_lock));
 
   static fd_t next_fd = 2; // 0 and 1 are reserved
   fd_t fd;
@@ -788,9 +780,7 @@ process_munmap (mapid_t mapid)
   void *page;
   uint32_t *pd = thread_current ()->pagedir;
 
-  // lock_acquire (&filesys_lock);
   int size = file_length (mf->file);
-  // lock_release (&filesys_lock);
 
   for (page = mf->base_page; page - mf->base_page < size; page += PGSIZE)
   {
@@ -799,10 +789,8 @@ process_munmap (mapid_t mapid)
       off_t offset = (off_t) (page - mf->base_page);
       int bytes_to_write = size - offset > PGSIZE ? PGSIZE : size - offset;
       frame_pin (page);
-      // lock_acquire (&filesys_lock);
       file_seek (mf->file, offset);
       file_write (mf->file, page, bytes_to_write);
-      // lock_release (&filesys_lock);
       frame_unpin (page);
     }
 

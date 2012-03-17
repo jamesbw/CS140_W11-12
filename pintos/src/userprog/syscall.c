@@ -226,7 +226,6 @@ void syscall_open (struct intr_frame *f, uint32_t file_name)
 
   verify_uaddr ((char *) file_name);
   pin_buffer ((char *) file_name, strlen ((char *) file_name));
-  // lock_acquire (&filesys_lock);
   void *file_or_dir = filesys_open ( (char *) file_name, &is_dir);
   if (file_or_dir == NULL) {
     f->eax = -1;
@@ -235,7 +234,6 @@ void syscall_open (struct intr_frame *f, uint32_t file_name)
     list_push_back (&thread_current ()->open_files, &fw->elem);   
     f->eax = fw->fd;
   }
-  // lock_release (&filesys_lock);
   unpin_buffer ((char *) file_name, strlen ((char *) file_name));
 }
 
@@ -250,9 +248,7 @@ void syscall_filesize (struct intr_frame *f, uint32_t fd)
       f->eax = -1;
     else
     {    
-      // lock_acquire (&filesys_lock);
       f->eax = file_length ((struct file *)fw->file_or_dir);
-      // lock_release (&filesys_lock);
     }
   }
 }
@@ -276,9 +272,7 @@ void syscall_read (struct intr_frame *f, uint32_t fd, uint32_t buffer,
       f->eax =  -1;
     } else {
       pin_buffer (buf, size);
-      // lock_acquire (&filesys_lock);
       f->eax = file_read ((struct file *)fw->file_or_dir, buf, size);
-      // lock_release (&filesys_lock);
       unpin_buffer (buf, size);
     }
   }
@@ -305,9 +299,7 @@ void syscall_write (struct intr_frame *f, uint32_t fd, uint32_t buffer,
       f->eax =  -1;
     } else {
       pin_buffer (buf, size);
-      // lock_acquire (&filesys_lock);
       f->eax = file_write ((struct file *)fw->file_or_dir, buf, size);
-      // lock_release (&filesys_lock);
       unpin_buffer (buf, size);
     }
   }
@@ -317,9 +309,7 @@ void syscall_seek (struct intr_frame *f UNUSED, uint32_t fd, uint32_t position)
 {
   struct file_wrapper *fw = lookup_fd ( (fd_t) fd);
   if (fw != NULL && !fw->is_dir) { 
-    // lock_acquire (&filesys_lock);
     file_seek ((struct file *)fw->file_or_dir, position);
-    // lock_release (&filesys_lock);
   }
 }
 
@@ -329,9 +319,7 @@ void syscall_tell (struct intr_frame *f, uint32_t fd)
   if (fw == NULL || fw->is_dir) {
     f->eax =  -1;
   } else {
-    // lock_acquire (&filesys_lock);
     f->eax = file_tell ((struct file *)fw->file_or_dir);
-    // lock_release (&filesys_lock);
   }
 }
 
@@ -342,15 +330,11 @@ void syscall_close (struct intr_frame *f UNUSED, uint32_t fd)
     list_remove (&fw->elem);
     if (fw->is_dir)
     {
-      // lock_acquire (&filesys_lock);
       dir_close ((struct dir *)fw->file_or_dir);
-      // lock_release (&filesys_lock);
     }
     else
     {
-      // lock_acquire (&filesys_lock);
       file_close ((struct file *)fw->file_or_dir);
-      // lock_release (&filesys_lock);
     }
     free (fw);
   }
@@ -420,9 +404,7 @@ syscall_chdir (struct intr_frame *f UNUSED, uint32_t dir_name_ )
   verify_uaddr ( dir_name);
 
   pin_buffer ( dir_name, strlen (dir_name));
-  // lock_acquire (&filesys_lock);
   f->eax = dir_set_current_dir (dir_name);
-  // lock_release (&filesys_lock);
   unpin_buffer ( dir_name, strlen (dir_name));
 
 }
@@ -435,9 +417,7 @@ syscall_mkdir (struct intr_frame *f UNUSED, uint32_t dir_name_)
 
 
   pin_buffer ( dir_name, strlen (dir_name));
-  // lock_acquire (&filesys_lock);
   f->eax =  dir_create_pathname (dir_name);
-  // lock_release (&filesys_lock);
   unpin_buffer ( dir_name, strlen (dir_name));
 
 }
@@ -457,9 +437,7 @@ syscall_readdir (struct intr_frame *f UNUSED, uint32_t fd, uint32_t name_)
   else
   {
     pin_buffer ( name, NAME_MAX + 1);
-    // lock_acquire (&filesys_lock);
     f->eax = dir_readdir ((struct dir *)fw->file_or_dir, name);
-    // lock_release (&filesys_lock);
     unpin_buffer ( name, strlen (name));
   }
 
@@ -484,16 +462,12 @@ syscall_inumber (struct intr_frame *f, uint32_t fd)
     if (fw->is_dir)
     {
       struct dir *dir = (struct dir *) fw->file_or_dir;
-      // lock_acquire (&filesys_lock);
       f->eax = inode_get_inumber (dir_get_inode (dir));
-      // lock_release (&filesys_lock);
     }
     else
     {
       struct file *file = (struct file *) fw->file_or_dir;
-      // lock_acquire (&filesys_lock);
       f->eax = inode_get_inumber (file_get_inode (file));
-      // lock_release (&filesys_lock);
     }
     
   }
