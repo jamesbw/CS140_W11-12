@@ -142,7 +142,7 @@ filesys_remove (const char *pathname)
     return false;
   dir_lock (dir);
 
-  if ((!strcmp (name, "..")) || !dir_lookup (dir, name, &inode))
+  if (!strcmp (name, "..") || !dir_lookup (dir, name, &inode))
   {
     dir_unlock (dir);
     dir_close (dir);
@@ -172,7 +172,7 @@ filesys_remove (const char *pathname)
     {
       dir_unlock (dir_to_remove);
     }
-    dir_unlock (dir_to_remove);
+    // dir_unlock (dir_to_remove);
     dir_close (dir_to_remove);
   }
   else
