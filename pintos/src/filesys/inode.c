@@ -408,9 +408,9 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       bytes_read += chunk_size;
 
     }
-    if ((sector_idx != -1) && (bytes_to_sectors (inode->max_read_length) > sector_idx))
+    if (((int)sector_idx != -1) && (bytes_to_sectors (inode->max_read_length) > sector_idx))
     {
-      block_sector_t next_sector = byte_to_sector (offset + BLOCK_SECTOR_SIZE);
+      block_sector_t next_sector = byte_to_sector (inode, offset + BLOCK_SECTOR_SIZE);
       cache_read_ahead (next_sector);
     }
 
@@ -503,9 +503,9 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
   }
 
-  if ((sector_idx != -1) && (bytes_to_sectors (inode->max_read_length) > sector_idx))
+  if (((int)sector_idx != -1) && (bytes_to_sectors (inode->max_read_length) > sector_idx))
   {
-    block_sector_t next_sector = byte_to_sector (offset + BLOCK_SECTOR_SIZE);
+    block_sector_t next_sector = byte_to_sector (inode, offset + BLOCK_SECTOR_SIZE);
     cache_read_ahead (next_sector);
   }
 
