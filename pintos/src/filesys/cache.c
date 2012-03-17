@@ -9,7 +9,7 @@
 
 struct cached_block block_cache[CACHE_SIZE];
 
-uint8_t cache_hand;
+uint8_t cache_hand; // for clock algorithm
 
 
 
