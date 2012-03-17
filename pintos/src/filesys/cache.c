@@ -94,6 +94,8 @@ cache_read_ahead (block_sector_t sector)
 
 
 
+/* Finds a cache block to evict. Runs a simple clock algorithm
+	with accessed bits*/
 struct cached_block *
 cache_run_clock (void)
 {
@@ -116,7 +118,8 @@ cache_run_clock (void)
 
 }
 
-
+/* Insure a sector is in the cache. Return the block with 
+	the lock held. The caller must release the lock*/
 struct cached_block *
 cache_insert (block_sector_t sector)
 {
@@ -126,6 +129,8 @@ cache_insert (block_sector_t sector)
 	struct cached_block *empty_b;
 	bool already_present;
 
+
+	// keep looping until we have the lock on a block containing the right sector
 	while (true)
 	{
 		empty_b = NULL;
@@ -159,6 +164,9 @@ cache_insert (block_sector_t sector)
 		}
 
 		lock_release (&cache_lock);
+
+		// b might have been changed to another sector between
+		// these two calls. This is the reason a check is made at the end.
 		lock_acquire (&b->lock);
 
 		if (b->IO_needed)

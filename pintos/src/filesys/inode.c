@@ -39,8 +39,8 @@ struct inode
     block_sector_t indirect_block;
     block_sector_t doubly_indirect_block;
     bool is_dir;
-    struct lock extend_lock;
-    struct lock dir_lock;
+    struct lock extend_lock; // for file extension
+    struct lock dir_lock;   // for directory locking
     off_t max_read_length; // limits the byte to be read, if the inode is being extended
     unsigned magic;
   };

@@ -60,6 +60,13 @@ filesys_create (const char *pathname, off_t initial_size)
     return false;
   dir_lock (dir);
 
+  if (inode_is_removed (dir_get_inode (dir)))
+  {
+    dir_unlock (dir);
+    dir_close (dir);
+    return NULL;
+  }
+
 
   bool success = (dir != NULL
                   && !inode_is_removed (dir_get_inode (dir))
@@ -122,7 +129,7 @@ filesys_open (const char *pathname, bool *is_dir)
   }
 }
 
-/* Deletes the file named NAME.
+/* Deletes the file or directory named NAME.
    Returns true if successful, false on failure.
    Fails if no file named NAME exists,
    or if an internal memory allocation fails. */
@@ -138,6 +145,16 @@ filesys_remove (const char *pathname)
     return false;
   dir_lock (dir);
 
+  if (inode_is_removed (dir_get_inode (dir)))
+  {
+    dir_unlock (dir);
+    dir_close (dir);
+    return NULL;
+  }
+
+  // Even though removing ".." will fail eventually,
+  // we disallow it because it would involve acquiring
+  // locks in the wrong order.
   if (!strcmp (name, "..") || !dir_lookup (dir, name, &inode))
   {
     dir_unlock (dir);
@@ -148,6 +165,7 @@ filesys_remove (const char *pathname)
   if (inode_is_directory (inode))
   {
     struct dir *dir_to_remove = dir_open (inode);
+    // we make a special case for "." to avoid acquiring the same lock twice
     if (strcmp (name, "."))
     {
       dir_lock (dir_to_remove);
@@ -167,7 +185,6 @@ filesys_remove (const char *pathname)
     {
       dir_unlock (dir_to_remove);
     }
-    // dir_unlock (dir_to_remove);
     dir_close (dir_to_remove);
   }
   else
@@ -187,7 +204,6 @@ filesys_remove (const char *pathname)
   bool success = dir_remove (dir, name);
   dir_unlock (dir);
   dir_close (dir);
-  // inode_close (inode);
 
   return success;
 }

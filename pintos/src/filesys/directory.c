@@ -256,6 +256,10 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
   return false;
 }
 
+
+/* Takes a full pathname and fills in the name of the last token and 
+  it's containing directory.
+*/
 bool 
 dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
 {
@@ -275,10 +279,10 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   if (path_copy[0] == '/')
   {
     current_inode = inode_open (ROOT_DIR_SECTOR);
+    *parent_dir = dir_open (current_inode);
 
     // in case the pathname refers to the root directory, give these default values
     // they get overwritten if ever there is something in the 
-    *parent_dir = dir_open (current_inode);
     strlcpy (name, ".", strlen (".") + 1);
   }
   else
@@ -302,11 +306,12 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
       inode_close (next_inode);
       dir_close (*parent_dir);
       *parent_dir = NULL;
+      memset (name, 0, NAME_MAX + 1);
       free (path_copy);
       return false;
     }
 
-    strlcpy (name, token, strlen (token) + 1);
+    strlcpy (name, token, NAME_MAX + 1);
 
     if ( next_inode != NULL )
     {
@@ -321,6 +326,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
         inode_close (next_inode);
         dir_close (*parent_dir);
         free (path_copy);
+        memset (name, 0, NAME_MAX + 1);
         *parent_dir = NULL;
         return false;
       }
@@ -338,6 +344,7 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
     dir_close (*parent_dir);
     free (path_copy);
     *parent_dir = NULL;
+    memset (name, 0, NAME_MAX + 1);
     return false;
   }
 
@@ -345,7 +352,8 @@ dir_parse_pathname (const char *pathname, struct dir **parent_dir, char *name)
   return true;
 }
 
-
+/* Create directory at given pathname. Called by syscall_mkdir
+*/
 bool 
 dir_create_pathname (char *pathname)
 {
@@ -355,6 +363,13 @@ dir_create_pathname (char *pathname)
   if (!dir_parse_pathname (pathname, &dir, name))
     return false;
   dir_lock (dir);
+
+  if (inode_is_removed (dir_get_inode (dir)))
+  {
+    dir_unlock (dir);
+    dir_close (dir);
+    return NULL;
+  }
 
   block_sector_t parent_sector = inode_get_inumber (dir_get_inode (dir));
 
@@ -374,6 +389,8 @@ dir_create_pathname (char *pathname)
 
 }
 
+
+/* Change the current directory. Called by syscall_chdir*/
 bool 
 dir_set_current_dir (char *pathname)
 {
@@ -401,6 +418,9 @@ dir_set_current_dir (char *pathname)
   return success;          
 }
 
+/* Count the directory entries in dir.
+    Useful to prevent the removal of non-empty directories
+    */
 size_t 
 dir_get_num_entries (struct dir *dir)
 {
@@ -421,12 +441,15 @@ dir_get_num_entries (struct dir *dir)
   return count;
 }
 
+
+/* Lock underlying inode*/
 void
 dir_lock (struct dir *dir)
 {
   lock_acquire (inode_get_dir_lock (dir_get_inode (dir)));
 }
 
+/* Unlock underlying inode*/
 void
 dir_unlock (struct dir *dir)
 {
