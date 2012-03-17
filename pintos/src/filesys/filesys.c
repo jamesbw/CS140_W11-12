@@ -212,7 +212,6 @@ filesys_remove (const char *pathname)
   bool success = dir_remove (dir, name);
   dir_unlock (dir);
   dir_close (dir);
-  inode_close (inode);
   thread_current()->current_dir = cd;
   return success;
 }
