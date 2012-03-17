@@ -420,32 +420,40 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
   //grow inode if necessary
   
-  if (offset + size > inode->length)
+  if (offset + size > inode->max_read_length)
   {
     // int num_blocks_to_add = bytes_to_sectors (offset + size ) - bytes_to_sectors (inode_length (inode));
     // if (num_blocks_to_add > 0)
     // {
     extending = true;
     lock_acquire (&inode->extend_lock);
-    int num_blocks_to_add = bytes_to_sectors (offset + size ) - bytes_to_sectors (inode_length (inode));
-    if (num_blocks_to_add > 0)
+    if (offset + size > inode->max_read_length)
     {
-      if (!inode_extend(inode, num_blocks_to_add))
+      int num_blocks_to_add = bytes_to_sectors (offset + size ) - bytes_to_sectors (inode_length (inode));
+      if (num_blocks_to_add > 0)
       {
-        lock_release (&inode->extend_lock);
-        return 0;
+        if (!inode_extend(inode, num_blocks_to_add))
+        {
+          lock_release (&inode->extend_lock);
+          return 0;
+        }
       }
-    }
-    // inode->max_read_length = inode->length;
-    inode->length = offset + size ;
-    // lock_release (&inode->extend_lock);
-    // }
-    // inode->length = offset + size ;
+      // inode->max_read_length = inode->length;
+      inode->length = offset + size ;
+      // lock_release (&inode->extend_lock);
+      // }
+      // inode->length = offset + size ;
 
-    uint8_t buf[BLOCK_SECTOR_SIZE];
-    memset (buf, 0, BLOCK_SECTOR_SIZE);
-    memcpy (buf, inode, sizeof (*inode));
-    block_write (fs_device, inode->sector, buf);
+      uint8_t buf[BLOCK_SECTOR_SIZE];
+      memset (buf, 0, BLOCK_SECTOR_SIZE);
+      memcpy (buf, inode, sizeof (*inode));
+      block_write (fs_device, inode->sector, buf);
+    }
+    else
+    {
+      extending = false;
+      lock_release (&inode->extend_lock);
+    }
   }
 
   while (size > 0) 
