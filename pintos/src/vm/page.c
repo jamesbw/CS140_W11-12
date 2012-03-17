@@ -215,16 +215,16 @@ page_in (struct page *supp_page)
   {
     case EXECUTABLE:
     case MMAPPED:
-      lock_acquire (&filesys_lock);
+      // lock_acquire (&filesys_lock);
       file_seek (supp_page->file, supp_page->offset);
       file_read (supp_page->file, supp_page->paddr, supp_page->valid_bytes);
-      lock_release (&filesys_lock);
+      // lock_release (&filesys_lock);
       memset (supp_page->paddr + supp_page->valid_bytes, 0, PGSIZE - supp_page->valid_bytes);
       break;
     case SWAP:
-      lock_acquire (&filesys_lock);
+      // lock_acquire (&filesys_lock);
       swap_read_page (supp_page->swap_slot, supp_page->paddr);
-      lock_release (&filesys_lock);
+      // lock_release (&filesys_lock);
       swap_free (supp_page->swap_slot);
       supp_page->swap_slot = -1;
       break;

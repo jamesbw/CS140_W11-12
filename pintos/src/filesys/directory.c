@@ -411,6 +411,9 @@ dir_get_num_entries (struct dir *dir)
 {
   int count = 0;
   off_t saved_pos = dir->pos;
+  if (inode_is_removed(dir_get_inode(dir))) {
+      return 0;
+  }
 
   struct dir_entry e;
 
